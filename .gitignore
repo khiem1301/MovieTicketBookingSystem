@@ -43,3 +43,6 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Local environment (mỗi máy tự tạo từ .example) ###
+src/main/resources/database.properties

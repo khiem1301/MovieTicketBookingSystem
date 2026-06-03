@@ -1,0 +1,9 @@
+# Sao chép file này thành database.properties và chỉnh theo máy của bạn.
+# Windows: chạy scripts\setup.bat
+# Hoặc: copy src\main\resources\database.properties.example src\main\resources\database.properties
+
+db.server=localhost
+db.port=1433
+db.name=MovieTicketDB
+db.username=sa
+db.password=YOUR_PASSWORD_HERE
