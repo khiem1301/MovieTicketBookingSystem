@@ -286,25 +286,6 @@ ul { list-style: none; }
   font-size: 16px;
 }
 
-/* Đánh giá: click-toggle dropdown (JS thêm class .open) */
-.nav-item--click .dropdown-menu {
-  /* override hover trigger — JS điều khiển */
-  pointer-events: none;
-}
-.nav-item--click.open .dropdown-menu {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  pointer-events: auto;
-}
-/* Khi hover nav item thường vẫn dùng CSS, click item dùng JS .open */
-.nav-item--click:hover .dropdown-menu {
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-8px);
-}
-
-
 /* ════════════════════════════════════════════════════════════
    HERO SECTION
    ════════════════════════════════════════════════════════════ */
