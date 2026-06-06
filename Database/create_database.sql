@@ -698,8 +698,8 @@ INSERT INTO Roles (id, role_name, description) VALUES
     ('11111111-1111-1111-1111-111111111104', 'CUSTOMER', N'Khách hàng đặt vé online');
 GO
 
--- BCrypt hash cua mat khau: Password@123
-DECLARE @DefaultPasswordHash NVARCHAR(255) = '$2b$10$cQtXPt5hVH2nDDhuXFDxQ.aKttyB7S7/6jR.xyULrEfcnUFA8UCM6';
+-- BCrypt hash cua mat khau: Password@123 (prefix $2a$ — tuong thich jbcrypt)
+DECLARE @DefaultPasswordHash NVARCHAR(255) = '$2a$10$cQtXPt5hVH2nDDhuXFDxQ.aKttyB7S7/6jR.xyULrEfcnUFA8UCM6';
 
 INSERT INTO Users (
     id, role_id, email, username, phone_number,
