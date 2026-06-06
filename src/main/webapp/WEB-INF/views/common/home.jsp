@@ -5,6 +5,14 @@
 <c:set var="pageTitle" value="ÉPCINE — Đặt vé xem phim"/>
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 
+<c:if test="${param.logout == 'success'}">
+  <div class="container" style="padding-top:16px;">
+    <div style="padding:11px 14px;border-radius:8px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.35);color:#a5d6a7;font-size:14px;">
+      Đăng xuất thành công.
+    </div>
+  </div>
+</c:if>
+
 <%-- DEBUG BANNER: chỉ hiện khi DB lỗi — xóa sau khi fix xong --%>
 <c:if test="${not empty dbError}">
   <div style="background:#b71c1c;color:#fff;padding:10px 20px;font-size:13px;font-family:monospace;position:fixed;bottom:0;left:0;right:0;z-index:9999;word-break:break-all;">
