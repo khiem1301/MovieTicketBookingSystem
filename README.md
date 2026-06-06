@@ -181,7 +181,8 @@ target/MovieTicketBookingSystem-1.0-SNAPSHOT.war
 
 | Lỗi                           | Cách xử lý                                                   |
 | ----------------------------- | ------------------------------------------------------------ |
-| `Missing database.properties` | Chạy `scripts\setup.bat`                                     |
+| `Missing database.properties` | Chạy `scripts\restore-database-properties.bat` hoặc `scripts\setup.bat` |
+| Pull xong mất `database.properties` | Chạy `scripts\restore-database-properties.bat` (xem mục Git Pull bên dưới) |
 | Login failed for user `sa`    | Kiểm tra mật khẩu, bật Mixed Mode trong SQL Server           |
 | Cannot open database          | Chạy `create_database.sql` hoặc sửa `db.name` cho khớp       |
 | Driver not found              | `mvn clean package` để tải dependency JDBC                   |
@@ -193,10 +194,66 @@ target/MovieTicketBookingSystem-1.0-SNAPSHOT.war
 ## Checklist thành viên mới
 
 - Clone repo
+- Chạy `scripts\install-git-hooks.bat` (một lần — tự khôi phục `database.properties` sau pull)
 - Chạy `scripts\setup.bat`, sửa `db.server` và `db.password`
+- Chạy `scripts\backup-database-properties.bat` (lưu backup mật khẩu local)
 - Chạy `Database/create_database.sql`
 - `mvn clean package` (hoặc Build trong IDE)
 - Cấu hình Tomcat 10 và chạy WAR
+
+---
+
+## `database.properties` và Git Pull
+
+### Vì sao pull từ `master` làm file biến mất?
+
+Trước đây `database.properties` **đã từng được commit** lên Git. Commit sau đó **xóa file khỏi repo** (đúng — vì chứa mật khẩu).
+
+Khi bạn `git pull`, Git đồng bộ working tree → **xóa luôn file trên máy** vì remote không còn file đó nữa.
+
+Đây **không phải lỗi** — `.gitignore` chỉ ngăn commit mới, **không ngăn Git xóa file** khi pull commit "delete file".
+
+Trên `origin/master` hiện **chỉ còn** `database.properties.example`.
+
+### Cách xử lý (chọn 1)
+
+**Cách 1 — Khuyến nghị: backup trước pull**
+
+```bat
+scripts\backup-database-properties.bat
+git pull origin master
+scripts\restore-database-properties.bat
+```
+
+**Cách 2 — Hook tự động (chạy `install-git-hooks.bat` một lần)**
+
+Sau mỗi `git pull`, hook `post-merge` tự:
+
+1. Khôi phục từ `database.properties.backup` nếu có, hoặc
+2. Tạo mới từ `.example` (cần sửa lại mật khẩu)
+
+**Cách 3 — Thủ công**
+
+```bat
+git pull origin master
+scripts\setup.bat
+```
+
+Rồi sửa lại `db.server` và `db.password`.
+
+### Khôi phục ngay bây giờ
+
+Máy bạn hiện **chưa có** `database.properties`. Chạy:
+
+```bat
+scripts\setup.bat
+```
+
+Sửa `db.server` và `db.password`, sau đó:
+
+```bat
+scripts\backup-database-properties.bat
+```
 
 ---
 
