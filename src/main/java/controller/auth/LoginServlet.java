@@ -3,7 +3,6 @@ package controller.auth;
 import dal.UserDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,9 +18,6 @@ import java.util.Optional;
 public class LoginServlet extends HttpServlet {
 
     private static final String VIEW = "/WEB-INF/views/auth/login.jsp";
-    private static final String COOKIE_REMEMBER = "epcine_remember_id";
-    private static final int REMEMBER_MAX_AGE = 30 * 24 * 60 * 60;
-
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
@@ -32,7 +28,7 @@ public class LoginServlet extends HttpServlet {
             return;
         }
 
-        String remembered = readRememberCookie(req);
+        String remembered = SessionUtil.readRememberCookie(req);
         if (remembered != null) {
             req.setAttribute("identifier", remembered);
             req.setAttribute("rememberMe", true);
@@ -86,7 +82,11 @@ public class LoginServlet extends HttpServlet {
 
             userDAO.updateLastLoginAt(user.getId());
             SessionUtil.setLoggedIn(req, user);
-            handleRememberCookie(resp, rememberMe, identifier);
+            if (rememberMe) {
+                SessionUtil.setRememberCookie(resp, identifier);
+            } else {
+                SessionUtil.clearRememberCookie(resp);
+            }
 
             resp.sendRedirect(AuthRedirectUtil.resolvePostLoginRedirect(req, user.getRoleName()));
 
@@ -100,28 +100,6 @@ public class LoginServlet extends HttpServlet {
             throws ServletException, IOException {
         req.setAttribute("errorMessage", errorMessage);
         req.getRequestDispatcher(VIEW).forward(req, resp);
-    }
-
-    private void handleRememberCookie(HttpServletResponse resp, boolean rememberMe, String identifier) {
-        Cookie cookie = new Cookie(COOKIE_REMEMBER, rememberMe ? identifier : "");
-        cookie.setPath("/");
-        cookie.setMaxAge(rememberMe ? REMEMBER_MAX_AGE : 0);
-        cookie.setHttpOnly(true);
-        resp.addCookie(cookie);
-    }
-
-    private String readRememberCookie(HttpServletRequest req) {
-        Cookie[] cookies = req.getCookies();
-        if (cookies == null) {
-            return null;
-        }
-        for (Cookie cookie : cookies) {
-            if (COOKIE_REMEMBER.equals(cookie.getName())) {
-                String value = cookie.getValue();
-                return (value != null && !value.isBlank()) ? value : null;
-            }
-        }
-        return null;
     }
 
     private String trim(String value) {

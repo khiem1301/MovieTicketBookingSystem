@@ -34,6 +34,12 @@
         </div>
       </c:if>
 
+      <c:if test="${param.logout == 'success'}">
+        <div class="auth-alert auth-alert--success" role="status">
+          Đăng xuất thành công. Vui lòng đăng nhập lại nếu cần.
+        </div>
+      </c:if>
+
       <form class="auth-form" action="${pageContext.request.contextPath}/login" method="post" novalidate>
         <c:if test="${not empty param.redirect}">
           <input type="hidden" name="redirect" value="<c:out value='${param.redirect}'/>"/>
