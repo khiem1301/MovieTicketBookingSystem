@@ -1,1 +1,97 @@
-/* Static styles — bổ sung theo từng màn hình */
+/* Layout chung */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: #1a1a1a;
+    background: #f7f7f7;
+}
+
+.container {
+    width: min(1100px, 100% - 2rem);
+    margin-inline: auto;
+}
+
+.site-header {
+    background: #111;
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 60, 60, 0.35);
+}
+
+.site-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 64px;
+}
+
+.logo {
+    color: #ff3b3b;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+}
+
+.site-nav {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.85rem 1.1rem;
+    font-size: 0.92rem;
+}
+
+.site-nav a {
+    color: #f0f0f0;
+    text-decoration: none;
+}
+
+.site-nav a:hover {
+    color: #ff6a6a;
+}
+
+.site-nav__user {
+    color: #d0d0d0;
+    margin-right: 0.25rem;
+}
+
+.site-nav__role {
+    color: #9a9a9a;
+    font-size: 0.82rem;
+}
+
+.site-nav__logout {
+    color: #ffb4b4;
+}
+
+.site-main {
+    padding: 2rem 0 3rem;
+}
+
+.site-footer {
+    background: #111;
+    color: #bdbdbd;
+    padding: 1.25rem 0;
+    font-size: 0.88rem;
+}
+
+.error-page h1 {
+    margin-top: 0;
+}
+
+.error-detail {
+    color: #666;
+}
+
+.btn-link {
+    display: inline-block;
+    margin-top: 0.75rem;
+    color: #d32f2f;
+    text-decoration: none;
+    font-weight: 600;
+}
