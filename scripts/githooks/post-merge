@@ -1,0 +1,28 @@
+#!/bin/sh
+# Tu dong tao database.properties sau pull/merge neu file bi xoa khoi working tree.
+# Khong ghi de neu file da ton tai.
+
+PROPS="src/main/resources/database.properties"
+EXAMPLE="src/main/resources/database.properties.example"
+BACKUP="src/main/resources/database.properties.backup"
+
+if [ -f "$PROPS" ]; then
+  exit 0
+fi
+
+if [ -f "$BACKUP" ]; then
+  cp "$BACKUP" "$PROPS"
+  echo ""
+  echo "[post-merge] Da khoi phuc $PROPS tu database.properties.backup"
+  exit 0
+fi
+
+if [ -f "$EXAMPLE" ]; then
+  cp "$EXAMPLE" "$PROPS"
+  echo ""
+  echo "[post-merge] Da tao $PROPS tu .example"
+  echo "             Hay sua db.server va db.password trong file nay."
+  echo ""
+fi
+
+exit 0
