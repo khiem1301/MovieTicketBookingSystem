@@ -5,7 +5,7 @@
 -- ============================================================
 -- Luu y:
 --   - UUID     -> UNIQUEIDENTIFIER + DEFAULT NEWID()
---   - ENUM     -> VARCHAR + CHECK constraint
+--   - ENUM     -> NVARCHAR + CHECK constraint
 --   - BOOLEAN  -> BIT
 --   - TEXT     -> NVARCHAR(MAX)
 --   - TIMESTAMP-> DATETIME2
@@ -66,8 +66,8 @@ GO
 -- ------------------------------------------------------------
 CREATE TABLE Roles (
     id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
-    role_name   VARCHAR(50)      NOT NULL,
-    description VARCHAR(255)     NULL,
+    role_name   NVARCHAR(50)      NOT NULL,
+    description NVARCHAR(255)     NULL,
     created_at  DATETIME2        NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT PK_Roles      PRIMARY KEY (id),
@@ -82,14 +82,14 @@ GO
 CREATE TABLE Users (
     id             UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     role_id        UNIQUEIDENTIFIER NOT NULL,
-    email          VARCHAR(255)     NULL,
-    username       VARCHAR(100)     NULL,
-    phone_number   VARCHAR(20)      NULL,
-    password_hash  VARCHAR(255)     NOT NULL,
+    email          NVARCHAR(255)     NULL,
+    username       NVARCHAR(100)     NULL,
+    phone_number   NVARCHAR(20)      NULL,
+    password_hash  NVARCHAR(255)     NOT NULL,
     full_name      NVARCHAR(255)    NOT NULL,
     date_of_birth  DATE             NOT NULL,
     avatar_url     NVARCHAR(MAX)    NULL,
-    status         VARCHAR(20)      NOT NULL DEFAULT 'ACTIVE',
+    status         NVARCHAR(20)      NOT NULL DEFAULT 'ACTIVE',
     loyalty_points INT              NOT NULL DEFAULT 0,
     last_login_at  DATETIME2        NULL,
     created_at     DATETIME2        NOT NULL DEFAULT GETDATE(),
@@ -112,7 +112,7 @@ GO
 CREATE TABLE PasswordResetTokens (
     id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     user_id    UNIQUEIDENTIFIER NOT NULL,
-    token      VARCHAR(255)     NOT NULL,
+    token      NVARCHAR(255)     NOT NULL,
     expired_at DATETIME2        NOT NULL,
     used_at    DATETIME2        NULL,
     created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
@@ -131,8 +131,8 @@ GO
 -- 4. SystemConfig
 -- ------------------------------------------------------------
 CREATE TABLE SystemConfig (
-    config_key   VARCHAR(100)     NOT NULL,
-    config_value VARCHAR(500)     NOT NULL,
+    config_key   NVARCHAR(100)     NOT NULL,
+    config_value NVARCHAR(500)     NOT NULL,
     description  NVARCHAR(255)    NULL,
     updated_by   UNIQUEIDENTIFIER NULL,
     updated_at   DATETIME2        NOT NULL DEFAULT GETDATE(),
@@ -151,7 +151,7 @@ CREATE TABLE VatRules (
     vat_rate   DECIMAL(5,2)     NOT NULL,
     start_date DATETIME2        NOT NULL,
     end_date   DATETIME2        NULL,
-    status     VARCHAR(10)      NOT NULL DEFAULT 'ACTIVE',
+    status     NVARCHAR(10)      NOT NULL DEFAULT 'ACTIVE',
     created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT PK_VatRules    PRIMARY KEY (id),
@@ -172,8 +172,8 @@ CREATE TABLE CinemaInfo (
     id            UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     name          NVARCHAR(255)    NOT NULL,
     address       NVARCHAR(500)    NOT NULL,
-    hotline       VARCHAR(20)      NULL,
-    email         VARCHAR(255)     NULL,
+    hotline       NVARCHAR(20)      NULL,
+    email         NVARCHAR(255)     NULL,
     opening_hours NVARCHAR(100)    NULL,
     description   NVARCHAR(MAX)    NULL,
     created_at    DATETIME2        NOT NULL DEFAULT GETDATE(),
@@ -189,7 +189,7 @@ CREATE TABLE CinemaRooms (
     id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     room_name  NVARCHAR(100)    NOT NULL,
     capacity   INT              NOT NULL DEFAULT 0,
-    status     VARCHAR(20)      NOT NULL DEFAULT 'ACTIVE',
+    status     NVARCHAR(20)      NOT NULL DEFAULT 'ACTIVE',
     created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT PK_CinemaRooms        PRIMARY KEY (id),
@@ -204,7 +204,7 @@ GO
 -- ------------------------------------------------------------
 CREATE TABLE SeatTypes (
     id               UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
-    type_name        VARCHAR(50)      NOT NULL,
+    type_name        NVARCHAR(50)      NOT NULL,
     price_multiplier DECIMAL(5,2)     NOT NULL DEFAULT 1.00,
     description      NVARCHAR(MAX)    NULL,
 
@@ -221,10 +221,10 @@ CREATE TABLE Seats (
     id           UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     room_id      UNIQUEIDENTIFIER NOT NULL,
     seat_type_id UNIQUEIDENTIFIER NOT NULL,
-    seat_row     VARCHAR(10)      NOT NULL,
+    seat_row     NVARCHAR(10)      NOT NULL,
     seat_column  INT              NOT NULL,
-    seat_code    VARCHAR(20)      NOT NULL,
-    status       VARCHAR(10)      NOT NULL DEFAULT 'ACTIVE',
+    seat_code    NVARCHAR(20)      NOT NULL,
+    status       NVARCHAR(10)      NOT NULL DEFAULT 'ACTIVE',
 
     CONSTRAINT PK_Seats         PRIMARY KEY (id),
     CONSTRAINT FK_Seats_Room    FOREIGN KEY (room_id)      REFERENCES CinemaRooms(id),
@@ -245,7 +245,7 @@ GO
 CREATE TABLE Movies (
     id               UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     title            NVARCHAR(255)    NOT NULL,
-    slug             VARCHAR(255)     NOT NULL,
+    slug             NVARCHAR(255)     NOT NULL,
     description      NVARCHAR(MAX)    NULL,
     duration_minutes INT              NOT NULL,
     release_date     DATE             NULL,
@@ -255,8 +255,8 @@ CREATE TABLE Movies (
     cast_members     NVARCHAR(MAX)    NULL,
     language         NVARCHAR(50)     NULL,
     subtitle         NVARCHAR(50)     NULL,
-    age_rating       VARCHAR(10)      NULL,
-    status           VARCHAR(20)      NOT NULL DEFAULT 'COMING_SOON',
+    age_rating       NVARCHAR(10)      NULL,
+    status           NVARCHAR(20)      NOT NULL DEFAULT 'COMING_SOON',
     average_rating   DECIMAL(3,2)     NULL     DEFAULT 0.00,
     created_at       DATETIME2        NOT NULL DEFAULT GETDATE(),
 
@@ -328,7 +328,7 @@ CREATE TABLE Showtimes (
     start_time DATETIME2        NOT NULL,
     end_time   DATETIME2        NOT NULL,
     base_price DECIMAL(12,2)    NOT NULL,
-    status     VARCHAR(20)      NOT NULL DEFAULT 'SCHEDULED',
+    status     NVARCHAR(20)      NOT NULL DEFAULT 'SCHEDULED',
     created_by UNIQUEIDENTIFIER NOT NULL,
     created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
 
@@ -348,16 +348,16 @@ GO
 CREATE TABLE PricingRules (
     id               UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     rule_name        NVARCHAR(100)    NOT NULL,
-    condition_type   VARCHAR(20)      NOT NULL,
-    day_of_week      VARCHAR(20)      NULL,
+    condition_type   NVARCHAR(20)      NOT NULL,
+    day_of_week      NVARCHAR(20)      NULL,
     time_from        TIME             NULL,
     time_to          TIME             NULL,
     date_from        DATE             NULL,
     date_to          DATE             NULL,
-    adjustment_type  VARCHAR(20)      NOT NULL,
+    adjustment_type  NVARCHAR(20)      NOT NULL,
     adjustment_value DECIMAL(10,2)    NOT NULL,
     priority         INT              NOT NULL DEFAULT 0,
-    status           VARCHAR(10)      NOT NULL DEFAULT 'ACTIVE',
+    status           NVARCHAR(10)      NOT NULL DEFAULT 'ACTIVE',
     created_by       UNIQUEIDENTIFIER NOT NULL,
     created_at       DATETIME2        NOT NULL DEFAULT GETDATE(),
 
@@ -397,19 +397,19 @@ GO
 -- ------------------------------------------------------------
 CREATE TABLE Bookings (
     id                   UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
-    booking_code         VARCHAR(50)      NOT NULL,
+    booking_code         NVARCHAR(50)      NOT NULL,
     user_id              UNIQUEIDENTIFIER NULL,
     showtime_id          UNIQUEIDENTIFIER NOT NULL,
-    booking_source       VARCHAR(10)      NOT NULL,
+    booking_source       NVARCHAR(10)      NOT NULL,
     created_by_staff_id  UNIQUEIDENTIFIER NULL,
     customer_name        NVARCHAR(255)    NULL,
-    customer_phone       VARCHAR(20)      NULL,
+    customer_phone       NVARCHAR(20)      NULL,
     vat_rate_snapshot    DECIMAL(5,2)     NOT NULL,
     total_amount         DECIMAL(12,2)    NOT NULL DEFAULT 0,
     discount_amount      DECIMAL(12,2)    NOT NULL DEFAULT 0,
     final_amount         DECIMAL(12,2)    NOT NULL DEFAULT 0,
-    booking_status       VARCHAR(20)      NOT NULL DEFAULT 'PENDING',
-    payment_status       VARCHAR(10)      NOT NULL DEFAULT 'UNPAID',
+    booking_status       NVARCHAR(20)      NOT NULL DEFAULT 'PENDING',
+    payment_status       NVARCHAR(10)      NOT NULL DEFAULT 'UNPAID',
     booked_at            DATETIME2        NOT NULL DEFAULT GETDATE(),
     expired_at           DATETIME2        NULL,
 
@@ -457,13 +457,13 @@ GO
 CREATE TABLE Payments (
     id               UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     booking_id       UNIQUEIDENTIFIER NOT NULL,
-    payment_method   VARCHAR(20)      NOT NULL,
-    payment_source   VARCHAR(10)      NOT NULL,
-    transaction_code VARCHAR(255)     NULL,
+    payment_method   NVARCHAR(20)      NOT NULL,
+    payment_source   NVARCHAR(10)      NOT NULL,
+    transaction_code NVARCHAR(255)     NULL,
     amount           DECIMAL(12,2)    NOT NULL,
     cash_received    DECIMAL(12,2)    NULL,
     change_amount    DECIMAL(12,2)    NULL,
-    payment_status   VARCHAR(10)      NOT NULL DEFAULT 'PENDING',
+    payment_status   NVARCHAR(10)      NOT NULL DEFAULT 'PENDING',
     paid_at          DATETIME2        NULL,
     created_at       DATETIME2        NOT NULL DEFAULT GETDATE(),
 
@@ -487,10 +487,10 @@ GO
 -- ------------------------------------------------------------
 CREATE TABLE Promotions (
     id                  UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
-    code                VARCHAR(50)      NOT NULL,
+    code                NVARCHAR(50)      NOT NULL,
     title               NVARCHAR(255)    NOT NULL,
     description         NVARCHAR(MAX)    NULL,
-    discount_type       VARCHAR(20)      NOT NULL,
+    discount_type       NVARCHAR(20)      NOT NULL,
     discount_value      DECIMAL(12,2)    NOT NULL,
     max_discount_amount DECIMAL(12,2)    NULL,
     min_order_amount    DECIMAL(12,2)    NULL,
@@ -498,7 +498,7 @@ CREATE TABLE Promotions (
     end_date            DATETIME2        NOT NULL,
     usage_limit         INT              NULL,
     used_count          INT              NOT NULL DEFAULT 0,
-    status              VARCHAR(10)      NOT NULL DEFAULT 'ACTIVE',
+    status              NVARCHAR(10)      NOT NULL DEFAULT 'ACTIVE',
     created_at          DATETIME2        NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT PK_Promotions         PRIMARY KEY (id),
@@ -538,7 +538,7 @@ GO
 CREATE TABLE Tickets (
     id              UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     booking_seat_id UNIQUEIDENTIFIER NOT NULL,
-    ticket_code     VARCHAR(100)     NOT NULL,
+    ticket_code     NVARCHAR(100)     NOT NULL,
     qr_code         NVARCHAR(MAX)    NULL,
     is_printed      BIT              NOT NULL DEFAULT 0,
     issued_at       DATETIME2        NOT NULL DEFAULT GETDATE(),
@@ -562,7 +562,7 @@ CREATE TABLE LoyaltyPointsLog (
     user_id          UNIQUEIDENTIFIER NOT NULL,
     booking_id       UNIQUEIDENTIFIER NULL,
     points_delta     INT              NOT NULL,
-    transaction_type VARCHAR(20)      NOT NULL,
+    transaction_type NVARCHAR(20)      NOT NULL,
     note             NVARCHAR(255)    NULL,
     created_at       DATETIME2        NOT NULL DEFAULT GETDATE(),
 
@@ -587,7 +587,7 @@ CREATE TABLE ShowtimeIncidents (
     showtime_id                  UNIQUEIDENTIFIER NOT NULL,
     description                  NVARCHAR(MAX)    NOT NULL,
     refund_points_rate           DECIMAL(3,2)     NOT NULL DEFAULT 1.00,
-    compensation_discount_type   VARCHAR(20)      NOT NULL,
+    compensation_discount_type   NVARCHAR(20)      NOT NULL,
     compensation_discount_value  DECIMAL(12,2)    NOT NULL,
     compensation_valid_days      INT              NOT NULL DEFAULT 30,
     processed_at                 DATETIME2        NULL,
@@ -615,7 +615,7 @@ GO
 CREATE TABLE ChatbotConversations (
     id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     user_id    UNIQUEIDENTIFIER NOT NULL,
-    session_id VARCHAR(255)     NOT NULL,
+    session_id NVARCHAR(255)     NOT NULL,
     created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT PK_ChatbotConversations PRIMARY KEY (id),
@@ -629,7 +629,7 @@ GO
 CREATE TABLE ChatbotMessages (
     id              UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     conversation_id UNIQUEIDENTIFIER NOT NULL,
-    sender_type     VARCHAR(5)       NOT NULL,
+    sender_type     NVARCHAR(5)       NOT NULL,
     message_content NVARCHAR(MAX)    NOT NULL,
     created_at      DATETIME2        NOT NULL DEFAULT GETDATE(),
 
@@ -695,7 +695,7 @@ INSERT INTO Roles (id, role_name, description) VALUES
 GO
 
 -- BCrypt hash cua mat khau: Password@123
-DECLARE @DefaultPasswordHash VARCHAR(255) = '$2b$10$cQtXPt5hVH2nDDhuXFDxQ.aKttyB7S7/6jR.xyULrEfcnUFA8UCM6';
+DECLARE @DefaultPasswordHash NVARCHAR(255) = '$2b$10$cQtXPt5hVH2nDDhuXFDxQ.aKttyB7S7/6jR.xyULrEfcnUFA8UCM6';
 
 INSERT INTO Users (
     id, role_id, email, username, phone_number,
