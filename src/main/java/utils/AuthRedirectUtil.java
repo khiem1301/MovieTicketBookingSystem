@@ -22,13 +22,9 @@ public final class AuthRedirectUtil {
     }
 
     public static String defaultRedirectForRole(HttpServletRequest req, String role) {
-        String ctx = req.getContextPath();
-        return switch (role) {
-            case "STAFF"   -> ctx + "/staff/counter";
-            case "MANAGER" -> ctx + "/manager/dashboard";
-            case "ADMIN"   -> ctx + "/admin/users";
-            default        -> ctx + "/home";
-        };
+        // Tạm redirect về /home cho mọi role; menu header phân biệt theo userRole.
+        // Khi có trang STAFF/MANAGER/ADMIN riêng, cập nhật switch tại đây.
+        return req.getContextPath() + "/home";
     }
 
     public static boolean isSafeRedirect(String redirect) {
