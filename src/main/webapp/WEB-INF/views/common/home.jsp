@@ -17,6 +17,18 @@
      ══════════════════════════════════════════════════ -->
 <section class="hero">
 
+  <%-- Nền full màn: backdrop_url (ảnh ngang), fallback poster_url --%>
+  <div class="hero-bg">
+    <c:if test="${not empty featuredMovies}">
+      <c:set var="firstBg" value="${not empty featuredMovies[0].backdropUrl ? featuredMovies[0].backdropUrl : featuredMovies[0].posterUrl}"/>
+      <img class="hero-bg-img"
+           src="<c:out value='${firstBg}'/>"
+           alt=""
+           data-fallback="<c:out value='${featuredMovies[0].posterUrl}'/>"/>
+    </c:if>
+  </div>
+  <div class="hero-bg-overlay"></div>
+
   <c:choose>
     <c:when test="${not empty featuredMovies}">
       <c:forEach var="movie" items="${featuredMovies}" varStatus="loop">
@@ -76,18 +88,22 @@
 
             </div>
 
-            <%-- Right: ảnh backdrop ngang, cùng hàng với phần giới thiệu --%>
-            <div class="hero-backdrop">
-              <c:choose>
-                <c:when test="${not empty bg}">
-                  <img class="hero-backdrop-img"
-                       src="<c:out value='${bg}'/>"
-                       alt="<c:out value='${movie.title}'/>"/>
-                </c:when>
-                <c:otherwise>
-                  <div class="hero-backdrop-placeholder">🎬</div>
-                </c:otherwise>
-              </c:choose>
+            <%-- Right: phone mockup hiển thị poster --%>
+            <div class="hero-visual">
+              <div class="phone-wrap">
+                <div class="phone-frame">
+                  <c:choose>
+                    <c:when test="${not empty movie.posterUrl}">
+                      <img src="<c:out value='${movie.posterUrl}'/>"
+                           alt="<c:out value='${movie.title}'/>"/>
+                    </c:when>
+                    <c:otherwise>
+                      <div class="poster-placeholder">🎬</div>
+                    </c:otherwise>
+                  </c:choose>
+                </div>
+                <div class="phone-glow"></div>
+              </div>
             </div>
 
           </div><%-- /hero-inner --%>
@@ -122,8 +138,13 @@
             </a>
           </div>
         </div>
-        <div class="hero-backdrop">
-          <div class="hero-backdrop-placeholder">🎬</div>
+        <div class="hero-visual">
+          <div class="phone-wrap">
+            <div class="phone-frame">
+              <div class="poster-placeholder">🎬</div>
+            </div>
+            <div class="phone-glow"></div>
+          </div>
         </div>
       </div>
     </c:otherwise>

@@ -93,7 +93,7 @@ USING (VALUES
         150, CAST('2026-05-01' AS DATE),
         'https://www.youtube.com/watch?v=sOEg_YZQsTI',
         'https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg',
-        'https://image.tmdb.org/t/p/w1280/wr7l2t38C5sNYQwJMbVBiETVJzZ.jpg',
+        'https://image.tmdb.org/t/p/w1280/or06FN3Dka5tukK1e9sl16pB3iy.jpg',
         N'Joe Russo, Anthony Russo',
         N'Robert Downey Jr., Chris Evans, Scarlett Johansson',
         N'Tiếng Anh', N'Phụ đề Việt', 'T13', 'NOW_SHOWING', 4.80
@@ -105,7 +105,7 @@ USING (VALUES
         163, CAST('2026-05-21' AS DATE),
         'https://www.youtube.com/watch?v=avz06PDqDbM',
         'https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
-        'https://image.tmdb.org/t/p/w1280/NNxYkU70HPurnNCSiCjYAmacwm.jpg',
+        'https://image.tmdb.org/t/p/w1280/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
         N'Christopher McQuarrie',
         N'Tom Cruise, Hayley Atwell, Simon Pegg',
         N'Tiếng Anh', N'Phụ đề Việt', 'T13', 'NOW_SHOWING', 4.50
@@ -117,7 +117,7 @@ USING (VALUES
         108, CAST('2026-05-23' AS DATE),
         'https://www.youtube.com/watch?v=dJWjlMGBJ0c',
         'https://image.tmdb.org/t/p/w500/mGT7gDFqtGpYDERbmMAjUHw3TlC.jpg',
-        'https://image.tmdb.org/t/p/w1280/9Va5VJOBwRBvCOZfNrmK5Dl8q9C.jpg',
+        'https://image.tmdb.org/t/p/w1280/mGT7gDFqtGpYDERbmMAjUHw3TlC.jpg',
         N'Dean Fleischer Camp',
         N'Maia Kealoha, Sydney Agudong, Zach Galifianakis',
         N'Tiếng Anh', N'Lồng tiếng Việt', 'P', 'NOW_SHOWING', 4.20
@@ -129,7 +129,7 @@ USING (VALUES
         118, CAST('2026-04-23' AS DATE),
         'https://www.youtube.com/watch?v=HM9VMExYmGg',
         'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
-        'https://image.tmdb.org/t/p/w1280/6h20XkVx5XS7bOxSnRkGqWQqZtR.jpg',
+        'https://image.tmdb.org/t/p/w1280/74xTEgt7R36Fpooo50r9T25onhq.jpg',
         N'Park Chan-wook',
         N'Sydney Sweeney, Amanda Seyfried, Brandon Sklenar',
         N'Tiếng Anh', N'Phụ đề Việt', 'T18', 'NOW_SHOWING', 4.10
@@ -142,7 +142,7 @@ USING (VALUES
         132, CAST('2026-07-11' AS DATE),
         'https://www.youtube.com/watch?v=mVkTFiXm0Oc',
         'https://image.tmdb.org/t/p/w500/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg',
-        'https://image.tmdb.org/t/p/w1280/jZIYaISP3GBW9tcuu1R7CCXRB0p.jpg',
+        'https://image.tmdb.org/t/p/w1280/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg',
         N'James Gunn',
         N'David Corenswet, Rachel Brosnahan, Nicholas Hoult',
         N'Tiếng Anh', N'Phụ đề Việt', 'T13', 'COMING_SOON', 0.00
@@ -154,7 +154,7 @@ USING (VALUES
         105, CAST('2026-06-27' AS DATE),
         'https://www.youtube.com/watch?v=mQVoABqW2Sg',
         'https://image.tmdb.org/t/p/w500/sv1xJUazXeYqALzczSZ3O6nkH75.jpg',
-        'https://image.tmdb.org/t/p/w1280/4v1yx8AzQGJ38kBRFiqpCHtlVaM.jpg',
+        'https://image.tmdb.org/t/p/w1280/sv1xJUazXeYqALzczSZ3O6nkH75.jpg',
         N'Dean DeBlois',
         N'Mason Thames, Nico Parker, Gerard Butler',
         N'Tiếng Anh', N'Lồng tiếng Việt', 'P', 'COMING_SOON', 0.00
@@ -166,7 +166,7 @@ USING (VALUES
         119, CAST('2026-07-02' AS DATE),
         'https://www.youtube.com/watch?v=jlHBVhBFDso',
         'https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
-        'https://image.tmdb.org/t/p/w1280/dR1Ju50iudrOh3YgfwkAU3LFOx5.jpg',
+        'https://image.tmdb.org/t/p/w1280/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
         N'Gareth Edwards',
         N'Scarlett Johansson, Jonathan Bailey, Mahershala Ali',
         N'Tiếng Anh', N'Phụ đề Việt', 'T13', 'COMING_SOON', 0.00
@@ -178,7 +178,7 @@ USING (VALUES
         125, CAST('2026-08-15' AS DATE),
         'https://www.youtube.com/watch?v=A4xwi5e0MCw',
         'https://image.tmdb.org/t/p/w500/4lpDsI4jYgJv7x9bvvUBXLHQSRi.jpg',
-        'https://image.tmdb.org/t/p/w1280/eI3veHGT6PJ3g3F5hBEt9BKoNcL.jpg',
+        'https://image.tmdb.org/t/p/w1280/4lpDsI4jYgJv7x9bvvUBXLHQSRi.jpg',
         N'Victor Vũ',
         N'Thịnh Vinh, Đào Duy Phước, Lê Thị Duyên',
         N'Tiếng Việt', NULL, 'P', 'COMING_SOON', 0.00
@@ -245,6 +245,33 @@ WHEN NOT MATCHED THEN
     INSERT (movie_id, genre_id) VALUES (src.movie_id, src.genre_id);
 
 PRINT N'[OK] MovieGenres done';
+GO
+
+-- ============================================================
+-- BƯỚC 6: Sửa backdrop_url (URL cũ trên TMDB hay bị 404)
+-- Chạy mỗi lần migration để đảm bảo ảnh nền hero hiển thị được
+-- ============================================================
+PRINT N'[...] Fix backdrop_url';
+GO
+
+UPDATE Movies SET backdrop_url = 'https://image.tmdb.org/t/p/w1280/or06FN3Dka5tukK1e9sl16pB3iy.jpg'
+WHERE id = 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA101';
+UPDATE Movies SET backdrop_url = 'https://image.tmdb.org/t/p/w1280/62HCnUTziyWcpDaBO2i1DX17ljH.jpg'
+WHERE id = 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA102';
+UPDATE Movies SET backdrop_url = 'https://image.tmdb.org/t/p/w1280/mGT7gDFqtGpYDERbmMAjUHw3TlC.jpg'
+WHERE id = 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA103';
+UPDATE Movies SET backdrop_url = 'https://image.tmdb.org/t/p/w1280/74xTEgt7R36Fpooo50r9T25onhq.jpg'
+WHERE id = 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA104';
+UPDATE Movies SET backdrop_url = 'https://image.tmdb.org/t/p/w1280/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg'
+WHERE id = 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA105';
+UPDATE Movies SET backdrop_url = 'https://image.tmdb.org/t/p/w1280/sv1xJUazXeYqALzczSZ3O6nkH75.jpg'
+WHERE id = 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA106';
+UPDATE Movies SET backdrop_url = 'https://image.tmdb.org/t/p/w1280/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg'
+WHERE id = 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA107';
+UPDATE Movies SET backdrop_url = 'https://image.tmdb.org/t/p/w1280/4lpDsI4jYgJv7x9bvvUBXLHQSRi.jpg'
+WHERE id = 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA108';
+
+PRINT N'[OK] backdrop_url fixed';
 GO
 
 -- ============================================================

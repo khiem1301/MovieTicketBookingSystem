@@ -56,23 +56,39 @@ function initClickDropdowns() {
   });
 }
 
+/* ── Hero background: hiển thị ngay, backdrop lỗi thì fallback poster ── */
+function setHeroBackground(heroImg, backdrop, poster) {
+  if (!heroImg) return;
+  const fallback = poster || backdrop;
+  if (!fallback) return;
+
+  // Hiển thị ngay để tránh nền đen khi chờ load
+  heroImg.src = backdrop || poster;
+  heroImg.onerror = () => {
+    if (poster && heroImg.src !== poster) heroImg.src = poster;
+  };
+
+  if (!backdrop || backdrop === poster) return;
+
+  const probe = new Image();
+  probe.onload = () => { heroImg.src = backdrop; };
+  probe.onerror = () => { if (poster) heroImg.src = poster; };
+  probe.src = backdrop;
+}
+
 /* ── Hero Slider ─────────────────────────────────────────────── */
 function initHeroSlider() {
-  const slides = document.querySelectorAll('.hero-slide');
-  const dots   = document.querySelectorAll('.dot');
+  const slides   = document.querySelectorAll('.hero-slide');
+  const dots     = document.querySelectorAll('.dot');
+  const heroImg  = document.querySelector('.hero-bg-img');
+  const phoneImg = document.querySelector('.phone-frame img');
 
   if (!slides.length) return;
 
-  slides.forEach(slide => {
-    const img = slide.querySelector('.hero-backdrop-img');
-    if (!img) return;
-    const backdrop = slide.dataset.backdrop || '';
-    const poster   = slide.dataset.poster   || '';
-    if (!backdrop || backdrop === poster) return;
-    const probe = new Image();
-    probe.onerror = () => { if (poster) img.src = poster; };
-    probe.src = backdrop;
-  });
+  if (heroImg?.dataset.fallback) {
+    const fb = heroImg.dataset.fallback;
+    heroImg.onerror = () => { if (heroImg.src !== fb) heroImg.src = fb; };
+  }
 
   let current = 0;
   let timer   = null;
@@ -90,6 +106,14 @@ function initHeroSlider() {
     slide.style.display  = 'flex';
     slide.style.position = 'relative';
     dots[current]?.classList.add('active');
+
+    const backdrop = slide.dataset.backdrop || '';
+    const poster   = slide.dataset.poster   || '';
+    setHeroBackground(heroImg, backdrop, poster);
+
+    const slidePoster = slide.querySelector('.phone-frame img');
+    if (slidePoster && poster) slidePoster.src = poster;
+    else if (phoneImg && poster) phoneImg.src = poster;
   }
 
   function startAuto() {
