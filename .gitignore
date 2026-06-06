@@ -47,3 +47,4 @@ build/
 ### Local environment (mỗi máy tự tạo từ .example) ###
 **/database.properties
 !**/database.properties.example
+**/database.properties.backup

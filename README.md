@@ -121,28 +121,98 @@ http://localhost:8080/MovieTicketBookingSystem/
 
 ### Bước 1 — Cấu hình database local
 
-Nháy đúp hoặc chạy:
+File cấu hình kết nối SQL Server nằm tại `src/main/resources/database.properties`. File này **chỉ tồn tại trên máy bạn** — không đưa lên Git (chỉ có `database.properties.example` trên repo).
+
+#### Các script hỗ trợ (`scripts/`)
+
+| Script | Chạy khi nào | Tác dụng |
+|--------|--------------|----------|
+| `install-git-hooks.bat` | **Một lần** sau khi clone | Cài hook Git — tự khôi phục `database.properties` sau mỗi `git pull` |
+| `setup.bat` | Lần đầu / khi chưa có file config | Copy `.example` → `database.properties` (không ghi đè nếu đã có) |
+| `setup.ps1` | Tương đương `setup.bat` | Dùng trong PowerShell |
+| `backup-database-properties.bat` | **Trước** `git pull` | Lưu bản sao → `database.properties.backup` (gitignored) |
+| `restore-database-properties.bat` | **Sau** `git pull` / khi file bị mất | Khôi phục từ `.backup`, hoặc tạo từ `.example` nếu chưa có backup |
+
+PowerShell tương ứng: `.\scripts\setup.ps1`
+
+---
+
+#### A. Lần đầu clone (làm theo thứ tự)
+
+**1.** Cài Git hook (chỉ một lần):
+
+```bat
+scripts\install-git-hooks.bat
+```
+
+**2.** Tạo file cấu hình:
 
 ```bat
 scripts\setup.bat
 ```
 
-Hoặc PowerShell:
-
-```powershell
-.\scripts\setup.ps1
-```
-
-Script sẽ tạo `src/main/resources/database.properties` từ file mẫu `.example` (nếu chưa có).
-
-Sau đó mở `src/main/resources/database.properties` và sửa **2 dòng**:
+**3.** Mở `src/main/resources/database.properties`, sửa **2 dòng**:
 
 ```properties
 db.server=TEN_MAY_SQL_CUA_BAN
 db.password=MAT_KHAU_SA_CUA_BAN
 ```
 
-> **Quan trọng:** `database.properties` chứa mật khẩu SQL — **không được commit lên Git**. Trên repo chỉ có `database.properties.example`.
+Đảm bảo `db.name` trùng script SQL (mặc định `MovieTicketDB`).
+
+**4.** Lưu backup local (giữ mật khẩu sau này):
+
+```bat
+scripts\backup-database-properties.bat
+```
+
+> **Quan trọng:** Không commit `database.properties` hay `database.properties.backup` lên Git.
+
+---
+
+#### B. Mỗi lần `git pull` — tránh mất file cấu hình
+
+Pull từ `master` có thể **xóa** `database.properties` trên máy (vì file này đã bị gỡ khỏi repo). `.gitignore` không ngăn được hành vi đó.
+
+**Cách khuyến nghị — backup thủ công:**
+
+```bat
+scripts\backup-database-properties.bat
+git pull origin master
+scripts\restore-database-properties.bat
+```
+
+**Cách tự động** (nếu đã chạy `install-git-hooks.bat`):
+
+Hook `post-merge` tự chạy sau pull và:
+
+1. Khôi phục từ `database.properties.backup` nếu có, hoặc
+2. Tạo mới từ `.example` → cần sửa lại `db.server` / `db.password`
+
+**Cách thủ công** (khi chưa có backup):
+
+```bat
+git pull origin master
+scripts\setup.bat
+```
+
+Rồi sửa lại `db.server` và `db.password`.
+
+---
+
+#### C. File bị mất / lỗi `Missing database.properties`
+
+```bat
+scripts\restore-database-properties.bat
+```
+
+Nếu chưa từng backup:
+
+```bat
+scripts\setup.bat
+```
+
+Sau đó sửa mật khẩu và chạy `backup-database-properties.bat`.
 
 ---
 
@@ -150,7 +220,7 @@ db.password=MAT_KHAU_SA_CUA_BAN
 
 1. Bật SQL Server, bật **SQL Server Authentication** cho user `sa` (nếu dùng `sa`).
 2. Mở `Database/create_database.sql` trong SSMS hoặc Azure Data Studio.
-3. Chạy toàn bộ script → tạo database `MovieTicketDB` và **26 bảng (PascalCase)**.
+3. Chạy **một file duy nhất** `Database/create_database.sql` (Ctrl+A → F5) → tạo database `MovieTicketDB`, **26 bảng** và **toàn bộ seed data** (users, phim homepage, genres, …). Không cần chạy thêm file migration nào khác.
 
 Đảm bảo `db.name` trong `database.properties` trùng tên DB trong script:
 
@@ -181,7 +251,8 @@ target/MovieTicketBookingSystem-1.0-SNAPSHOT.war
 
 | Lỗi                           | Cách xử lý                                                   |
 | ----------------------------- | ------------------------------------------------------------ |
-| `Missing database.properties` | Chạy `scripts\setup.bat`                                     |
+| `Missing database.properties` | Chạy `scripts\restore-database-properties.bat` hoặc `scripts\setup.bat` |
+| Pull xong mất `database.properties` | `backup` → pull → `restore` (xem **Bước 1 — mục B**) |
 | Login failed for user `sa`    | Kiểm tra mật khẩu, bật Mixed Mode trong SQL Server           |
 | Cannot open database          | Chạy `create_database.sql` hoặc sửa `db.name` cho khớp       |
 | Driver not found              | `mvn clean package` để tải dependency JDBC                   |
@@ -192,11 +263,15 @@ target/MovieTicketBookingSystem-1.0-SNAPSHOT.war
 
 ## Checklist thành viên mới
 
-- Clone repo
-- Chạy `scripts\setup.bat`, sửa `db.server` và `db.password`
-- Chạy `Database/create_database.sql`
-- `mvn clean package` (hoặc Build trong IDE)
-- Cấu hình Tomcat 10 và chạy WAR
+- [ ] Clone repo
+- [ ] `scripts\install-git-hooks.bat` (một lần)
+- [ ] `scripts\setup.bat` → sửa `db.server`, `db.password`
+- [ ] `scripts\backup-database-properties.bat`
+- [ ] Chạy `Database/create_database.sql`
+- [ ] `mvn clean package` (hoặc Build trong IDE)
+- [ ] Cấu hình Tomcat 10 và chạy WAR
+
+> Trước mỗi lần pull: `backup-database-properties.bat` → pull → `restore-database-properties.bat`
 
 ---
 
@@ -377,6 +452,7 @@ target/
 
 **/database.properties
 !**/database.properties.example
+**/database.properties.backup
 ```
 
 ### Không được push lên repository
@@ -392,15 +468,27 @@ target/
 | ----------------------------- | --------- | ----------------------- |
 | `database.properties.example` | Có        | Mẫu cấu hình cho team   |
 | `database.properties`         | **Không** | Cấu hình local từng máy |
+| `database.properties.backup`  | **Không** | Backup local trước/sau pull |
 
 
 **Thành viên mới sau khi clone:**
 
 ```bat
+scripts\install-git-hooks.bat
 scripts\setup.bat
 ```
 
-Rồi sửa `db.server` và `db.password` trong file vừa tạo.
+Rồi sửa `db.server`, `db.password`, chạy `scripts\backup-database-properties.bat`.
+
+**Trước mỗi lần pull:**
+
+```bat
+scripts\backup-database-properties.bat
+git pull origin master
+scripts\restore-database-properties.bat
+```
+
+Chi tiết đầy đủ: mục **Getting Started → Bước 1**.
 
 **Nếu lỡ commit `database.properties` lên Git:**
 
@@ -605,13 +693,18 @@ MovieTicketBookingSystem
 │           └── error/
 ├── src/main/resources/
 │   ├── database.properties.example   # Trên Git
-│   └── database.properties           # Local only — gitignored
+│   ├── database.properties           # Local only — gitignored
+│   └── database.properties.backup    # Local backup — gitignored
 ├── src/test/java/
 ├── Database/
 │   └── create_database.sql
 ├── scripts/
 │   ├── setup.bat
-│   └── setup.ps1
+│   ├── setup.ps1
+│   ├── install-git-hooks.bat
+│   ├── backup-database-properties.bat
+│   ├── restore-database-properties.bat
+│   └── githooks/post-merge
 ├── pom.xml
 └── project_summary_final.md
 ```

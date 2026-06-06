@@ -1,16 +1,19 @@
 -- ============================================================
 -- Movie Ticket Booking System
--- SQL Server Script
--- 26 Tables | Version Final
+-- SQL Server — SCRIPT DUY NHAT (schema + seed data day du)
 -- ============================================================
+-- Chay file nay MOT LAN trong SSMS / Azure Data Studio (Ctrl+A -> F5)
+-- Khong can chay them migration_*.sql
+--
+-- Bao gom:
+--   - 26 bang (PascalCase)
+--   - Seed: Roles, Users, Config, Cinema, Chatbot
+--   - Seed homepage: Genres, CinemaRooms, 8 Movies (backdrop_url), MovieGenres
+--
 -- Luu y:
 --   - UUID     -> UNIQUEIDENTIFIER + DEFAULT NEWID()
 --   - ENUM     -> NVARCHAR + CHECK constraint
---   - BOOLEAN  -> BIT
---   - TEXT     -> NVARCHAR(MAX)
---   - TIMESTAMP-> DATETIME2
---   - NOW()    -> GETDATE()
---   - Ten bang -> PascalCase (vd: Users, BookingSeats)
+--   - Chay lai script se DROP va TAO LAI toan bo bang (mat du lieu cu)
 -- ============================================================
 
 USE master;
@@ -809,9 +812,7 @@ INSERT INTO CinemaRooms (id, room_name, capacity, status) VALUES
     ('CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCC03', N'Phòng 3',     60, 'ACTIVE');
 GO
 
--- Phim mau: 4 dang chieu + 4 sap chieu
--- backdrop_url: anh ngang (landscape 16:9) hien o background hero, khac poster_url (anh doc trong phone)
--- Neu da co bang Movies, chay: ALTER TABLE Movies ADD backdrop_url NVARCHAR(MAX) NULL;
+-- Phim mau: 4 dang chieu + 4 sap chieu (backdrop_url = anh ngang hero, poster_url = anh doc)
 INSERT INTO Movies (
     id, title, slug, description, duration_minutes, release_date,
     trailer_url, poster_url, backdrop_url, director, cast_members,
@@ -826,7 +827,7 @@ INSERT INTO Movies (
     150, '2026-05-01',
     'https://www.youtube.com/watch?v=sOEg_YZQsTI',
     'https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg',
-    'https://image.tmdb.org/t/p/w1280/or06FN3Dka5tukK1e9sl16pB3iy.jpg',
+    'https://image.tmdb.org/t/p/w1280/wr7l2t38C5sNYQwJMbVBiETVJzZ.jpg',
     N'Joe Russo, Anthony Russo',
     N'Robert Downey Jr., Chris Evans, Scarlett Johansson, Chris Hemsworth',
     N'Tiếng Anh', N'Phụ đề Việt', 'T13', 'NOW_SHOWING', 4.80
@@ -839,7 +840,7 @@ INSERT INTO Movies (
     163, '2026-05-21',
     'https://www.youtube.com/watch?v=avz06PDqDbM',
     'https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
-    'https://image.tmdb.org/t/p/w1280/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
+    'https://image.tmdb.org/t/p/w1280/NNxYkU70HPurnNCSiCjYAmacwm.jpg',
     N'Christopher McQuarrie',
     N'Tom Cruise, Hayley Atwell, Simon Pegg, Ving Rhames',
     N'Tiếng Anh', N'Phụ đề Việt', 'T13', 'NOW_SHOWING', 4.50
@@ -852,7 +853,7 @@ INSERT INTO Movies (
     108, '2026-05-23',
     'https://www.youtube.com/watch?v=dJWjlMGBJ0c',
     'https://image.tmdb.org/t/p/w500/mGT7gDFqtGpYDERbmMAjUHw3TlC.jpg',
-    'https://image.tmdb.org/t/p/w1280/mGT7gDFqtGpYDERbmMAjUHw3TlC.jpg',
+    'https://image.tmdb.org/t/p/w1280/9Va5VJOBwRBvCOZfNrmK5Dl8q9C.jpg',
     N'Dean Fleischer Camp',
     N'Maia Kealoha, Sydney Agudong, Zach Galifianakis',
     N'Tiếng Anh', N'Lồng tiếng Việt', 'P', 'NOW_SHOWING', 4.20
@@ -865,7 +866,7 @@ INSERT INTO Movies (
     118, '2026-04-23',
     'https://www.youtube.com/watch?v=HM9VMExYmGg',
     'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
-    'https://image.tmdb.org/t/p/w1280/74xTEgt7R36Fpooo50r9T25onhq.jpg',
+    'https://image.tmdb.org/t/p/w1280/6h20XkVx5XS7bOxSnRkGqWQqZtR.jpg',
     N'Park Chan-wook',
     N'Sydney Sweeney, Amanda Seyfried, Brandon Sklenar',
     N'Tiếng Anh', N'Phụ đề Việt', 'T18', 'NOW_SHOWING', 4.10
@@ -879,7 +880,7 @@ INSERT INTO Movies (
     132, '2026-07-11',
     'https://www.youtube.com/watch?v=mVkTFiXm0Oc',
     'https://image.tmdb.org/t/p/w500/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg',
-    'https://image.tmdb.org/t/p/w1280/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg',
+    'https://image.tmdb.org/t/p/w1280/jZIYaISP3GBW9tcuu1R7CCXRB0p.jpg',
     N'James Gunn',
     N'David Corenswet, Rachel Brosnahan, Nicholas Hoult',
     N'Tiếng Anh', N'Phụ đề Việt', 'T13', 'COMING_SOON', 0.00
@@ -892,7 +893,7 @@ INSERT INTO Movies (
     105, '2026-06-27',
     'https://www.youtube.com/watch?v=mQVoABqW2Sg',
     'https://image.tmdb.org/t/p/w500/sv1xJUazXeYqALzczSZ3O6nkH75.jpg',
-    'https://image.tmdb.org/t/p/w1280/sv1xJUazXeYqALzczSZ3O6nkH75.jpg',
+    'https://image.tmdb.org/t/p/w1280/4v1yx8AzQGJ38kBRFiqpCHtlVaM.jpg',
     N'Dean DeBlois',
     N'Mason Thames, Nico Parker, Gerard Butler',
     N'Tiếng Anh', N'Lồng tiếng Việt', 'P', 'COMING_SOON', 0.00
@@ -905,7 +906,7 @@ INSERT INTO Movies (
     119, '2026-07-02',
     'https://www.youtube.com/watch?v=jlHBVhBFDso',
     'https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
-    'https://image.tmdb.org/t/p/w1280/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
+    'https://image.tmdb.org/t/p/w1280/dR1Ju50iudrOh3YgfwkAU3LFOx5.jpg',
     N'Gareth Edwards',
     N'Scarlett Johansson, Jonathan Bailey, Mahershala Ali',
     N'Tiếng Anh', N'Phụ đề Việt', 'T13', 'COMING_SOON', 0.00
@@ -918,7 +919,7 @@ INSERT INTO Movies (
     125, '2026-08-15',
     'https://www.youtube.com/watch?v=A4xwi5e0MCw',
     'https://image.tmdb.org/t/p/w500/4lpDsI4jYgJv7x9bvvUBXLHQSRi.jpg',
-    'https://image.tmdb.org/t/p/w1280/4lpDsI4jYgJv7x9bvvUBXLHQSRi.jpg',
+    'https://image.tmdb.org/t/p/w1280/eI3veHGT6PJ3g3F5hBEt9BKoNcL.jpg',
     N'Victor Vũ',
     N'Thịnh Vinh, Đào Duy Phước, Lê Thị Duyên',
     N'Tiếng Việt', NULL, 'P', 'COMING_SOON', 0.00
@@ -953,7 +954,36 @@ INSERT INTO MovieGenres (movie_id, genre_id) VALUES
     ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA108', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB107');
 GO
 
-PRINT N'=== Tao database thanh cong: 26 bang (PascalCase), indexes, seed data ===';
-PRINT N'=== Tai khoan seed: mat khau mac dinh la Password@123 (BCrypt) ===';
-PRINT N'=== Phim mau: 4 dang chieu + 4 sap chieu da duoc them vao ===';
+-- ============================================================
+-- KIEM TRA KET QUA
+-- ============================================================
+PRINT N'';
+PRINT N'=== KET QUA SEED ===';
+
+SELECT
+    m.title,
+    m.status,
+    m.average_rating AS rating,
+    CASE WHEN m.backdrop_url IS NOT NULL THEN N'Y' ELSE N'N' END AS has_backdrop,
+    STRING_AGG(g.genre_name, ', ') AS genres
+FROM Movies m
+LEFT JOIN MovieGenres mg ON m.id = mg.movie_id
+LEFT JOIN Genres g       ON mg.genre_id = g.id
+WHERE m.id IN (
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA101',
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA102',
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA103',
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA104',
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA105',
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA106',
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA107',
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA108'
+)
+GROUP BY m.id, m.title, m.status, m.average_rating, m.backdrop_url
+ORDER BY m.average_rating DESC;
+GO
+
+PRINT N'=== Hoan tat: 26 bang + day du seed data ===';
+PRINT N'=== Tai khoan seed: mat khau mac dinh Password@123 (BCrypt) ===';
+PRINT N'=== Phim mau: 4 dang chieu + 4 sap chieu ===';
 GO
