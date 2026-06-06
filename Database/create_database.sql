@@ -1,7 +1,7 @@
 -- ============================================================
 -- Movie Ticket Booking System
 -- SQL Server Script
--- 26 Tables | Version Final v3
+-- 26 Tables | Version Final
 -- ============================================================
 -- Luu y:
 --   - UUID     -> UNIQUEIDENTIFIER + DEFAULT NEWID()
@@ -10,12 +10,12 @@
 --   - TEXT     -> NVARCHAR(MAX)
 --   - TIMESTAMP-> DATETIME2
 --   - NOW()    -> GETDATE()
+--   - Ten bang -> PascalCase (vd: Users, BookingSeats)
 -- ============================================================
 
 USE master;
 GO
 
--- Tao database moi (doi ten neu can)
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = N'MovieTicketDB')
 BEGIN
     CREATE DATABASE MovieTicketDB
@@ -29,32 +29,32 @@ GO
 -- ============================================================
 -- XOA BANG THEO THU TU NGUOC (tranh loi FK khi chay lai)
 -- ============================================================
-IF OBJECT_ID('chatbot_messages',       'U') IS NOT NULL DROP TABLE chatbot_messages;
-IF OBJECT_ID('chatbot_conversations',  'U') IS NOT NULL DROP TABLE chatbot_conversations;
-IF OBJECT_ID('showtime_incidents',     'U') IS NOT NULL DROP TABLE showtime_incidents;
-IF OBJECT_ID('loyalty_points_log',     'U') IS NOT NULL DROP TABLE loyalty_points_log;
-IF OBJECT_ID('tickets',                'U') IS NOT NULL DROP TABLE tickets;
-IF OBJECT_ID('booking_promotions',     'U') IS NOT NULL DROP TABLE booking_promotions;
-IF OBJECT_ID('promotions',             'U') IS NOT NULL DROP TABLE promotions;
-IF OBJECT_ID('payments',               'U') IS NOT NULL DROP TABLE payments;
-IF OBJECT_ID('booking_seats',          'U') IS NOT NULL DROP TABLE booking_seats;
-IF OBJECT_ID('bookings',               'U') IS NOT NULL DROP TABLE bookings;
-IF OBJECT_ID('seat_holds',             'U') IS NOT NULL DROP TABLE seat_holds;
-IF OBJECT_ID('pricing_rules',          'U') IS NOT NULL DROP TABLE pricing_rules;
-IF OBJECT_ID('showtimes',              'U') IS NOT NULL DROP TABLE showtimes;
-IF OBJECT_ID('movie_reviews',          'U') IS NOT NULL DROP TABLE movie_reviews;
-IF OBJECT_ID('movie_genres',           'U') IS NOT NULL DROP TABLE movie_genres;
-IF OBJECT_ID('genres',                 'U') IS NOT NULL DROP TABLE genres;
-IF OBJECT_ID('movies',                 'U') IS NOT NULL DROP TABLE movies;
-IF OBJECT_ID('seats',                  'U') IS NOT NULL DROP TABLE seats;
-IF OBJECT_ID('seat_types',             'U') IS NOT NULL DROP TABLE seat_types;
-IF OBJECT_ID('cinema_rooms',           'U') IS NOT NULL DROP TABLE cinema_rooms;
-IF OBJECT_ID('cinema_info',            'U') IS NOT NULL DROP TABLE cinema_info;
-IF OBJECT_ID('vat_rules',              'U') IS NOT NULL DROP TABLE vat_rules;
-IF OBJECT_ID('system_config',          'U') IS NOT NULL DROP TABLE system_config;
-IF OBJECT_ID('password_reset_tokens',  'U') IS NOT NULL DROP TABLE password_reset_tokens;
-IF OBJECT_ID('users',                  'U') IS NOT NULL DROP TABLE users;
-IF OBJECT_ID('roles',                  'U') IS NOT NULL DROP TABLE roles;
+IF OBJECT_ID('ChatbotMessages',       'U') IS NOT NULL DROP TABLE ChatbotMessages;
+IF OBJECT_ID('ChatbotConversations',  'U') IS NOT NULL DROP TABLE ChatbotConversations;
+IF OBJECT_ID('ShowtimeIncidents',     'U') IS NOT NULL DROP TABLE ShowtimeIncidents;
+IF OBJECT_ID('LoyaltyPointsLog',      'U') IS NOT NULL DROP TABLE LoyaltyPointsLog;
+IF OBJECT_ID('Tickets',               'U') IS NOT NULL DROP TABLE Tickets;
+IF OBJECT_ID('BookingPromotions',     'U') IS NOT NULL DROP TABLE BookingPromotions;
+IF OBJECT_ID('Promotions',            'U') IS NOT NULL DROP TABLE Promotions;
+IF OBJECT_ID('Payments',              'U') IS NOT NULL DROP TABLE Payments;
+IF OBJECT_ID('BookingSeats',          'U') IS NOT NULL DROP TABLE BookingSeats;
+IF OBJECT_ID('Bookings',              'U') IS NOT NULL DROP TABLE Bookings;
+IF OBJECT_ID('SeatHolds',             'U') IS NOT NULL DROP TABLE SeatHolds;
+IF OBJECT_ID('PricingRules',          'U') IS NOT NULL DROP TABLE PricingRules;
+IF OBJECT_ID('Showtimes',             'U') IS NOT NULL DROP TABLE Showtimes;
+IF OBJECT_ID('MovieReviews',          'U') IS NOT NULL DROP TABLE MovieReviews;
+IF OBJECT_ID('MovieGenres',           'U') IS NOT NULL DROP TABLE MovieGenres;
+IF OBJECT_ID('Genres',                'U') IS NOT NULL DROP TABLE Genres;
+IF OBJECT_ID('Movies',                'U') IS NOT NULL DROP TABLE Movies;
+IF OBJECT_ID('Seats',                 'U') IS NOT NULL DROP TABLE Seats;
+IF OBJECT_ID('SeatTypes',             'U') IS NOT NULL DROP TABLE SeatTypes;
+IF OBJECT_ID('CinemaRooms',           'U') IS NOT NULL DROP TABLE CinemaRooms;
+IF OBJECT_ID('CinemaInfo',            'U') IS NOT NULL DROP TABLE CinemaInfo;
+IF OBJECT_ID('VatRules',              'U') IS NOT NULL DROP TABLE VatRules;
+IF OBJECT_ID('SystemConfig',          'U') IS NOT NULL DROP TABLE SystemConfig;
+IF OBJECT_ID('PasswordResetTokens',  'U') IS NOT NULL DROP TABLE PasswordResetTokens;
+IF OBJECT_ID('Users',                 'U') IS NOT NULL DROP TABLE Users;
+IF OBJECT_ID('Roles',                 'U') IS NOT NULL DROP TABLE Roles;
 GO
 
 -- ============================================================
@@ -62,24 +62,24 @@ GO
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 1. roles
+-- 1. Roles
 -- ------------------------------------------------------------
-CREATE TABLE roles (
+CREATE TABLE Roles (
     id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     role_name   VARCHAR(50)      NOT NULL,
     description VARCHAR(255)     NULL,
     created_at  DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_roles      PRIMARY KEY (id),
-    CONSTRAINT UK_roles_name UNIQUE      (role_name),
-    CONSTRAINT CK_roles_name CHECK (role_name IN ('CUSTOMER','STAFF','MANAGER','ADMIN'))
+    CONSTRAINT PK_Roles      PRIMARY KEY (id),
+    CONSTRAINT UK_Roles_Name UNIQUE      (role_name),
+    CONSTRAINT CK_Roles_Name CHECK (role_name IN ('CUSTOMER','STAFF','MANAGER','ADMIN'))
 );
 GO
 
 -- ------------------------------------------------------------
--- 2. users
+-- 2. Users
 -- ------------------------------------------------------------
-CREATE TABLE users (
+CREATE TABLE Users (
     id             UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     role_id        UNIQUEIDENTIFIER NOT NULL,
     email          VARCHAR(255)     NULL,
@@ -87,28 +87,29 @@ CREATE TABLE users (
     phone_number   VARCHAR(20)      NULL,
     password_hash  VARCHAR(255)     NOT NULL,
     full_name      NVARCHAR(255)    NOT NULL,
+    date_of_birth  DATE             NOT NULL,
     avatar_url     NVARCHAR(MAX)    NULL,
     status         VARCHAR(20)      NOT NULL DEFAULT 'ACTIVE',
     loyalty_points INT              NOT NULL DEFAULT 0,
     last_login_at  DATETIME2        NULL,
     created_at     DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_users         PRIMARY KEY (id),
-    CONSTRAINT FK_users_role    FOREIGN KEY (role_id)      REFERENCES roles(id),
-    CONSTRAINT UK_users_email   UNIQUE (email),
-    CONSTRAINT UK_users_uname   UNIQUE (username),
-    CONSTRAINT UK_users_phone   UNIQUE (phone_number),
-    CONSTRAINT CK_users_status  CHECK  (status IN ('ACTIVE','INACTIVE','BANNED')),
-    CONSTRAINT CK_users_loyalty CHECK  (loyalty_points >= 0),
-    -- it nhat phai co 1 trong 3 dinh danh
-    CONSTRAINT CK_users_ident   CHECK  (email IS NOT NULL OR username IS NOT NULL OR phone_number IS NOT NULL)
+    CONSTRAINT PK_Users         PRIMARY KEY (id),
+    CONSTRAINT FK_Users_Role    FOREIGN KEY (role_id)      REFERENCES Roles(id),
+    CONSTRAINT UK_Users_Email     UNIQUE (email),
+    CONSTRAINT UK_Users_Uname     UNIQUE (username),
+    CONSTRAINT UK_Users_Phone     UNIQUE (phone_number),
+    CONSTRAINT CK_Users_Status    CHECK  (status IN ('ACTIVE','INACTIVE','BANNED')),
+    CONSTRAINT CK_Users_Loyalty   CHECK  (loyalty_points >= 0),
+    CONSTRAINT CK_Users_Dob       CHECK  (date_of_birth <= CAST(GETDATE() AS DATE)),
+    CONSTRAINT CK_Users_Ident     CHECK  (email IS NOT NULL OR username IS NOT NULL OR phone_number IS NOT NULL)
 );
 GO
 
 -- ------------------------------------------------------------
--- 3. password_reset_tokens
+-- 3. PasswordResetTokens
 -- ------------------------------------------------------------
-CREATE TABLE password_reset_tokens (
+CREATE TABLE PasswordResetTokens (
     id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     user_id    UNIQUEIDENTIFIER NOT NULL,
     token      VARCHAR(255)     NOT NULL,
@@ -116,9 +117,9 @@ CREATE TABLE password_reset_tokens (
     used_at    DATETIME2        NULL,
     created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_prt       PRIMARY KEY (id),
-    CONSTRAINT FK_prt_user  FOREIGN KEY (user_id) REFERENCES users(id),
-    CONSTRAINT UK_prt_token UNIQUE (token)
+    CONSTRAINT PK_PasswordResetTokens       PRIMARY KEY (id),
+    CONSTRAINT FK_PasswordResetTokens_User  FOREIGN KEY (user_id) REFERENCES Users(id),
+    CONSTRAINT UK_PasswordResetTokens_Token UNIQUE (token)
 );
 GO
 
@@ -127,24 +128,24 @@ GO
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 4. system_config
+-- 4. SystemConfig
 -- ------------------------------------------------------------
-CREATE TABLE system_config (
+CREATE TABLE SystemConfig (
     config_key   VARCHAR(100)     NOT NULL,
     config_value VARCHAR(500)     NOT NULL,
     description  NVARCHAR(255)    NULL,
     updated_by   UNIQUEIDENTIFIER NULL,
     updated_at   DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_system_config    PRIMARY KEY (config_key),
-    CONSTRAINT FK_sc_updated_by    FOREIGN KEY (updated_by) REFERENCES users(id)
+    CONSTRAINT PK_SystemConfig         PRIMARY KEY (config_key),
+    CONSTRAINT FK_SystemConfig_Updated FOREIGN KEY (updated_by) REFERENCES Users(id)
 );
 GO
 
 -- ------------------------------------------------------------
--- 5. vat_rules
+-- 5. VatRules
 -- ------------------------------------------------------------
-CREATE TABLE vat_rules (
+CREATE TABLE VatRules (
     id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     rule_name  NVARCHAR(100)    NOT NULL,
     vat_rate   DECIMAL(5,2)     NOT NULL,
@@ -153,10 +154,10 @@ CREATE TABLE vat_rules (
     status     VARCHAR(10)      NOT NULL DEFAULT 'ACTIVE',
     created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_vat_rules    PRIMARY KEY (id),
-    CONSTRAINT CK_vat_status   CHECK  (status IN ('ACTIVE','INACTIVE')),
-    CONSTRAINT CK_vat_rate     CHECK  (vat_rate >= 0 AND vat_rate <= 100),
-    CONSTRAINT CK_vat_dates    CHECK  (end_date IS NULL OR end_date > start_date)
+    CONSTRAINT PK_VatRules    PRIMARY KEY (id),
+    CONSTRAINT CK_VatRules_Status CHECK  (status IN ('ACTIVE','INACTIVE')),
+    CONSTRAINT CK_VatRules_Rate   CHECK  (vat_rate >= 0 AND vat_rate <= 100),
+    CONSTRAINT CK_VatRules_Dates  CHECK  (end_date IS NULL OR end_date > start_date)
 );
 GO
 
@@ -165,9 +166,9 @@ GO
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 6. cinema_info  (1 row duy nhat)
+-- 6. CinemaInfo  (1 row duy nhat)
 -- ------------------------------------------------------------
-CREATE TABLE cinema_info (
+CREATE TABLE CinemaInfo (
     id            UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     name          NVARCHAR(255)    NOT NULL,
     address       NVARCHAR(500)    NOT NULL,
@@ -177,46 +178,46 @@ CREATE TABLE cinema_info (
     description   NVARCHAR(MAX)    NULL,
     created_at    DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_cinema_info PRIMARY KEY (id)
+    CONSTRAINT PK_CinemaInfo PRIMARY KEY (id)
 );
 GO
 
 -- ------------------------------------------------------------
--- 7. cinema_rooms
+-- 7. CinemaRooms
 -- ------------------------------------------------------------
-CREATE TABLE cinema_rooms (
-    id        UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
-    room_name NVARCHAR(100)    NOT NULL,
-    capacity  INT              NOT NULL DEFAULT 0,
-    status    VARCHAR(20)      NOT NULL DEFAULT 'ACTIVE',
-    created_at DATETIME2       NOT NULL DEFAULT GETDATE(),
+CREATE TABLE CinemaRooms (
+    id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    room_name  NVARCHAR(100)    NOT NULL,
+    capacity   INT              NOT NULL DEFAULT 0,
+    status     VARCHAR(20)      NOT NULL DEFAULT 'ACTIVE',
+    created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_cinema_rooms        PRIMARY KEY (id),
-    CONSTRAINT UK_cinema_rooms_name   UNIQUE (room_name),
-    CONSTRAINT CK_cinema_rooms_status CHECK  (status IN ('ACTIVE','MAINTENANCE','INACTIVE')),
-    CONSTRAINT CK_cinema_rooms_cap    CHECK  (capacity >= 0)
+    CONSTRAINT PK_CinemaRooms        PRIMARY KEY (id),
+    CONSTRAINT UK_CinemaRooms_Name   UNIQUE (room_name),
+    CONSTRAINT CK_CinemaRooms_Status CHECK  (status IN ('ACTIVE','MAINTENANCE','INACTIVE')),
+    CONSTRAINT CK_CinemaRooms_Cap    CHECK  (capacity >= 0)
 );
 GO
 
 -- ------------------------------------------------------------
--- 8. seat_types
+-- 8. SeatTypes
 -- ------------------------------------------------------------
-CREATE TABLE seat_types (
+CREATE TABLE SeatTypes (
     id               UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     type_name        VARCHAR(50)      NOT NULL,
     price_multiplier DECIMAL(5,2)     NOT NULL DEFAULT 1.00,
     description      NVARCHAR(MAX)    NULL,
 
-    CONSTRAINT PK_seat_types          PRIMARY KEY (id),
-    CONSTRAINT UK_seat_types_name     UNIQUE (type_name),
-    CONSTRAINT CK_seat_types_multi    CHECK  (price_multiplier > 0)
+    CONSTRAINT PK_SeatTypes       PRIMARY KEY (id),
+    CONSTRAINT UK_SeatTypes_Name  UNIQUE (type_name),
+    CONSTRAINT CK_SeatTypes_Multi CHECK  (price_multiplier > 0)
 );
 GO
 
 -- ------------------------------------------------------------
--- 9. seats
+-- 9. Seats
 -- ------------------------------------------------------------
-CREATE TABLE seats (
+CREATE TABLE Seats (
     id           UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     room_id      UNIQUEIDENTIFIER NOT NULL,
     seat_type_id UNIQUEIDENTIFIER NOT NULL,
@@ -225,12 +226,12 @@ CREATE TABLE seats (
     seat_code    VARCHAR(20)      NOT NULL,
     status       VARCHAR(10)      NOT NULL DEFAULT 'ACTIVE',
 
-    CONSTRAINT PK_seats           PRIMARY KEY (id),
-    CONSTRAINT FK_seats_room      FOREIGN KEY (room_id)      REFERENCES cinema_rooms(id),
-    CONSTRAINT FK_seats_type      FOREIGN KEY (seat_type_id) REFERENCES seat_types(id),
-    CONSTRAINT UK_seats_code      UNIQUE (room_id, seat_code),
-    CONSTRAINT CK_seats_status    CHECK  (status IN ('ACTIVE','BROKEN','BLOCKED')),
-    CONSTRAINT CK_seats_col       CHECK  (seat_column > 0)
+    CONSTRAINT PK_Seats         PRIMARY KEY (id),
+    CONSTRAINT FK_Seats_Room    FOREIGN KEY (room_id)      REFERENCES CinemaRooms(id),
+    CONSTRAINT FK_Seats_Type    FOREIGN KEY (seat_type_id) REFERENCES SeatTypes(id),
+    CONSTRAINT UK_Seats_Code    UNIQUE (room_id, seat_code),
+    CONSTRAINT CK_Seats_Status  CHECK  (status IN ('ACTIVE','BROKEN','BLOCKED')),
+    CONSTRAINT CK_Seats_Col     CHECK  (seat_column > 0)
 );
 GO
 
@@ -239,9 +240,9 @@ GO
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 10. movies
+-- 10. Movies
 -- ------------------------------------------------------------
-CREATE TABLE movies (
+CREATE TABLE Movies (
     id               UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     title            NVARCHAR(255)    NOT NULL,
     slug             VARCHAR(255)     NOT NULL,
@@ -259,45 +260,45 @@ CREATE TABLE movies (
     average_rating   DECIMAL(3,2)     NULL     DEFAULT 0.00,
     created_at       DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_movies            PRIMARY KEY (id),
-    CONSTRAINT UK_movies_slug       UNIQUE (slug),
-    CONSTRAINT CK_movies_duration   CHECK  (duration_minutes > 0),
-    CONSTRAINT CK_movies_status     CHECK  (status IN ('COMING_SOON','NOW_SHOWING','ENDED')),
-    CONSTRAINT CK_movies_age        CHECK  (age_rating IN ('P','K','T13','T16','T18','C') OR age_rating IS NULL),
-    CONSTRAINT CK_movies_rating     CHECK  (average_rating BETWEEN 0.00 AND 5.00 OR average_rating IS NULL)
+    CONSTRAINT PK_Movies          PRIMARY KEY (id),
+    CONSTRAINT UK_Movies_Slug     UNIQUE (slug),
+    CONSTRAINT CK_Movies_Duration CHECK  (duration_minutes > 0),
+    CONSTRAINT CK_Movies_Status   CHECK  (status IN ('COMING_SOON','NOW_SHOWING','ENDED')),
+    CONSTRAINT CK_Movies_Age      CHECK  (age_rating IN ('P','K','T13','T16','T18','C') OR age_rating IS NULL),
+    CONSTRAINT CK_Movies_Rating   CHECK  (average_rating BETWEEN 0.00 AND 5.00 OR average_rating IS NULL)
 );
 GO
 
 -- ------------------------------------------------------------
--- 11. genres
+-- 11. Genres
 -- ------------------------------------------------------------
-CREATE TABLE genres (
+CREATE TABLE Genres (
     id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     genre_name NVARCHAR(100)    NOT NULL,
     created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_genres      PRIMARY KEY (id),
-    CONSTRAINT UK_genres_name UNIQUE (genre_name)
+    CONSTRAINT PK_Genres      PRIMARY KEY (id),
+    CONSTRAINT UK_Genres_Name UNIQUE (genre_name)
 );
 GO
 
 -- ------------------------------------------------------------
--- 12. movie_genres  (junction M-N)
+-- 12. MovieGenres  (junction M-N)
 -- ------------------------------------------------------------
-CREATE TABLE movie_genres (
+CREATE TABLE MovieGenres (
     movie_id UNIQUEIDENTIFIER NOT NULL,
     genre_id UNIQUEIDENTIFIER NOT NULL,
 
-    CONSTRAINT PK_movie_genres    PRIMARY KEY (movie_id, genre_id),
-    CONSTRAINT FK_mg_movie        FOREIGN KEY (movie_id) REFERENCES movies(id),
-    CONSTRAINT FK_mg_genre        FOREIGN KEY (genre_id) REFERENCES genres(id)
+    CONSTRAINT PK_MovieGenres    PRIMARY KEY (movie_id, genre_id),
+    CONSTRAINT FK_MovieGenres_Movie FOREIGN KEY (movie_id) REFERENCES Movies(id),
+    CONSTRAINT FK_MovieGenres_Genre FOREIGN KEY (genre_id) REFERENCES Genres(id)
 );
 GO
 
 -- ------------------------------------------------------------
--- 13. movie_reviews
+-- 13. MovieReviews
 -- ------------------------------------------------------------
-CREATE TABLE movie_reviews (
+CREATE TABLE MovieReviews (
     id             UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     movie_id       UNIQUEIDENTIFIER NOT NULL,
     user_id        UNIQUEIDENTIFIER NOT NULL,
@@ -305,11 +306,11 @@ CREATE TABLE movie_reviews (
     review_content NVARCHAR(MAX)    NULL,
     created_at     DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_movie_reviews        PRIMARY KEY (id),
-    CONSTRAINT FK_mr_movie             FOREIGN KEY (movie_id) REFERENCES movies(id),
-    CONSTRAINT FK_mr_user              FOREIGN KEY (user_id)  REFERENCES users(id),
-    CONSTRAINT UK_mr_user_movie        UNIQUE (movie_id, user_id),
-    CONSTRAINT CK_mr_rating            CHECK  (rating BETWEEN 1 AND 5)
+    CONSTRAINT PK_MovieReviews     PRIMARY KEY (id),
+    CONSTRAINT FK_MovieReviews_Movie FOREIGN KEY (movie_id) REFERENCES Movies(id),
+    CONSTRAINT FK_MovieReviews_User  FOREIGN KEY (user_id)  REFERENCES Users(id),
+    CONSTRAINT UK_MovieReviews_UserMovie UNIQUE (movie_id, user_id),
+    CONSTRAINT CK_MovieReviews_Rating    CHECK  (rating BETWEEN 1 AND 5)
 );
 GO
 
@@ -318,9 +319,9 @@ GO
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 14. showtimes
+-- 14. Showtimes
 -- ------------------------------------------------------------
-CREATE TABLE showtimes (
+CREATE TABLE Showtimes (
     id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     movie_id   UNIQUEIDENTIFIER NOT NULL,
     room_id    UNIQUEIDENTIFIER NOT NULL,
@@ -331,20 +332,20 @@ CREATE TABLE showtimes (
     created_by UNIQUEIDENTIFIER NOT NULL,
     created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_showtimes         PRIMARY KEY (id),
-    CONSTRAINT FK_st_movie          FOREIGN KEY (movie_id)   REFERENCES movies(id),
-    CONSTRAINT FK_st_room           FOREIGN KEY (room_id)    REFERENCES cinema_rooms(id),
-    CONSTRAINT FK_st_created_by     FOREIGN KEY (created_by) REFERENCES users(id),
-    CONSTRAINT CK_st_status         CHECK (status IN ('SCHEDULED','OPEN','SOLD_OUT','CANCELLED','FINISHED')),
-    CONSTRAINT CK_st_price          CHECK (base_price > 0),
-    CONSTRAINT CK_st_times          CHECK (end_time > start_time)
+    CONSTRAINT PK_Showtimes         PRIMARY KEY (id),
+    CONSTRAINT FK_Showtimes_Movie   FOREIGN KEY (movie_id)   REFERENCES Movies(id),
+    CONSTRAINT FK_Showtimes_Room    FOREIGN KEY (room_id)    REFERENCES CinemaRooms(id),
+    CONSTRAINT FK_Showtimes_Created FOREIGN KEY (created_by) REFERENCES Users(id),
+    CONSTRAINT CK_Showtimes_Status  CHECK (status IN ('SCHEDULED','OPEN','SOLD_OUT','CANCELLED','FINISHED')),
+    CONSTRAINT CK_Showtimes_Price   CHECK (base_price > 0),
+    CONSTRAINT CK_Showtimes_Times   CHECK (end_time > start_time)
 );
 GO
 
 -- ------------------------------------------------------------
--- 15. pricing_rules
+-- 15. PricingRules
 -- ------------------------------------------------------------
-CREATE TABLE pricing_rules (
+CREATE TABLE PricingRules (
     id               UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     rule_name        NVARCHAR(100)    NOT NULL,
     condition_type   VARCHAR(20)      NOT NULL,
@@ -360,11 +361,11 @@ CREATE TABLE pricing_rules (
     created_by       UNIQUEIDENTIFIER NOT NULL,
     created_at       DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_pricing_rules         PRIMARY KEY (id),
-    CONSTRAINT FK_pr_created_by         FOREIGN KEY (created_by) REFERENCES users(id),
-    CONSTRAINT CK_pr_condition_type     CHECK (condition_type   IN ('DAY_OF_WEEK','TIME_RANGE','DATE_RANGE','SPECIFIC_DATE')),
-    CONSTRAINT CK_pr_adjustment_type    CHECK (adjustment_type  IN ('PERCENTAGE','FIXED_AMOUNT')),
-    CONSTRAINT CK_pr_status             CHECK (status           IN ('ACTIVE','INACTIVE'))
+    CONSTRAINT PK_PricingRules         PRIMARY KEY (id),
+    CONSTRAINT FK_PricingRules_Created FOREIGN KEY (created_by) REFERENCES Users(id),
+    CONSTRAINT CK_PricingRules_Condition CHECK (condition_type   IN ('DAY_OF_WEEK','TIME_RANGE','DATE_RANGE','SPECIFIC_DATE')),
+    CONSTRAINT CK_PricingRules_Adjust  CHECK (adjustment_type  IN ('PERCENTAGE','FIXED_AMOUNT')),
+    CONSTRAINT CK_PricingRules_Status  CHECK (status           IN ('ACTIVE','INACTIVE'))
 );
 GO
 
@@ -373,9 +374,9 @@ GO
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 16. seat_holds
+-- 16. SeatHolds
 -- ------------------------------------------------------------
-CREATE TABLE seat_holds (
+CREATE TABLE SeatHolds (
     id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     showtime_id UNIQUEIDENTIFIER NOT NULL,
     seat_id     UNIQUEIDENTIFIER NOT NULL,
@@ -383,25 +384,24 @@ CREATE TABLE seat_holds (
     expired_at  DATETIME2        NOT NULL,
     created_at  DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_seat_holds         PRIMARY KEY (id),
-    CONSTRAINT FK_sh_showtime        FOREIGN KEY (showtime_id) REFERENCES showtimes(id),
-    CONSTRAINT FK_sh_seat            FOREIGN KEY (seat_id)     REFERENCES seats(id),
-    CONSTRAINT FK_sh_user            FOREIGN KEY (user_id)     REFERENCES users(id),
-    -- UNIQUE: cot loi chong book trung tai tang DB
-    CONSTRAINT UK_sh_showtime_seat   UNIQUE (showtime_id, seat_id)
+    CONSTRAINT PK_SeatHolds           PRIMARY KEY (id),
+    CONSTRAINT FK_SeatHolds_Showtime  FOREIGN KEY (showtime_id) REFERENCES Showtimes(id),
+    CONSTRAINT FK_SeatHolds_Seat      FOREIGN KEY (seat_id)     REFERENCES Seats(id),
+    CONSTRAINT FK_SeatHolds_User      FOREIGN KEY (user_id)     REFERENCES Users(id),
+    CONSTRAINT UK_SeatHolds_ShowtimeSeat UNIQUE (showtime_id, seat_id)
 );
 GO
 
 -- ------------------------------------------------------------
--- 17. bookings
+-- 17. Bookings
 -- ------------------------------------------------------------
-CREATE TABLE bookings (
+CREATE TABLE Bookings (
     id                   UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     booking_code         VARCHAR(50)      NOT NULL,
-    user_id              UNIQUEIDENTIFIER NULL,       -- NULL = walk-in
+    user_id              UNIQUEIDENTIFIER NULL,
     showtime_id          UNIQUEIDENTIFIER NOT NULL,
     booking_source       VARCHAR(10)      NOT NULL,
-    created_by_staff_id  UNIQUEIDENTIFIER NULL,       -- NULL neu ONLINE
+    created_by_staff_id  UNIQUEIDENTIFIER NULL,
     customer_name        NVARCHAR(255)    NULL,
     customer_phone       VARCHAR(20)      NULL,
     vat_rate_snapshot    DECIMAL(5,2)     NOT NULL,
@@ -411,20 +411,19 @@ CREATE TABLE bookings (
     booking_status       VARCHAR(20)      NOT NULL DEFAULT 'PENDING',
     payment_status       VARCHAR(10)      NOT NULL DEFAULT 'UNPAID',
     booked_at            DATETIME2        NOT NULL DEFAULT GETDATE(),
-    expired_at           DATETIME2        NULL,       -- NULL neu OFFLINE
+    expired_at           DATETIME2        NULL,
 
-    CONSTRAINT PK_bookings              PRIMARY KEY (id),
-    CONSTRAINT UK_bookings_code         UNIQUE (booking_code),
-    CONSTRAINT FK_bk_user               FOREIGN KEY (user_id)             REFERENCES users(id),
-    CONSTRAINT FK_bk_showtime           FOREIGN KEY (showtime_id)         REFERENCES showtimes(id),
-    CONSTRAINT FK_bk_staff              FOREIGN KEY (created_by_staff_id) REFERENCES users(id),
-    CONSTRAINT CK_bk_source             CHECK (booking_source IN ('ONLINE','OFFLINE')),
-    CONSTRAINT CK_bk_status             CHECK (booking_status IN ('PENDING','CONFIRMED','CANCELLED','EXPIRED','REFUNDED')),
-    CONSTRAINT CK_bk_payment_status     CHECK (payment_status IN ('UNPAID','PAID','FAILED')),
-    CONSTRAINT CK_bk_amounts            CHECK (total_amount >= 0 AND discount_amount >= 0 AND final_amount >= 0),
-    CONSTRAINT CK_bk_vat                CHECK (vat_rate_snapshot >= 0 AND vat_rate_snapshot <= 100),
-    -- OFFLINE bat buoc co customer_name va customer_phone
-    CONSTRAINT CK_bk_offline_info       CHECK (
+    CONSTRAINT PK_Bookings              PRIMARY KEY (id),
+    CONSTRAINT UK_Bookings_Code         UNIQUE (booking_code),
+    CONSTRAINT FK_Bookings_User         FOREIGN KEY (user_id)             REFERENCES Users(id),
+    CONSTRAINT FK_Bookings_Showtime     FOREIGN KEY (showtime_id)         REFERENCES Showtimes(id),
+    CONSTRAINT FK_Bookings_Staff        FOREIGN KEY (created_by_staff_id) REFERENCES Users(id),
+    CONSTRAINT CK_Bookings_Source       CHECK (booking_source IN ('ONLINE','OFFLINE')),
+    CONSTRAINT CK_Bookings_Status       CHECK (booking_status IN ('PENDING','CONFIRMED','CANCELLED','EXPIRED','REFUNDED')),
+    CONSTRAINT CK_Bookings_PayStatus    CHECK (payment_status IN ('UNPAID','PAID','FAILED')),
+    CONSTRAINT CK_Bookings_Amounts      CHECK (total_amount >= 0 AND discount_amount >= 0 AND final_amount >= 0),
+    CONSTRAINT CK_Bookings_Vat          CHECK (vat_rate_snapshot >= 0 AND vat_rate_snapshot <= 100),
+    CONSTRAINT CK_Bookings_OfflineInfo  CHECK (
         booking_source = 'ONLINE'
         OR (booking_source = 'OFFLINE' AND customer_name IS NOT NULL AND customer_phone IS NOT NULL)
     )
@@ -432,19 +431,19 @@ CREATE TABLE bookings (
 GO
 
 -- ------------------------------------------------------------
--- 18. booking_seats
+-- 18. BookingSeats
 -- ------------------------------------------------------------
-CREATE TABLE booking_seats (
+CREATE TABLE BookingSeats (
     id           UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     booking_id   UNIQUEIDENTIFIER NOT NULL,
     seat_id      UNIQUEIDENTIFIER NOT NULL,
     ticket_price DECIMAL(12,2)    NOT NULL,
 
-    CONSTRAINT PK_booking_seats        PRIMARY KEY (id),
-    CONSTRAINT FK_bs_booking           FOREIGN KEY (booking_id) REFERENCES bookings(id),
-    CONSTRAINT FK_bs_seat              FOREIGN KEY (seat_id)    REFERENCES seats(id),
-    CONSTRAINT UK_bs_booking_seat      UNIQUE (booking_id, seat_id),
-    CONSTRAINT CK_bs_price             CHECK  (ticket_price > 0)
+    CONSTRAINT PK_BookingSeats        PRIMARY KEY (id),
+    CONSTRAINT FK_BookingSeats_Booking FOREIGN KEY (booking_id) REFERENCES Bookings(id),
+    CONSTRAINT FK_BookingSeats_Seat    FOREIGN KEY (seat_id)    REFERENCES Seats(id),
+    CONSTRAINT UK_BookingSeats_BookingSeat UNIQUE (booking_id, seat_id),
+    CONSTRAINT CK_BookingSeats_Price   CHECK  (ticket_price > 0)
 );
 GO
 
@@ -453,29 +452,29 @@ GO
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 19. payments
+-- 19. Payments
 -- ------------------------------------------------------------
-CREATE TABLE payments (
+CREATE TABLE Payments (
     id               UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     booking_id       UNIQUEIDENTIFIER NOT NULL,
     payment_method   VARCHAR(20)      NOT NULL,
     payment_source   VARCHAR(10)      NOT NULL,
     transaction_code VARCHAR(255)     NULL,
     amount           DECIMAL(12,2)    NOT NULL,
-    cash_received    DECIMAL(12,2)    NULL,       -- chi dung voi CASH
-    change_amount    DECIMAL(12,2)    NULL,       -- chi dung voi CASH
+    cash_received    DECIMAL(12,2)    NULL,
+    change_amount    DECIMAL(12,2)    NULL,
     payment_status   VARCHAR(10)      NOT NULL DEFAULT 'PENDING',
     paid_at          DATETIME2        NULL,
     created_at       DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_payments              PRIMARY KEY (id),
-    CONSTRAINT FK_pay_booking           FOREIGN KEY (booking_id) REFERENCES bookings(id),
-    CONSTRAINT CK_pay_method            CHECK (payment_method IN ('VNPAY','MOMO','QR_BANKING','CASH','BANK_TRANSFER')),
-    CONSTRAINT CK_pay_source            CHECK (payment_source IN ('ONLINE','OFFLINE')),
-    CONSTRAINT CK_pay_status            CHECK (payment_status IN ('PENDING','SUCCESS','FAILED')),
-    CONSTRAINT CK_pay_amount            CHECK (amount > 0),
-    CONSTRAINT CK_pay_cash              CHECK (cash_received IS NULL OR cash_received >= 0),
-    CONSTRAINT CK_pay_change            CHECK (change_amount IS NULL OR change_amount >= 0)
+    CONSTRAINT PK_Payments         PRIMARY KEY (id),
+    CONSTRAINT FK_Payments_Booking FOREIGN KEY (booking_id) REFERENCES Bookings(id),
+    CONSTRAINT CK_Payments_Method  CHECK (payment_method IN ('VNPAY','MOMO','CASH')),
+    CONSTRAINT CK_Payments_Source  CHECK (payment_source IN ('ONLINE','OFFLINE')),
+    CONSTRAINT CK_Payments_Status  CHECK (payment_status IN ('PENDING','SUCCESS','FAILED')),
+    CONSTRAINT CK_Payments_Amount  CHECK (amount > 0),
+    CONSTRAINT CK_Payments_Cash    CHECK (cash_received IS NULL OR cash_received >= 0),
+    CONSTRAINT CK_Payments_Change  CHECK (change_amount IS NULL OR change_amount >= 0)
 );
 GO
 
@@ -484,9 +483,9 @@ GO
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 20. promotions
+-- 20. Promotions
 -- ------------------------------------------------------------
-CREATE TABLE promotions (
+CREATE TABLE Promotions (
     id                  UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     code                VARCHAR(50)      NOT NULL,
     title               NVARCHAR(255)    NOT NULL,
@@ -502,30 +501,30 @@ CREATE TABLE promotions (
     status              VARCHAR(10)      NOT NULL DEFAULT 'ACTIVE',
     created_at          DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_promotions            PRIMARY KEY (id),
-    CONSTRAINT UK_promotions_code       UNIQUE (code),
-    CONSTRAINT CK_promo_type            CHECK  (discount_type IN ('PERCENTAGE','FIXED_AMOUNT')),
-    CONSTRAINT CK_promo_status          CHECK  (status IN ('ACTIVE','INACTIVE','EXPIRED')),
-    CONSTRAINT CK_promo_value           CHECK  (discount_value > 0),
-    CONSTRAINT CK_promo_used            CHECK  (used_count >= 0),
-    CONSTRAINT CK_promo_dates           CHECK  (end_date > start_date),
-    CONSTRAINT CK_promo_usage           CHECK  (usage_limit IS NULL OR usage_limit > 0),
-    CONSTRAINT CK_promo_pct             CHECK  (discount_type <> 'PERCENTAGE' OR (discount_value > 0 AND discount_value <= 100))
+    CONSTRAINT PK_Promotions         PRIMARY KEY (id),
+    CONSTRAINT UK_Promotions_Code    UNIQUE (code),
+    CONSTRAINT CK_Promotions_Type    CHECK  (discount_type IN ('PERCENTAGE','FIXED_AMOUNT')),
+    CONSTRAINT CK_Promotions_Status  CHECK  (status IN ('ACTIVE','INACTIVE','EXPIRED')),
+    CONSTRAINT CK_Promotions_Value   CHECK  (discount_value > 0),
+    CONSTRAINT CK_Promotions_Used    CHECK  (used_count >= 0),
+    CONSTRAINT CK_Promotions_Dates   CHECK  (end_date > start_date),
+    CONSTRAINT CK_Promotions_Usage   CHECK  (usage_limit IS NULL OR usage_limit > 0),
+    CONSTRAINT CK_Promotions_Pct     CHECK  (discount_type <> 'PERCENTAGE' OR (discount_value > 0 AND discount_value <= 100))
 );
 GO
 
 -- ------------------------------------------------------------
--- 21. booking_promotions  (junction M-N)
+-- 21. BookingPromotions  (junction M-N)
 -- ------------------------------------------------------------
-CREATE TABLE booking_promotions (
+CREATE TABLE BookingPromotions (
     booking_id       UNIQUEIDENTIFIER NOT NULL,
     promotion_id     UNIQUEIDENTIFIER NOT NULL,
     discount_applied DECIMAL(12,2)    NOT NULL,
 
-    CONSTRAINT PK_booking_promotions    PRIMARY KEY (booking_id, promotion_id),
-    CONSTRAINT FK_bp_booking            FOREIGN KEY (booking_id)   REFERENCES bookings(id),
-    CONSTRAINT FK_bp_promotion          FOREIGN KEY (promotion_id) REFERENCES promotions(id),
-    CONSTRAINT CK_bp_discount           CHECK (discount_applied >= 0)
+    CONSTRAINT PK_BookingPromotions    PRIMARY KEY (booking_id, promotion_id),
+    CONSTRAINT FK_BookingPromotions_Booking   FOREIGN KEY (booking_id)   REFERENCES Bookings(id),
+    CONSTRAINT FK_BookingPromotions_Promotion FOREIGN KEY (promotion_id) REFERENCES Promotions(id),
+    CONSTRAINT CK_BookingPromotions_Discount  CHECK (discount_applied >= 0)
 );
 GO
 
@@ -534,9 +533,9 @@ GO
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 22. tickets
+-- 22. Tickets
 -- ------------------------------------------------------------
-CREATE TABLE tickets (
+CREATE TABLE Tickets (
     id              UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     booking_seat_id UNIQUEIDENTIFIER NOT NULL,
     ticket_code     VARCHAR(100)     NOT NULL,
@@ -544,10 +543,10 @@ CREATE TABLE tickets (
     is_printed      BIT              NOT NULL DEFAULT 0,
     issued_at       DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_tickets               PRIMARY KEY (id),
-    CONSTRAINT FK_tk_booking_seat       FOREIGN KEY (booking_seat_id) REFERENCES booking_seats(id),
-    CONSTRAINT UK_tickets_booking_seat  UNIQUE (booking_seat_id),      -- enforce 1-1
-    CONSTRAINT UK_tickets_code          UNIQUE (ticket_code)
+    CONSTRAINT PK_Tickets              PRIMARY KEY (id),
+    CONSTRAINT FK_Tickets_BookingSeat  FOREIGN KEY (booking_seat_id) REFERENCES BookingSeats(id),
+    CONSTRAINT UK_Tickets_BookingSeat  UNIQUE (booking_seat_id),
+    CONSTRAINT UK_Tickets_Code         UNIQUE (ticket_code)
 );
 GO
 
@@ -556,24 +555,23 @@ GO
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 23. loyalty_points_log
+-- 23. LoyaltyPointsLog
 -- ------------------------------------------------------------
-CREATE TABLE loyalty_points_log (
+CREATE TABLE LoyaltyPointsLog (
     id               UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     user_id          UNIQUEIDENTIFIER NOT NULL,
-    booking_id       UNIQUEIDENTIFIER NULL,       -- NULL neu la ADJUST thu cong
-    points_delta     INT              NOT NULL,   -- duong = cong, am = tru
+    booking_id       UNIQUEIDENTIFIER NULL,
+    points_delta     INT              NOT NULL,
     transaction_type VARCHAR(20)      NOT NULL,
     note             NVARCHAR(255)    NULL,
     created_at       DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_loyalty_log       PRIMARY KEY (id),
-    CONSTRAINT FK_ll_user           FOREIGN KEY (user_id)    REFERENCES users(id),
-    CONSTRAINT FK_ll_booking        FOREIGN KEY (booking_id) REFERENCES bookings(id),
-    CONSTRAINT CK_ll_type           CHECK (transaction_type IN ('EARN','REDEEM','REFUND_POINTS','ADJUST')),
-    -- EARN/REFUND_POINTS: duong; REDEEM: am
-    CONSTRAINT CK_ll_delta_earn     CHECK (transaction_type NOT IN ('EARN','REFUND_POINTS') OR points_delta > 0),
-    CONSTRAINT CK_ll_delta_redeem   CHECK (transaction_type <> 'REDEEM' OR points_delta < 0)
+    CONSTRAINT PK_LoyaltyPointsLog       PRIMARY KEY (id),
+    CONSTRAINT FK_LoyaltyPointsLog_User    FOREIGN KEY (user_id)    REFERENCES Users(id),
+    CONSTRAINT FK_LoyaltyPointsLog_Booking FOREIGN KEY (booking_id) REFERENCES Bookings(id),
+    CONSTRAINT CK_LoyaltyPointsLog_Type    CHECK (transaction_type IN ('EARN','REDEEM','REFUND_POINTS','ADJUST')),
+    CONSTRAINT CK_LoyaltyPointsLog_Earn    CHECK (transaction_type NOT IN ('EARN','REFUND_POINTS') OR points_delta > 0),
+    CONSTRAINT CK_LoyaltyPointsLog_Redeem  CHECK (transaction_type <> 'REDEEM' OR points_delta < 0)
 );
 GO
 
@@ -582,9 +580,9 @@ GO
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 24. showtime_incidents
+-- 24. ShowtimeIncidents
 -- ------------------------------------------------------------
-CREATE TABLE showtime_incidents (
+CREATE TABLE ShowtimeIncidents (
     id                           UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     showtime_id                  UNIQUEIDENTIFIER NOT NULL,
     description                  NVARCHAR(MAX)    NOT NULL,
@@ -596,14 +594,14 @@ CREATE TABLE showtime_incidents (
     created_by                   UNIQUEIDENTIFIER NOT NULL,
     created_at                   DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_si                  PRIMARY KEY (id),
-    CONSTRAINT FK_si_showtime         FOREIGN KEY (showtime_id) REFERENCES showtimes(id),
-    CONSTRAINT FK_si_created_by       FOREIGN KEY (created_by)  REFERENCES users(id),
-    CONSTRAINT UK_si_showtime         UNIQUE (showtime_id),     -- 1 suat chi co 1 incident
-    CONSTRAINT CK_si_discount_type    CHECK  (compensation_discount_type IN ('PERCENTAGE','FIXED_AMOUNT')),
-    CONSTRAINT CK_si_refund_rate      CHECK  (refund_points_rate BETWEEN 0.00 AND 1.00),
-    CONSTRAINT CK_si_valid_days       CHECK  (compensation_valid_days > 0),
-    CONSTRAINT CK_si_comp_value       CHECK  (compensation_discount_value > 0)
+    CONSTRAINT PK_ShowtimeIncidents        PRIMARY KEY (id),
+    CONSTRAINT FK_ShowtimeIncidents_Showtime FOREIGN KEY (showtime_id) REFERENCES Showtimes(id),
+    CONSTRAINT FK_ShowtimeIncidents_Created  FOREIGN KEY (created_by)  REFERENCES Users(id),
+    CONSTRAINT UK_ShowtimeIncidents_Showtime UNIQUE (showtime_id),
+    CONSTRAINT CK_ShowtimeIncidents_DiscType CHECK  (compensation_discount_type IN ('PERCENTAGE','FIXED_AMOUNT')),
+    CONSTRAINT CK_ShowtimeIncidents_Refund   CHECK  (refund_points_rate BETWEEN 0.00 AND 1.00),
+    CONSTRAINT CK_ShowtimeIncidents_ValDays  CHECK  (compensation_valid_days > 0),
+    CONSTRAINT CK_ShowtimeIncidents_Value    CHECK  (compensation_discount_value > 0)
 );
 GO
 
@@ -612,32 +610,32 @@ GO
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 25. chatbot_conversations
+-- 25. ChatbotConversations
 -- ------------------------------------------------------------
-CREATE TABLE chatbot_conversations (
+CREATE TABLE ChatbotConversations (
     id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
-    user_id    UNIQUEIDENTIFIER NULL,       -- NULL = Guest
+    user_id    UNIQUEIDENTIFIER NOT NULL,
     session_id VARCHAR(255)     NOT NULL,
     created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_chatbot_conv      PRIMARY KEY (id),
-    CONSTRAINT FK_cc_user           FOREIGN KEY (user_id) REFERENCES users(id)
+    CONSTRAINT PK_ChatbotConversations PRIMARY KEY (id),
+    CONSTRAINT FK_ChatbotConversations_User FOREIGN KEY (user_id) REFERENCES Users(id)
 );
 GO
 
 -- ------------------------------------------------------------
--- 26. chatbot_messages
+-- 26. ChatbotMessages
 -- ------------------------------------------------------------
-CREATE TABLE chatbot_messages (
+CREATE TABLE ChatbotMessages (
     id              UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     conversation_id UNIQUEIDENTIFIER NOT NULL,
     sender_type     VARCHAR(5)       NOT NULL,
     message_content NVARCHAR(MAX)    NOT NULL,
     created_at      DATETIME2        NOT NULL DEFAULT GETDATE(),
 
-    CONSTRAINT PK_chatbot_msg       PRIMARY KEY (id),
-    CONSTRAINT FK_cm_conversation   FOREIGN KEY (conversation_id) REFERENCES chatbot_conversations(id),
-    CONSTRAINT CK_cm_sender         CHECK (sender_type IN ('USER','BOT'))
+    CONSTRAINT PK_ChatbotMessages           PRIMARY KEY (id),
+    CONSTRAINT FK_ChatbotMessages_Conv    FOREIGN KEY (conversation_id) REFERENCES ChatbotConversations(id),
+    CONSTRAINT CK_ChatbotMessages_Sender    CHECK (sender_type IN ('USER','BOT'))
 );
 GO
 
@@ -645,53 +643,43 @@ GO
 -- INDEXES PERFORMANCE
 -- ============================================================
 
--- movies
-CREATE INDEX IX_movies_status       ON movies(status);
-CREATE INDEX IX_movies_release      ON movies(release_date);
+CREATE INDEX IX_Movies_Status       ON Movies(status);
+CREATE INDEX IX_Movies_Release      ON Movies(release_date);
 
--- showtimes
-CREATE INDEX IX_st_movie_room       ON showtimes(movie_id, room_id);
-CREATE INDEX IX_st_start_time       ON showtimes(start_time);
-CREATE INDEX IX_st_status           ON showtimes(status);
+CREATE INDEX IX_Showtimes_MovieRoom ON Showtimes(movie_id, room_id);
+CREATE INDEX IX_Showtimes_StartTime ON Showtimes(start_time);
+CREATE INDEX IX_Showtimes_Status    ON Showtimes(status);
 
--- seats
-CREATE INDEX IX_seats_room          ON seats(room_id);
-CREATE INDEX IX_seats_status        ON seats(room_id, status);
+CREATE INDEX IX_Seats_Room          ON Seats(room_id);
+CREATE INDEX IX_Seats_Status        ON Seats(room_id, status);
 
--- seat_holds: rat quan trong cho scheduled job cleanup
-CREATE INDEX IX_sh_expired          ON seat_holds(expired_at);
-CREATE INDEX IX_sh_showtime_seat    ON seat_holds(showtime_id, seat_id);
+CREATE INDEX IX_SeatHolds_Expired   ON SeatHolds(expired_at);
+CREATE INDEX IX_SeatHolds_ShowSeat  ON SeatHolds(showtime_id, seat_id);
 
--- bookings
-CREATE INDEX IX_bk_user             ON bookings(user_id);
-CREATE INDEX IX_bk_showtime         ON bookings(showtime_id);
-CREATE INDEX IX_bk_status           ON bookings(booking_status, payment_status);
-CREATE INDEX IX_bk_booked_at        ON bookings(booked_at);
-CREATE INDEX IX_bk_source           ON bookings(booking_source);
-CREATE INDEX IX_bk_expired          ON bookings(expired_at) WHERE expired_at IS NOT NULL;
+CREATE INDEX IX_Bookings_User       ON Bookings(user_id);
+CREATE INDEX IX_Bookings_Showtime   ON Bookings(showtime_id);
+CREATE INDEX IX_Bookings_Status     ON Bookings(booking_status, payment_status);
+CREATE INDEX IX_Bookings_BookedAt   ON Bookings(booked_at);
+CREATE INDEX IX_Bookings_Source     ON Bookings(booking_source);
+CREATE INDEX IX_Bookings_Expired    ON Bookings(expired_at) WHERE expired_at IS NOT NULL;
 
--- booking_seats
-CREATE INDEX IX_bs_booking          ON booking_seats(booking_id);
-CREATE INDEX IX_bs_seat             ON booking_seats(seat_id);
+CREATE INDEX IX_BookingSeats_Booking ON BookingSeats(booking_id);
+CREATE INDEX IX_BookingSeats_Seat    ON BookingSeats(seat_id);
 
--- payments
-CREATE INDEX IX_pay_booking         ON payments(booking_id);
-CREATE INDEX IX_pay_paid_at         ON payments(paid_at);
-CREATE INDEX IX_pay_status          ON payments(payment_status);
+CREATE INDEX IX_Payments_Booking    ON Payments(booking_id);
+CREATE INDEX IX_Payments_PaidAt     ON Payments(paid_at);
+CREATE INDEX IX_Payments_Status     ON Payments(payment_status);
 
--- promotions
-CREATE INDEX IX_promo_status        ON promotions(status);
-CREATE INDEX IX_promo_dates         ON promotions(start_date, end_date);
+CREATE INDEX IX_Promotions_Status   ON Promotions(status);
+CREATE INDEX IX_Promotions_Dates    ON Promotions(start_date, end_date);
 
--- movie_reviews
-CREATE INDEX IX_mr_movie            ON movie_reviews(movie_id);
+CREATE INDEX IX_MovieReviews_Movie  ON MovieReviews(movie_id);
 
--- loyalty_points_log
-CREATE INDEX IX_ll_user             ON loyalty_points_log(user_id, created_at);
-CREATE INDEX IX_ll_booking          ON loyalty_points_log(booking_id);
+CREATE INDEX IX_LoyaltyPointsLog_User ON LoyaltyPointsLog(user_id, created_at);
+CREATE INDEX IX_LoyaltyPointsLog_Booking ON LoyaltyPointsLog(booking_id);
 
--- chatbot_messages
-CREATE INDEX IX_cm_conversation     ON chatbot_messages(conversation_id, created_at);
+CREATE INDEX IX_ChatbotConversations_User ON ChatbotConversations(user_id);
+CREATE INDEX IX_ChatbotMessages_Conv      ON ChatbotMessages(conversation_id, created_at);
 GO
 
 -- ============================================================
@@ -699,33 +687,104 @@ GO
 -- ============================================================
 
 -- 4 vai tro co ban
-INSERT INTO roles (id, role_name, description) VALUES
-    (NEWID(), 'ADMIN',    N'Quản trị toàn hệ thống'),
-    (NEWID(), 'MANAGER',  N'Quản lý rạp: phim, suất chiếu, báo cáo'),
-    (NEWID(), 'STAFF',    N'Nhân viên bán vé tại quầy'),
-    (NEWID(), 'CUSTOMER', N'Khách hàng đặt vé online');
+INSERT INTO Roles (id, role_name, description) VALUES
+    ('11111111-1111-1111-1111-111111111101', 'ADMIN',    N'Quản trị toàn hệ thống'),
+    ('11111111-1111-1111-1111-111111111102', 'MANAGER',  N'Quản lý rạp: phim, suất chiếu, báo cáo'),
+    ('11111111-1111-1111-1111-111111111103', 'STAFF',    N'Nhân viên bán vé tại quầy'),
+    ('11111111-1111-1111-1111-111111111104', 'CUSTOMER', N'Khách hàng đặt vé online');
 GO
 
--- system_config: tham so loyalty points
-INSERT INTO system_config (config_key, config_value, description) VALUES
-    ('loyalty_earn_rate',          '1',    N'Số điểm nhận được trên mỗi 1.000đ chi tiêu (final_amount)'),
-    ('loyalty_redeem_rate',        '100',  N'Số điểm cần để đổi 10.000đ giảm giá'),
-    ('loyalty_min_redeem',         '100',  N'Điểm tối thiểu được phép đổi trong 1 đơn'),
+-- BCrypt hash cua mat khau: Password@123
+DECLARE @DefaultPasswordHash VARCHAR(255) = '$2b$10$cQtXPt5hVH2nDDhuXFDxQ.aKttyB7S7/6jR.xyULrEfcnUFA8UCM6';
+
+INSERT INTO Users (
+    id, role_id, email, username, phone_number,
+    password_hash, full_name, date_of_birth, avatar_url,
+    status, loyalty_points, last_login_at
+) VALUES
+    -- Admin / Manager / Staff (noi bo)
+    ('22222222-2222-2222-2222-222222222201', '11111111-1111-1111-1111-111111111101',
+     'admin@movieticket.vn', 'admin', '0901000001',
+     @DefaultPasswordHash, N'Nguyễn Văn Admin', '1990-03-15', NULL,
+     'ACTIVE', 0, NULL),
+
+    ('22222222-2222-2222-2222-222222222202', '11111111-1111-1111-1111-111111111102',
+     'manager@movieticket.vn', 'manager', '0901000002',
+     @DefaultPasswordHash, N'Trần Thị Manager', '1988-07-20', NULL,
+     'ACTIVE', 0, NULL),
+
+    ('22222222-2222-2222-2222-222222222203', '11111111-1111-1111-1111-111111111103',
+     'staff@movieticket.vn', 'staff', '0901000003',
+     @DefaultPasswordHash, N'Lê Văn Staff', '1995-11-08', NULL,
+     'ACTIVE', 0, NULL),
+
+    -- Customer: nguoi lon (du tuoi xem T18)
+    ('22222222-2222-2222-2222-222222222204', '11111111-1111-1111-1111-111111111104',
+     'customer.adult@email.com', 'customer_adult', '0902000001',
+     @DefaultPasswordHash, N'Phạm Minh Anh', '2000-05-20',
+     N'https://example.com/avatars/customer_adult.jpg',
+     'ACTIVE', 1250, '2026-06-01 10:30:00'),
+
+    -- Customer: 14 tuoi (du T13, chua du T16/T18)
+    ('22222222-2222-2222-2222-222222222205', '11111111-1111-1111-1111-111111111104',
+     'customer.teen@email.com', 'customer_teen', '0902000002',
+     @DefaultPasswordHash, N'Hoàng Thị Lan', '2012-01-10', NULL,
+     'ACTIVE', 320, NULL),
+
+    -- Customer: tre em (chi xem P/K)
+    ('22222222-2222-2222-2222-222222222206', '11111111-1111-1111-1111-111111111104',
+     NULL, NULL, '0902000003',
+     @DefaultPasswordHash, N'Ngô Bảo Khang', '2018-09-05', NULL,
+     'ACTIVE', 50, NULL);
+GO
+
+INSERT INTO SystemConfig (config_key, config_value, description) VALUES
+    ('loyalty_earn_rate',           '1',    N'Số điểm nhận được trên mỗi 1.000đ chi tiêu (final_amount)'),
+    ('loyalty_redeem_rate',         '100',  N'Số điểm cần để đổi 10.000đ giảm giá'),
+    ('loyalty_min_redeem',          '100',  N'Điểm tối thiểu được phép đổi trong 1 đơn'),
     ('loyalty_max_redeem_per_order','5000', N'Điểm tối đa được đổi trong 1 đơn');
 GO
 
--- vat_rules: thue suat mac dinh 10% (khong co ngay ket thuc)
-INSERT INTO vat_rules (id, rule_name, vat_rate, start_date, end_date, status) VALUES
+INSERT INTO VatRules (id, rule_name, vat_rate, start_date, end_date, status) VALUES
     (NEWID(), N'VAT Vé Phim mặc định 10%', 10.00, '2024-01-01', NULL, 'ACTIVE');
 GO
 
--- seat_types mac dinh
-INSERT INTO seat_types (id, type_name, price_multiplier, description) VALUES
-    (NEWID(), 'REGULAR', 1.00, N'Ghế thường'),
-    (NEWID(), 'VIP',     1.50, N'Ghế VIP - rộng hơn, vị trí trung tâm'),
-    (NEWID(), 'COUPLE',  2.00, N'Ghế đôi dành cho 2 người'),
-    (NEWID(), 'SWEETBOX',2.50, N'Ghế sweetbox - riêng tư, có bàn nhỏ');
+INSERT INTO CinemaInfo (id, name, address, hotline, email, opening_hours, description) VALUES
+    (NEWID(),
+     N'FPT Cinema Morgan',
+     N'123 Đường Nguyễn Văn Cừ, Quận 5, TP.HCM',
+     '1900-6868',
+     'contact@movieticket.vn',
+     N'08:00 – 23:00 (tất cả các ngày)',
+     N'Rạp chiếu phim hiện đại với 4 phòng chiếu, hỗ trợ đặt vé online và tại quầy.');
 GO
 
-PRINT N'=== Tao database thanh cong: 26 bang, indexes, seed data ===';
+INSERT INTO SeatTypes (id, type_name, price_multiplier, description) VALUES
+    (NEWID(), 'REGULAR',  1.00, N'Ghế thường'),
+    (NEWID(), 'VIP',      1.50, N'Ghế VIP - rộng hơn, vị trí trung tâm'),
+    (NEWID(), 'COUPLE',   2.00, N'Ghế đôi dành cho 2 người'),
+    (NEWID(), 'SWEETBOX', 2.50, N'Ghế sweetbox - riêng tư, có bàn nhỏ');
+GO
+
+-- Chatbot: chi user da dang nhap (user_id NOT NULL)
+INSERT INTO ChatbotConversations (id, user_id, session_id, created_at) VALUES
+    ('33333333-3333-3333-3333-333333333301', '22222222-2222-2222-2222-222222222204',
+     'sess-customer-adult-001', '2026-06-01 11:00:00'),
+    ('33333333-3333-3333-3333-333333333302', '22222222-2222-2222-2222-222222222205',
+     'sess-customer-teen-001', '2026-06-02 09:15:00');
+GO
+
+INSERT INTO ChatbotMessages (id, conversation_id, sender_type, message_content, created_at) VALUES
+    ('44444444-4444-4444-4444-444444444401', '33333333-3333-3333-3333-333333333301',
+     'USER', N'Phim nào đang chiếu hôm nay?', '2026-06-01 11:00:05'),
+    ('44444444-4444-4444-4444-444444444402', '33333333-3333-3333-3333-333333333301',
+     'BOT', N'Bạn có thể xem danh sách phim đang chiếu tại trang chủ hoặc lọc theo ngày.', '2026-06-01 11:00:08'),
+    ('44444444-4444-4444-4444-444444444403', '33333333-3333-3333-3333-333333333302',
+     'USER', N'Phim T13 có suất chiếu tối nay không?', '2026-06-02 09:15:10'),
+    ('44444444-4444-4444-4444-444444444404', '33333333-3333-3333-3333-333333333302',
+     'BOT', N'Vui lòng chọn phim cụ thể để xem lịch chiếu chi tiết.', '2026-06-02 09:15:12');
+GO
+
+PRINT N'=== Tao database thanh cong: 26 bang (PascalCase), indexes, seed data ===';
+PRINT N'=== Tai khoan seed: mat khau mac dinh la Password@123 (BCrypt) ===';
 GO
