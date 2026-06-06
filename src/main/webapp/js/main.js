@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initHeroSlider();
   initMovieTabs();
   initHeaderScroll();
-  initClickDropdowns();
 });
 
 /* ── Header scroll effect ───────────────────────────────────── */
@@ -16,44 +15,6 @@ function initHeaderScroll() {
   window.addEventListener('scroll', () => {
     header.classList.toggle('scrolled', window.scrollY > 20);
   }, { passive: true });
-}
-
-/* ── Click-toggle dropdowns (Đánh giá) ─────────────────────── */
-function initClickDropdowns() {
-  document.querySelectorAll('.nav-item--click').forEach(item => {
-    const trigger = item.querySelector('[data-toggle]');
-    if (!trigger) return;
-
-    trigger.addEventListener('click', e => {
-      e.preventDefault();
-      const isOpen = item.classList.contains('open');
-
-      // Đóng tất cả click-dropdown đang mở
-      document.querySelectorAll('.nav-item--click.open').forEach(el => {
-        el.classList.remove('open');
-        const arrow = el.querySelector('.nav-arrow');
-        if (arrow) arrow.style.transform = '';
-      });
-
-      // Toggle cái vừa click
-      if (!isOpen) {
-        item.classList.add('open');
-        const arrow = item.querySelector('.nav-arrow');
-        if (arrow) arrow.style.transform = 'rotate(180deg)';
-      }
-    });
-  });
-
-  // Click ra ngoài thì đóng
-  document.addEventListener('click', e => {
-    if (!e.target.closest('.nav-item--click')) {
-      document.querySelectorAll('.nav-item--click.open').forEach(el => {
-        el.classList.remove('open');
-        const arrow = el.querySelector('.nav-arrow');
-        if (arrow) arrow.style.transform = '';
-      });
-    }
-  });
 }
 
 /* ── Hero background: hiển thị ngay, backdrop lỗi thì fallback poster ── */

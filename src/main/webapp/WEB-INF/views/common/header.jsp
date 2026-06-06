@@ -68,12 +68,12 @@
         </div>
       </div>
 
-      <%-- Đánh giá: click dropdown --%>
-      <div class="nav-item nav-item--click">
-        <a href="#" class="nav-link" data-toggle="reviews-dropdown">
-          Đánh giá <span class="nav-arrow" id="reviews-arrow">▾</span>
+      <%-- Đánh giá: hover dropdown (giống Thể loại) --%>
+      <div class="nav-item">
+        <a href="${pageContext.request.contextPath}/reviews" class="nav-link">
+          Đánh giá <span class="nav-arrow">▾</span>
         </a>
-        <div class="dropdown-menu" id="reviews-dropdown">
+        <div class="dropdown-menu">
           <a href="${pageContext.request.contextPath}/reviews?sort=top">
             ⭐ Phim đánh giá cao nhất
           </a>
