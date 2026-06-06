@@ -5,11 +5,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
-import jakarta.servlet.annotation.WebFilter;
-
 import java.io.IOException;
 
-@WebFilter(urlPatterns = "/*")
 public class EncodingFilter implements Filter {
 
     private static final String ENCODING = "UTF-8";
