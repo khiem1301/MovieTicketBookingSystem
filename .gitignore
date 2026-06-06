@@ -44,5 +44,8 @@ build/
 ### Mac OS ###
 .DS_Store
 
+### Smart Tomcat plugin ###
+.SmartTomcat/
+
 ### Local environment (mỗi máy tự tạo từ .example) ###
 src/main/resources/database.properties
