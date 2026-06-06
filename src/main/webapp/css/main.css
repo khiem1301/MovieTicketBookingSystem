@@ -314,13 +314,45 @@ ul { list-style: none; }
   display: flex;
   align-items: center;
   overflow: hidden;
-  background: var(--bg);
+  background: #0a0a0a;
 }
 
-.hero-slide {
+/* Ảnh backdrop full màn hình phía sau */
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.hero-bg-img {
   width: 100%;
-  align-items: center;
-  justify-content: center;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+  transition: opacity 0.6s ease;
+}
+.hero-bg-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  /* Gradient nhẹ: đủ đọc chữ trái, ảnh nền vẫn hiện rõ */
+  background:
+    linear-gradient(
+      to right,
+      rgba(0,0,0,0.72) 0%,
+      rgba(0,0,0,0.45) 32%,
+      rgba(0,0,0,0.12) 58%,
+      transparent 80%
+    ),
+    linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.30) 0%,
+      transparent 20%,
+      transparent 82%,
+      rgba(0,0,0,0.40) 100%
+    );
 }
 
 .hero-inner {
@@ -329,18 +361,18 @@ ul { list-style: none; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 48px;
+  gap: 40px;
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 48px 24px;
+  padding: 60px 24px;
 }
 
-/* Trái: giới thiệu phim */
+/* Trái: giới thiệu phim — nằm trên ảnh nền */
 .hero-info {
-  flex: 0 1 42%;
-  max-width: 520px;
-  min-width: 0;
+  max-width: 560px;
+  position: relative;
+  z-index: 3;
 }
 
 .hero-badges {
@@ -365,13 +397,16 @@ ul { list-style: none; }
   line-height: 1.15;
   margin-bottom: 16px;
   letter-spacing: -0.02em;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.85);
 }
 
 .hero-desc {
   font-size: 15px;
-  color: var(--text-muted);
+  color: rgba(255,255,255,0.88);
   line-height: 1.7;
   margin-bottom: 24px;
+  max-width: 460px;
+  text-shadow: 0 1px 12px rgba(0,0,0,0.8);
 }
 
 .hero-meta {
@@ -416,53 +451,7 @@ ul { list-style: none; }
 }
 .dot.active { background: var(--accent); width: 40px; }
 
-/* Phải: ảnh backdrop ngang, căn cùng hàng với phần chữ */
-.hero-backdrop {
-  flex: 1 1 58%;
-  max-width: 720px;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.hero-backdrop-img {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-  border-radius: 14px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
-  transition: opacity 0.5s ease;
-}
-
-.hero-backdrop-placeholder {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 14px;
-  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 48px;
-  color: var(--text-muted);
-}
-
-@media (max-width: 900px) {
-  .hero-inner {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 32px;
-    padding: 40px 20px;
-  }
-  .hero-info,
-  .hero-backdrop {
-    flex: none;
-    max-width: none;
-    width: 100%;
-  }
-}
-
-/* Right: phone mockup (dùng ở trang khác nếu cần) */
+/* Phải: phone mockup */
 .hero-visual {
   flex-shrink: 0;
   display: flex;
