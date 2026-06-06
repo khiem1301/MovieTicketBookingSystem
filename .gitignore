@@ -45,4 +45,5 @@ build/
 .DS_Store
 
 ### Local environment (mỗi máy tự tạo từ .example) ###
-src/main/resources/database.properties
+**/database.properties
+!**/database.properties.example
