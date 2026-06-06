@@ -37,6 +37,7 @@ Lưu toàn bộ tài khoản trong hệ thống. Mỗi user có đúng 1 role qu
 | `phone_number` | Dùng để Staff tra cứu tài khoản tại quầy khi khách muốn tích điểm |
 | `password_hash` | Mật khẩu đã hash (BCrypt/Argon2id). Không bao giờ lưu plain-text |
 | `full_name` | Hiển thị trên UI và in trên vé |
+| `date_of_birth` | Ngày sinh bắt buộc khi đăng ký. Dùng để kiểm tra độ tuổi khi đặt vé phim có giới hạn `T13` / `T16` / `T18` |
 | `avatar_url` | Ảnh đại diện hiển thị trên profile |
 | `status` | Trạng thái TK: `ACTIVE` · `INACTIVE` · `BANNED`. Manager khóa tài khoản qua đây |
 | `loyalty_points` | Tổng điểm tích lũy hiện tại. Denormalized để query nhanh, cập nhật atomic mỗi giao dịch điểm |
@@ -342,7 +343,7 @@ Lưu các lần thanh toán. Quan hệ 1-N với `bookings` để cho phép retr
 |---|---|
 | `id` | Khoá chính |
 | `booking_id` | FK → bookings. Đơn cần thanh toán |
-| `payment_method` | Phương thức: `VNPAY` · `MOMO` · `QR_BANKING` · `CASH` · `BANK_TRANSFER` |
+| `payment_method` | Phương thức: `VNPAY` · `MOMO` · `CASH` |
 | `payment_source` | `ONLINE` (qua cổng) · `OFFLINE` (nhân viên xác nhận tại quầy) |
 | `transaction_code` | Mã giao dịch từ VNPay/MoMo... NULL nếu CASH |
 | `amount` | Số tiền = `bookings.final_amount` |
@@ -455,13 +456,13 @@ Ghi lại sự cố và cấu hình hoàn điểm / voucher bồi thường cho 
 ---
 
 #### 25. `chatbot_conversations` — Phiên chat AI
-Mỗi phiên trò chuyện với chatbot là 1 conversation. Guest track qua session_id.
+Mỗi phiên trò chuyện với chatbot là 1 conversation. Chỉ dành cho user đã đăng nhập.
 
 | Field | Dùng để làm gì |
 |---|---|
 | `id` | Khoá chính |
-| `user_id` | FK → users. Nullable — NULL nếu Guest chưa đăng nhập |
-| `session_id` | Session ID trình duyệt. Track Guest qua nhiều câu hỏi trong cùng phiên |
+| `user_id` | FK → users. NOT NULL — bắt buộc phải đăng nhập mới dùng được chatbot |
+| `session_id` | Session ID trình duyệt. Track user qua nhiều tab/thiết bị trong cùng phiên |
 | `created_at` | Thời điểm bắt đầu conversation |
 
 ---
@@ -485,11 +486,11 @@ Từng tin nhắn (user lẫn bot) theo thứ tự thời gian trong conversatio
 
 | FR | Tên | Mô tả | Bảng chính |
 |---|---|---|---|
-| FR-01 | User Registration | Khách đăng ký tài khoản bằng email hoặc SĐT. Xác thực email sau đăng ký | `users` |
+| FR-01 | User Registration | Khách đăng ký tài khoản bằng email hoặc SĐT. Bắt buộc nhập `date_of_birth`. Validate: không được để trống, không được là ngày trong tương lai. Xác thực email sau đăng ký | `users` |
 | FR-02 | User Login | Đăng nhập bằng email/username + mật khẩu | `users` |
 | FR-03 | Logout | Đăng xuất, huỷ session | session |
 | FR-04 | Password Management | Đổi mật khẩu hoặc reset qua link email (token 15–30 phút) | `users`, `password_reset_tokens` |
-| FR-05 | Profile Management | Xem và chỉnh sửa thông tin cá nhân: tên, SĐT, avatar | `users` |
+| FR-05 | Profile Management | Xem và chỉnh sửa thông tin cá nhân: tên, SĐT, avatar, `date_of_birth`. Validate `date_of_birth`: không được để trống, không được là ngày trong tương lai | `users` |
 | FR-06 | Browse Movies | Xem danh sách phim đang chiếu và sắp chiếu | `movies` |
 | FR-07 | Search Movies | Tìm kiếm phim theo tên, đạo diễn, diễn viên | `movies`, `movie_genres` |
 | FR-08 | Filter Movies | Lọc phim theo thể loại, ngôn ngữ, độ tuổi, trạng thái | `movies`, `movie_genres` |
@@ -497,10 +498,10 @@ Từng tin nhắn (user lẫn bot) theo thứ tự thời gian trong conversatio
 | FR-10 | View Cinema Information | Xem thông tin rạp: địa chỉ, hotline, giờ hoạt động, sơ đồ phòng | `cinema_info`, `cinema_rooms` |
 | FR-11 | View Showtimes | Xem lịch chiếu theo phim hoặc theo ngày, hiển thị giá hiệu quả sau pricing rules | `showtimes`, `pricing_rules` |
 | FR-12 | Seat Selection | Chọn ghế trên sơ đồ phòng chiếu. Ghế đang hold hoặc đã book hiển thị không chọn được | `seats`, `seat_holds`, `booking_seats` |
-| FR-13 | Seat Availability Validation | Kiểm tra ghế còn trống trước khi giữ: không có hold chưa expired, không có booking CONFIRMED | `seat_holds`, `booking_seats` |
-| FR-14 | Ticket Booking | Tạo đơn đặt vé online sau khi chọn ghế và xác nhận | `bookings`, `booking_seats` |
+| FR-13 | Seat Availability Validation | Kiểm tra ghế còn trống trước khi giữ: không có hold chưa expired, không có booking_seats với booking CONFIRMED. Bổ sung check tuổi: nếu phim có `age_rating` là `T13` / `T16` / `T18`, tính tuổi từ `users.date_of_birth` và từ chối nếu chưa đủ tuổi. Rating `P` và `K` không cần check. Walk-in tại quầy không validate tuổi — Staff tự kiểm tra CMND | `seat_holds`, `booking_seats`, `users` |
+| FR-14 | Ticket Booking | Tạo đơn đặt vé online sau khi chọn ghế và xác nhận. Trước khi `INSERT bookings`, validate lại tuổi ở tầng server để tránh bypass | `bookings`, `booking_seats`, `users` |
 | FR-15 | Booking History | Xem lịch sử đơn đặt vé của bản thân, lọc theo trạng thái | `bookings` |
-| FR-16 | Online Payment | Thanh toán qua cổng VNPay, MoMo, QR Banking | `payments` |
+| FR-16 | Online Payment | Thanh toán online qua **VNPay hoặc MoMo** | `payments` |
 | FR-17 | Payment Confirmation | Nhận kết quả thanh toán từ callback cổng, cập nhật trạng thái đơn và phát hành vé | `payments`, `bookings`, `tickets` |
 | FR-18 | E-Ticket Generation | Sinh vé điện tử với QR code sau khi thanh toán thành công | `tickets` |
 | FR-19 | Send Booking Email | Gửi email xác nhận đơn kèm e-ticket cho Customer online sau khi thanh toán thành công | `users.email` |
@@ -515,7 +516,7 @@ Từng tin nhắn (user lẫn bot) theo thứ tự thời gian trong conversatio
 | FR | Tên | Mô tả | Bảng chính |
 |---|---|---|---|
 | FR-35 | Counter Ticket Booking | Staff tạo đơn đặt vé tại quầy cho khách, chọn ghế và xác nhận | `bookings` (source=OFFLINE) |
-| FR-36 | Offline Payment Processing | Xác nhận thanh toán tiền mặt hoặc chuyển khoản tại quầy | `payments` (source=OFFLINE) |
+| FR-36 | Offline Payment Processing | Thanh toán tại quầy bằng **tiền mặt, VNPay hoặc MoMo** | `payments` (source=OFFLINE) |
 | FR-37 | Ticket Printing | In vé giấy cho khách tại quầy, cập nhật `is_printed=TRUE` | `tickets.is_printed` |
 | FR-38 | Walk-in Customer Support | Tạo đơn cho khách vãng lai không có tài khoản (`user_id=NULL`) | `bookings` |
 | FR-39 | Booking Source Management | Phân biệt và quản lý đơn ONLINE / OFFLINE trong hệ thống | `bookings.booking_source` |
@@ -569,7 +570,7 @@ Từng tin nhắn (user lẫn bot) theo thứ tự thời gian trong conversatio
 
 | FR | Tên | Mô tả | Bảng chính |
 |---|---|---|---|
-| FR-33 | AI Chatbot Support | Chatbot hỗ trợ khách hỏi về phim, lịch chiếu, đặt vé. Hoạt động với cả Guest | `chatbot_conversations`, `chatbot_messages` |
+| FR-33 | AI Chatbot Support | Chatbot hỗ trợ hỏi về phim, lịch chiếu, đặt vé. Chỉ dành cho user đã đăng nhập (Customer, Staff, Manager, Admin). Guest cần đăng ký hoặc đăng nhập trước khi sử dụng | `chatbot_conversations`, `chatbot_messages` |
 
 ---
 
@@ -667,7 +668,7 @@ Từng tin nhắn (user lẫn bot) theo thứ tự thời gian trong conversatio
 
 4. Khách thanh toán:
    INSERT payments(
-     method = CASH hoặc BANK_TRANSFER,
+     method = CASH hoặc VNPAY hoặc MOMO,
      source = OFFLINE,
      cash_received + change_amount (nếu tiền mặt)
    )
@@ -743,7 +744,7 @@ Manager phát hiện sự cố tại suất X
 | `bookings` | `booking_source` | `ONLINE` · `OFFLINE` |
 | `bookings` | `booking_status` | `PENDING` · `CONFIRMED` · `CANCELLED` · `EXPIRED` · `REFUNDED` |
 | `bookings` | `payment_status` | `UNPAID` · `PAID` · `FAILED` |
-| `payments` | `payment_method` | `VNPAY` · `MOMO` · `QR_BANKING` · `CASH` · `BANK_TRANSFER` |
+| `payments` | `payment_method` | `VNPAY` · `MOMO` · `CASH` |
 | `payments` | `payment_source` | `ONLINE` · `OFFLINE` |
 | `payments` | `payment_status` | `PENDING` · `SUCCESS` · `FAILED` |
 | `promotions` | `discount_type` | `PERCENTAGE` · `FIXED_AMOUNT` |
@@ -798,6 +799,7 @@ entity users {
     phone_number : varchar(20) <<UK>>
     password_hash : varchar(255)
     full_name : varchar(255)
+    date_of_birth : date
     avatar_url : text
     status : enum
     loyalty_points : int
@@ -1115,7 +1117,7 @@ entity showtime_incidents {
 entity chatbot_conversations {
     *id : UUID <<PK>>
     --
-    user_id : UUID <<FK>>
+    user_id : UUID <<FK>> <<NOT NULL>>
     session_id : varchar(255)
     created_at : timestamp
 }
