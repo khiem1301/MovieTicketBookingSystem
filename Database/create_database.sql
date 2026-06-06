@@ -251,6 +251,7 @@ CREATE TABLE Movies (
     release_date     DATE             NULL,
     trailer_url      NVARCHAR(MAX)    NULL,
     poster_url       NVARCHAR(MAX)    NULL,
+    backdrop_url     NVARCHAR(MAX)    NULL,
     director         NVARCHAR(255)    NULL,
     cast_members     NVARCHAR(MAX)    NULL,
     language         NVARCHAR(50)     NULL,
@@ -785,6 +786,174 @@ INSERT INTO ChatbotMessages (id, conversation_id, sender_type, message_content, 
      'BOT', N'Vui lòng chọn phim cụ thể để xem lịch chiếu chi tiết.', '2026-06-02 09:15:12');
 GO
 
+-- ============================================================
+-- SEED DATA: The loai, Phong chieu, Phim mau
+-- ============================================================
+
+-- The loai phim
+INSERT INTO Genres (id, genre_name) VALUES
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB101', N'Hành động'),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB102', N'Viễn tưởng'),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB103', N'Kinh dị'),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB104', N'Tình cảm'),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB105', N'Hoạt hình'),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB106', N'Hài'),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB107', N'Chính kịch'),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB108', N'Kịch tính');
+GO
+
+-- Phong chieu
+INSERT INTO CinemaRooms (id, room_name, capacity, status) VALUES
+    ('CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCC01', N'Phòng 1',    120, 'ACTIVE'),
+    ('CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCC02', N'Phòng IMAX',  80, 'ACTIVE'),
+    ('CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCC03', N'Phòng 3',     60, 'ACTIVE');
+GO
+
+-- Phim mau: 4 dang chieu + 4 sap chieu
+-- backdrop_url: anh ngang (landscape 16:9) hien o background hero, khac poster_url (anh doc trong phone)
+-- Neu da co bang Movies, chay: ALTER TABLE Movies ADD backdrop_url NVARCHAR(MAX) NULL;
+INSERT INTO Movies (
+    id, title, slug, description, duration_minutes, release_date,
+    trailer_url, poster_url, backdrop_url, director, cast_members,
+    language, subtitle, age_rating, status, average_rating
+) VALUES
+-- ─── ĐANG CHIẾU ────────────────────────────────────────────────────────────
+(
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA101',
+    N'Avengers: Doomsday',
+    'avengers-doomsday',
+    N'Các siêu anh hùng Marvel tập hợp lần cuối để ngăn chặn Doctor Doom – kẻ phản diện quyền năng nhất vũ trụ đang âm mưu nắm quyền kiểm soát toàn bộ thực tại.',
+    150, '2026-05-01',
+    'https://www.youtube.com/watch?v=sOEg_YZQsTI',
+    'https://image.tmdb.org/t/p/w500/or06FN3Dka5tukK1e9sl16pB3iy.jpg',
+    'https://image.tmdb.org/t/p/w1280/or06FN3Dka5tukK1e9sl16pB3iy.jpg',
+    N'Joe Russo, Anthony Russo',
+    N'Robert Downey Jr., Chris Evans, Scarlett Johansson, Chris Hemsworth',
+    N'Tiếng Anh', N'Phụ đề Việt', 'T13', 'NOW_SHOWING', 4.80
+),
+(
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA102',
+    N'Mission: Impossible – The Final Reckoning',
+    'mission-impossible-final-reckoning',
+    N'Ethan Hunt và đội IMF đối mặt với sứ mệnh nguy hiểm nhất khi một AI siêu việt nắm giữ bí mật có thể hủy diệt toàn bộ nền văn minh nhân loại.',
+    163, '2026-05-21',
+    'https://www.youtube.com/watch?v=avz06PDqDbM',
+    'https://image.tmdb.org/t/p/w500/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
+    'https://image.tmdb.org/t/p/w1280/62HCnUTziyWcpDaBO2i1DX17ljH.jpg',
+    N'Christopher McQuarrie',
+    N'Tom Cruise, Hayley Atwell, Simon Pegg, Ving Rhames',
+    N'Tiếng Anh', N'Phụ đề Việt', 'T13', 'NOW_SHOWING', 4.50
+),
+(
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA103',
+    N'Lilo & Stitch',
+    'lilo-stitch-2025',
+    N'Cô bé Lilo cô đơn ở Hawaii kết bạn với sinh vật ngoài hành tinh tên Stitch. Hành trình tìm kiếm ý nghĩa thật sự của gia đình sẽ thay đổi cả hai mãi mãi.',
+    108, '2026-05-23',
+    'https://www.youtube.com/watch?v=dJWjlMGBJ0c',
+    'https://image.tmdb.org/t/p/w500/mGT7gDFqtGpYDERbmMAjUHw3TlC.jpg',
+    'https://image.tmdb.org/t/p/w1280/mGT7gDFqtGpYDERbmMAjUHw3TlC.jpg',
+    N'Dean Fleischer Camp',
+    N'Maia Kealoha, Sydney Agudong, Zach Galifianakis',
+    N'Tiếng Anh', N'Lồng tiếng Việt', 'P', 'NOW_SHOWING', 4.20
+),
+(
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA104',
+    N'The Housemaid',
+    'the-housemaid',
+    N'Một người giúp việc bí ẩn gia nhập gia đình giàu có và dần tiết lộ những bí mật đen tối đằng sau cuộc sống xa hoa tưởng chừng hoàn hảo.',
+    118, '2026-04-23',
+    'https://www.youtube.com/watch?v=HM9VMExYmGg',
+    'https://image.tmdb.org/t/p/w500/74xTEgt7R36Fpooo50r9T25onhq.jpg',
+    'https://image.tmdb.org/t/p/w1280/74xTEgt7R36Fpooo50r9T25onhq.jpg',
+    N'Park Chan-wook',
+    N'Sydney Sweeney, Amanda Seyfried, Brandon Sklenar',
+    N'Tiếng Anh', N'Phụ đề Việt', 'T18', 'NOW_SHOWING', 4.10
+),
+-- ─── SẮP CHIẾU ─────────────────────────────────────────────────────────────
+(
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA105',
+    N'Superman',
+    'superman-2025',
+    N'Phiên bản Superman hoàn toàn mới trong DCU. Clark Kent học cách trở thành biểu tượng hy vọng cho nhân loại trong thế giới đầy thách thức và đe dọa.',
+    132, '2026-07-11',
+    'https://www.youtube.com/watch?v=mVkTFiXm0Oc',
+    'https://image.tmdb.org/t/p/w500/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg',
+    'https://image.tmdb.org/t/p/w1280/1g0dhYtq4irTY1GPXvft6k4YLjm.jpg',
+    N'James Gunn',
+    N'David Corenswet, Rachel Brosnahan, Nicholas Hoult',
+    N'Tiếng Anh', N'Phụ đề Việt', 'T13', 'COMING_SOON', 0.00
+),
+(
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA106',
+    N'How to Train Your Dragon',
+    'how-to-train-your-dragon-live-action',
+    N'Bản live-action của bộ phim hoạt hình huyền thoại. Hiccup và Toothless chiến đấu để bảo vệ hòa bình giữa người và rồng trước những mối đe dọa mới.',
+    105, '2026-06-27',
+    'https://www.youtube.com/watch?v=mQVoABqW2Sg',
+    'https://image.tmdb.org/t/p/w500/sv1xJUazXeYqALzczSZ3O6nkH75.jpg',
+    'https://image.tmdb.org/t/p/w1280/sv1xJUazXeYqALzczSZ3O6nkH75.jpg',
+    N'Dean DeBlois',
+    N'Mason Thames, Nico Parker, Gerard Butler',
+    N'Tiếng Anh', N'Lồng tiếng Việt', 'P', 'COMING_SOON', 0.00
+),
+(
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA107',
+    N'Jurassic World: Rebirth',
+    'jurassic-world-rebirth',
+    N'Năm năm sau thảm họa, khủng long đã tràn khắp địa cầu. Một nhóm thám hiểm liều lĩnh tiến vào vùng đất bí ẩn để tìm kiếm bí quyết sinh tồn cuối cùng.',
+    119, '2026-07-02',
+    'https://www.youtube.com/watch?v=jlHBVhBFDso',
+    'https://image.tmdb.org/t/p/w500/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
+    'https://image.tmdb.org/t/p/w1280/t6HIqrRAclMCA60NsSmeqe9RmNV.jpg',
+    N'Gareth Edwards',
+    N'Scarlett Johansson, Jonathan Bailey, Mahershala Ali',
+    N'Tiếng Anh', N'Phụ đề Việt', 'T13', 'COMING_SOON', 0.00
+),
+(
+    'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA108',
+    N'Tôi Thấy Hoa Vàng Trên Cỏ Xanh 2',
+    'toi-thay-hoa-vang-tren-co-xanh-2',
+    N'Tiếp nối câu chuyện tuổi thơ xúc động ở làng quê miền Trung. Thiều và Tường lớn lên với những kỷ niệm trong sáng và tình yêu đầu đời không thể phai nhòa.',
+    125, '2026-08-15',
+    'https://www.youtube.com/watch?v=A4xwi5e0MCw',
+    'https://image.tmdb.org/t/p/w500/4lpDsI4jYgJv7x9bvvUBXLHQSRi.jpg',
+    'https://image.tmdb.org/t/p/w1280/4lpDsI4jYgJv7x9bvvUBXLHQSRi.jpg',
+    N'Victor Vũ',
+    N'Thịnh Vinh, Đào Duy Phước, Lê Thị Duyên',
+    N'Tiếng Việt', NULL, 'P', 'COMING_SOON', 0.00
+);
+GO
+
+-- Phim - The loai (junction M-N)
+INSERT INTO MovieGenres (movie_id, genre_id) VALUES
+    -- Avengers: Doomsday -> Hành động, Viễn tưởng
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA101', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB101'),
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA101', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB102'),
+    -- Mission Impossible -> Hành động, Kịch tính
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA102', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB101'),
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA102', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB108'),
+    -- Lilo & Stitch -> Hoạt hình, Hài
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA103', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB105'),
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA103', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB106'),
+    -- The Housemaid -> Kinh dị, Kịch tính
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA104', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB103'),
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA104', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB108'),
+    -- Superman -> Hành động, Viễn tưởng
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA105', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB101'),
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA105', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB102'),
+    -- How to Train Your Dragon -> Hoạt hình, Hành động
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA106', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB105'),
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA106', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB101'),
+    -- Jurassic World -> Hành động, Viễn tưởng
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA107', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB101'),
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA107', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB102'),
+    -- Hoa Vàng -> Tình cảm, Chính kịch
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA108', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB104'),
+    ('AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA108', 'BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB107');
+GO
+
 PRINT N'=== Tao database thanh cong: 26 bang (PascalCase), indexes, seed data ===';
 PRINT N'=== Tai khoan seed: mat khau mac dinh la Password@123 (BCrypt) ===';
+PRINT N'=== Phim mau: 4 dang chieu + 4 sap chieu da duoc them vao ===';
 GO
