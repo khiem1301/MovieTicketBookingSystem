@@ -7,6 +7,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title><c:out value="${not empty pageTitle ? pageTitle : 'ÉpCine'}"/></title>
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/main.css"/>
+  <c:if test="${not empty extraCss}">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/${extraCss}.css"/>
+  </c:if>
 </head>
 <body>
 
