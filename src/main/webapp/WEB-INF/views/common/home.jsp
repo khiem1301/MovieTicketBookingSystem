@@ -1,6 +1,7 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 
 <c:set var="pageTitle" value="ÉPCINE — Đặt vé xem phim"/>
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
@@ -29,10 +30,17 @@
   <div class="hero-bg">
     <c:if test="${not empty featuredMovies}">
       <c:set var="firstBg" value="${not empty featuredMovies[0].backdropUrl ? featuredMovies[0].backdropUrl : featuredMovies[0].posterUrl}"/>
+      <c:if test="${not empty firstBg and not fn:startsWith(firstBg, 'http')}">
+        <c:set var="firstBg" value="${pageContext.request.contextPath}/${firstBg}"/>
+      </c:if>
+      <c:set var="firstPoster" value="${featuredMovies[0].posterUrl}"/>
+      <c:if test="${not empty firstPoster and not fn:startsWith(firstPoster, 'http')}">
+        <c:set var="firstPoster" value="${pageContext.request.contextPath}/${firstPoster}"/>
+      </c:if>
       <img class="hero-bg-img"
            src="<c:out value='${firstBg}'/>"
            alt=""
-           data-fallback="<c:out value='${featuredMovies[0].posterUrl}'/>"/>
+           data-fallback="<c:out value='${firstPoster}'/>"/>
     </c:if>
   </div>
   <div class="hero-bg-overlay"></div>
@@ -41,9 +49,16 @@
     <c:when test="${not empty featuredMovies}">
       <c:forEach var="movie" items="${featuredMovies}" varStatus="loop">
         <c:set var="bg" value="${not empty movie.backdropUrl ? movie.backdropUrl : movie.posterUrl}"/>
+        <c:if test="${not empty bg and not fn:startsWith(bg, 'http')}">
+          <c:set var="bg" value="${pageContext.request.contextPath}/${bg}"/>
+        </c:if>
+        <c:set var="posterSrc" value="${movie.posterUrl}"/>
+        <c:if test="${not empty posterSrc and not fn:startsWith(posterSrc, 'http')}">
+          <c:set var="posterSrc" value="${pageContext.request.contextPath}/${posterSrc}"/>
+        </c:if>
 
         <div class="hero-slide ${loop.first ? 'active' : ''}"
-             data-poster="<c:out value='${movie.posterUrl}'/>"
+             data-poster="<c:out value='${posterSrc}'/>"
              data-backdrop="<c:out value='${bg}'/>"
              style="display:${loop.first ? 'flex' : 'none'}; position:${loop.first ? 'relative' : 'absolute'};
                     inset:0; width:100%; z-index:${loop.first ? '2' : '1'};">
@@ -102,7 +117,7 @@
                 <div class="phone-frame">
                   <c:choose>
                     <c:when test="${not empty movie.posterUrl}">
-                      <img src="<c:out value='${movie.posterUrl}'/>"
+                      <img src="<c:out value='${posterSrc}'/>"
                            alt="<c:out value='${movie.title}'/>"/>
                     </c:when>
                     <c:otherwise>
@@ -173,16 +188,85 @@
       <button class="tab-btn" data-tab="tab-early">Suất chiếu sớm</button>
     </div>
 
+    <%-- TAB: Sắp chiếu --%>
+    <div class="tab-panel movies-grid" id="tab-coming">
+      <c:choose>
+        <c:when test="${not empty comingSoonMovies}">
+          <c:forEach var="movie" items="${comingSoonMovies}">
+            <c:set var="cardPoster" value="${movie.posterUrl}"/>
+            <c:if test="${not empty cardPoster and not fn:startsWith(cardPoster, 'http')}">
+              <c:set var="cardPoster" value="${pageContext.request.contextPath}/${cardPoster}"/>
+            </c:if>
+            <div class="movie-card">
+              <div class="card-poster">
+                <c:choose>
+                  <c:when test="${not empty movie.posterUrl}">
+                    <img src="<c:out value='${cardPoster}'/>"
+                         alt="<c:out value='${movie.title}'/>"/>
+                  </c:when>
+                  <c:otherwise>
+                    <div class="poster-placeholder">🎬</div>
+                  </c:otherwise>
+                </c:choose>
+                <div class="card-overlay">
+                  <a href="${pageContext.request.contextPath}/movies/${movie.slug}"
+                     class="btn-book">Chi tiết</a>
+                </div>
+                <c:if test="${not empty movie.ageRating}">
+                  <span class="age-badge"><c:out value="${movie.ageRating}"/></span>
+                </c:if>
+              </div>
+              <div class="card-info">
+                <h3 class="card-title"><c:out value="${movie.title}"/></h3>
+                <div class="card-meta">
+                  <span><c:out value="${movie.durationMinutes}"/> phút</span>
+                  <span class="rating">
+                    <span class="star">★</span>
+                    <fmt:formatNumber value="${movie.averageRating}" maxFractionDigits="1"/>
+                  </span>
+                </div>
+                <div class="card-genres">
+                  <c:forEach var="genre" items="${movie.genres}" end="1">
+                    <span class="genre-tag"><c:out value="${genre}"/></span>
+                  </c:forEach>
+                </div>
+              </div>
+            </div>
+          </c:forEach>
+
+          <c:if test="${comingSoonMovies.size() >= 8}">
+            <div class="movie-card more-card">
+              <a href="${pageContext.request.contextPath}/movies?status=COMING_SOON"
+                 style="display:flex;flex-direction:column;height:100%;text-decoration:none;">
+                <div class="card-poster" style="flex:1;">
+                  <div class="more-label">Nhiều phim hơn</div>
+                </div>
+              </a>
+            </div>
+          </c:if>
+        </c:when>
+        <c:otherwise>
+          <p style="color:var(--text-muted);text-align:center;padding:40px;grid-column:1/-1;">
+            Chưa có phim sắp chiếu.
+          </p>
+        </c:otherwise>
+      </c:choose>
+    </div>
+
     <%-- TAB: Đang chiếu --%>
     <div class="tab-panel active movies-grid" id="tab-showing">
       <c:choose>
         <c:when test="${not empty nowShowingMovies}">
           <c:forEach var="movie" items="${nowShowingMovies}">
+            <c:set var="cardPoster" value="${movie.posterUrl}"/>
+            <c:if test="${not empty cardPoster and not fn:startsWith(cardPoster, 'http')}">
+              <c:set var="cardPoster" value="${pageContext.request.contextPath}/${cardPoster}"/>
+            </c:if>
             <div class="movie-card">
               <div class="card-poster">
                 <c:choose>
                   <c:when test="${not empty movie.posterUrl}">
-                    <img src="<c:out value='${movie.posterUrl}'/>"
+                    <img src="<c:out value='${cardPoster}'/>"
                          alt="<c:out value='${movie.title}'/>"/>
                   </c:when>
                   <c:otherwise>
@@ -238,16 +322,18 @@
       </c:choose>
     </div>
 
-    <%-- TAB: Sắp chiếu --%>
-    <div class="tab-panel movies-grid" id="tab-coming">
-      <c:choose>
-        <c:when test="${not empty comingSoonMovies}">
-          <c:forEach var="movie" items="${comingSoonMovies}">
+    <%-- TAB: Suất chiếu sớm --%>
+    <div class="tab-panel movies-grid" id="tab-early">
+          <c:forEach var="movie" items="${earlyMovies}">
+            <c:set var="cardPoster" value="${movie.posterUrl}"/>
+            <c:if test="${not empty cardPoster and not fn:startsWith(cardPoster, 'http')}">
+              <c:set var="cardPoster" value="${pageContext.request.contextPath}/${cardPoster}"/>
+            </c:if>
             <div class="movie-card">
               <div class="card-poster">
                 <c:choose>
                   <c:when test="${not empty movie.posterUrl}">
-                    <img src="<c:out value='${movie.posterUrl}'/>"
+                    <img src="<c:out value='${cardPoster}'/>"
                          alt="<c:out value='${movie.title}'/>"/>
                   </c:when>
                   <c:otherwise>
@@ -255,8 +341,8 @@
                   </c:otherwise>
                 </c:choose>
                 <div class="card-overlay">
-                  <a href="${pageContext.request.contextPath}/movies/${movie.slug}"
-                     class="btn-book">Chi tiết</a>
+                  <a href="${pageContext.request.contextPath}/showtimes?movieId=${movie.id}"
+                     class="btn-book">Đặt vé sớm</a>
                 </div>
                 <c:if test="${not empty movie.ageRating}">
                   <span class="age-badge"><c:out value="${movie.ageRating}"/></span>
@@ -266,10 +352,9 @@
                 <h3 class="card-title"><c:out value="${movie.title}"/></h3>
                 <div class="card-meta">
                   <span><c:out value="${movie.durationMinutes}"/> phút</span>
-                  <span class="rating">
-                    <span class="star">★</span>
-                    <fmt:formatNumber value="${movie.averageRating}" maxFractionDigits="1"/>
-                  </span>
+                  <c:if test="${not empty movie.releaseDate}">
+                    <span>CC: <fmt:formatDate value="${movie.releaseDate}" pattern="dd/MM/yyyy"/></span>
+                  </c:if>
                 </div>
                 <div class="card-genres">
                   <c:forEach var="genre" items="${movie.genres}" end="1">
@@ -280,9 +365,9 @@
             </div>
           </c:forEach>
 
-          <c:if test="${comingSoonMovies.size() >= 8}">
+          <c:if test="${not empty earlyMovies and earlyMovies.size() >= 8}">
             <div class="movie-card more-card">
-              <a href="${pageContext.request.contextPath}/movies?status=COMING_SOON"
+              <a href="${pageContext.request.contextPath}/movies?status=EARLY"
                  style="display:flex;flex-direction:column;height:100%;text-decoration:none;">
                 <div class="card-poster" style="flex:1;">
                   <div class="more-label">Nhiều phim hơn</div>
@@ -290,20 +375,6 @@
               </a>
             </div>
           </c:if>
-        </c:when>
-        <c:otherwise>
-          <p style="color:var(--text-muted);text-align:center;padding:40px;grid-column:1/-1;">
-            Chưa có phim sắp chiếu.
-          </p>
-        </c:otherwise>
-      </c:choose>
-    </div>
-
-    <%-- TAB: Suất chiếu sớm (hiện dùng chung với coming soon, team showtime sẽ mở rộng) --%>
-    <div class="tab-panel movies-grid" id="tab-early">
-      <p style="color:var(--text-muted);text-align:center;padding:60px;grid-column:1/-1;">
-        Chưa có suất chiếu sớm được lên lịch.
-      </p>
     </div>
 
   </div><%-- /container --%>
