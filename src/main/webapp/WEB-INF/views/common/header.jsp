@@ -1,5 +1,6 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="c"  uri="jakarta.tags.core"      %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -39,8 +40,10 @@
     <nav class="main-nav">
 
       <%-- Phim: click thẳng, KHÔNG dropdown --%>
+      <c:set var="onMoviesPage" value="${fn:endsWith(pageContext.request.requestURI, '/movies')}"/>
       <div class="nav-item">
-        <a href="${pageContext.request.contextPath}/movies" class="nav-link">Phim</a>
+        <a href="${pageContext.request.contextPath}/movies"
+           class="nav-link${onMoviesPage ? ' nav-link--active' : ''}">Phim</a>
       </div>
 
       <%-- Thể loại: hover dropdown --%>
@@ -125,9 +128,12 @@
                 <a href="${pageContext.request.contextPath}/staff/counter">Quầy vé</a>
               </c:if>
               <c:if test="${sessionScope.userRole == 'MANAGER'}">
-                <a href="${pageContext.request.contextPath}/manager/dashboard">Quản lý</a>
+                <a href="${pageContext.request.contextPath}/manager/movies">Quản lý phim</a>
+                <a href="${pageContext.request.contextPath}/manager/genres">Quản lý thể loại</a>
               </c:if>
               <c:if test="${sessionScope.userRole == 'ADMIN'}">
+                <a href="${pageContext.request.contextPath}/manager/movies">Quản lý phim</a>
+                <a href="${pageContext.request.contextPath}/manager/genres">Quản lý thể loại</a>
                 <span class="dropdown-divider-label">Quản trị hệ thống</span>
                 <a href="${pageContext.request.contextPath}/admin/dashboard">Bảng điều khiển</a>
                 <a href="${pageContext.request.contextPath}/admin/users">Quản lý người dùng</a>
