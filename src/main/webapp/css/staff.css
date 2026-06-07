@@ -1,0 +1,624 @@
+/* ============================================================
+   ÉPCINE — Staff Pages Stylesheet
+   Dùng chung cho toàn bộ màn hình dành cho STAFF role.
+   Kế thừa variables từ main.css.
+   ============================================================ */
+
+/* ── Counter Layout ─────────────────────────────────────────── */
+.counter-main {
+  padding: 32px 0 64px;
+  min-height: calc(100vh - var(--header-h));
+}
+
+.counter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.counter-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.counter-staff-badge {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ── Alerts ─────────────────────────────────────────────────── */
+.alert {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+.alert--error {
+  background: rgba(229,57,53,0.15);
+  border: 1px solid rgba(229,57,53,0.4);
+  color: #ef9a9a;
+}
+.alert--success {
+  background: rgba(67,160,71,0.15);
+  border: 1px solid rgba(67,160,71,0.4);
+  color: #a5d6a7;
+}
+
+/* ── Step Indicator ──────────────────────────────────────────── */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  margin-bottom: 36px;
+  gap: 0;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 80px;
+}
+
+.step-num {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  color: var(--text-muted);
+  transition: var(--transition);
+}
+
+.step-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: var(--transition);
+}
+
+.step-item--active .step-num {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.step-item--active .step-label { color: var(--text); font-weight: 600; }
+
+.step-item--done .step-num {
+  background: rgba(229,57,53,0.2);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.step-item--done .step-label { color: var(--accent); }
+
+.step-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border);
+  margin-bottom: 18px;
+}
+
+/* ── Section Title ───────────────────────────────────────────── */
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.text-accent { color: var(--accent); }
+.text-muted  { color: var(--text-muted); font-size: 13px; }
+
+/* ── Back Button ─────────────────────────────────────────────── */
+.step-back { margin-bottom: 20px; }
+.btn-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 14px;
+  transition: color var(--transition);
+}
+.btn-back:hover { color: var(--text); }
+
+/* ── Empty State ─────────────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px dashed var(--border);
+}
+
+/* ── Step 1: Movie Grid ──────────────────────────────────────── */
+.movie-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.movie-card-counter {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform var(--transition), border-color var(--transition),
+              box-shadow var(--transition);
+  display: block;
+}
+.movie-card-counter:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(229,57,53,0.2);
+}
+
+.movie-poster-wrap {
+  position: relative;
+  aspect-ratio: 2/3;
+  background: #2a2a2a;
+  overflow: hidden;
+}
+.movie-poster-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.poster-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.age-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.movie-card-info { padding: 10px 12px; }
+.movie-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.movie-card-meta { font-size: 12px; color: var(--text-muted); }
+
+/* ── Step 2: Showtime List ───────────────────────────────────── */
+.showtime-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.showtime-card {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.showtime-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(229,57,53,0.15);
+}
+
+.showtime-card-left {
+  background: rgba(229,57,53,0.1);
+  padding: 20px 24px;
+  text-align: center;
+  min-width: 110px;
+  border-right: 1px solid var(--border);
+}
+.showtime-time {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.showtime-date {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.showtime-card-mid {
+  flex: 1;
+  padding: 16px 20px;
+}
+.showtime-room {
+  font-size: 15px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.showtime-status {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.showtime-status--OPEN       { background: rgba(67,160,71,0.2); color: #a5d6a7; }
+.showtime-status--SCHEDULED  { background: rgba(251,192,45,0.2); color: #fff59d; }
+.showtime-status--SOLD_OUT   { background: rgba(229,57,53,0.2); color: #ef9a9a; }
+
+.showtime-card-right {
+  padding: 16px 24px;
+  text-align: right;
+  min-width: 130px;
+}
+.showtime-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.btn-select-showtime {
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ── Step 3: Booking Layout ──────────────────────────────────── */
+.booking-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: start;
+}
+
+/* ── Seat Panel ──────────────────────────────────────────────── */
+.seat-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.showtime-summary {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.seat-legend {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.seat-sample {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 2px solid transparent;
+}
+.seat-sample.seat--available { background: var(--bg); border-color: rgba(255,255,255,0.3); }
+.seat-sample.seat--booked    { background: rgba(229,57,53,0.3); border-color: rgba(229,57,53,0.5); }
+.seat-sample.seat--selected  { background: rgba(67,160,71,0.4); border-color: #43a047; }
+
+.screen-bar {
+  background: rgba(255,255,255,0.06);
+  text-align: center;
+  padding: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 4px;
+  border-radius: 4px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+}
+
+.seat-map {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.seat-row-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.seat-row-label {
+  width: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.seat-row-cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.seat-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  border: 2px solid transparent;
+  transition: all var(--transition);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seat-btn.seat--available {
+  background: var(--bg);
+  border-color: rgba(255,255,255,0.25);
+  color: var(--text-muted);
+}
+.seat-btn.seat--available:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.seat-btn.seat--selected {
+  background: rgba(67,160,71,0.4);
+  border-color: #43a047;
+  color: #fff;
+}
+.seat-btn.seat--booked,
+.seat-btn:disabled {
+  background: rgba(229,57,53,0.2);
+  border-color: rgba(229,57,53,0.3);
+  color: var(--text-dim);
+  cursor: not-allowed;
+}
+
+/* VIP ghế màu vàng khi trống */
+.seat-btn.seat-type--vip.seat--available {
+  border-color: rgba(251,192,45,0.5);
+  color: #fbc02d;
+}
+.seat-btn.seat-type--vip.seat--available:hover { border-color: #fbc02d; }
+
+/* Couple ghế rộng hơn */
+.seat-btn.seat-type--couple {
+  width: 48px;
+}
+
+/* ── Order Panel ─────────────────────────────────────────────── */
+.order-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  position: sticky;
+  top: calc(var(--header-h) + 16px);
+}
+
+.order-section { margin-bottom: 24px; }
+
+/* ── Customer Type Toggle ────────────────────────────────────── */
+.customer-type-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.toggle-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  background: var(--bg);
+  transition: background var(--transition);
+  gap: 6px;
+}
+.toggle-option:has(input:checked) {
+  background: rgba(229,57,53,0.15);
+  color: var(--accent);
+  font-weight: 600;
+}
+.toggle-option input { display: none; }
+
+/* ── Form Inputs ─────────────────────────────────────────────── */
+.form-group { margin-bottom: 14px; }
+.form-group label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.required { color: var(--accent); }
+
+.form-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.form-input:focus { border-color: var(--accent); }
+.form-input::placeholder { color: var(--text-dim); }
+
+/* ── Selected Seats List ─────────────────────────────────────── */
+.selected-seats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 40px;
+}
+.seat-order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border-radius: 6px;
+}
+.seat-order-item .seat-price { color: var(--accent); font-weight: 600; }
+
+/* ── Order Summary ───────────────────────────────────────────── */
+.order-summary {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: 0;
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.summary-row--total {
+  font-size: 16px;
+  color: var(--text);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────── */
+.btn-block { width: 100%; justify-content: center; }
+.btn-primary:disabled {
+  background: var(--text-dim);
+  border-color: var(--text-dim);
+  cursor: not-allowed;
+}
+
+.confirm-note {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+  margin-top: 10px;
+}
+
+.sp2-note {
+  font-size: 12px;
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.04);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+}
+
+/* ── Step 4: Confirmation Card ───────────────────────────────── */
+.confirm-card {
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.confirm-icon {
+  width: 64px;
+  height: 64px;
+  background: rgba(67,160,71,0.2);
+  border: 2px solid #43a047;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #43a047;
+  margin: 0 auto 20px;
+}
+
+.confirm-card h2 {
+  font-size: 20px;
+  margin-bottom: 24px;
+  color: var(--text);
+}
+
+.confirm-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+  text-align: left;
+  font-size: 14px;
+}
+.confirm-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.confirm-table td:first-child { color: var(--text-muted); width: 40%; }
+
+.confirm-actions { margin-top: 24px; }
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge--pending { background: rgba(251,192,45,0.2); color: #fbc02d; }
+.badge--confirmed { background: rgba(67,160,71,0.2); color: #a5d6a7; }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .booking-layout {
+    grid-template-columns: 1fr;
+  }
+  .order-panel { position: static; }
+}
+
+@media (max-width: 600px) {
+  .movie-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  .showtime-card { flex-direction: column; align-items: stretch; }
+  .showtime-card-left { border-right: none; border-bottom: 1px solid var(--border); }
+  .showtime-card-right { text-align: left; }
+  .step-label { display: none; }
+}
