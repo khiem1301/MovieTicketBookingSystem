@@ -22,12 +22,7 @@ public final class AuthRedirectUtil {
     }
 
     public static String defaultRedirectForRole(HttpServletRequest req, String role) {
-        String ctx = req.getContextPath();
-        return switch (role) {
-            case "STAFF"   -> ctx + "/staff/counter";
-            case "MANAGER" -> ctx + "/manager/dashboard";
-            default        -> ctx + "/home";
-        };
+        return req.getContextPath() + "/home";
     }
 
     public static boolean isSafeRedirect(String redirect) {

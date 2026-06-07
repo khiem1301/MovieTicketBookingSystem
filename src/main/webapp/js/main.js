@@ -98,20 +98,21 @@ function initHeroSlider() {
 
 /* ── Movie Tabs ──────────────────────────────────────────────── */
 function initMovieTabs() {
-  const tabBtns = document.querySelectorAll('.tab-btn');
-  const panels  = document.querySelectorAll('.tab-panel');
+  document.querySelectorAll('.movies-section, .movies-page').forEach(section => {
+    const tabBtns = section.querySelectorAll('.tab-btn');
+    const panels  = section.querySelectorAll('.tab-panel');
+    if (!tabBtns.length) return;
 
-  if (!tabBtns.length) return;
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.tab;
 
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const target = btn.dataset.tab;
+        tabBtns.forEach(b => b.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
 
-      tabBtns.forEach(b => b.classList.remove('active'));
-      panels.forEach(p => p.classList.remove('active'));
-
-      btn.classList.add('active');
-      document.getElementById(target)?.classList.add('active');
+        btn.classList.add('active');
+        section.querySelector('#' + target)?.classList.add('active');
+      });
     });
   });
 }
