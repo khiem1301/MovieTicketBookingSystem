@@ -1,0 +1,75 @@
+# =============================================================================
+# ÉPCINE — Cấu hình gửi email (Gmail SMTP)
+# Dùng cho: xác thực email đăng ký (FR-01), quên mật khẩu (FR-04), xác nhận vé (FR-19)
+# =============================================================================
+#
+# BƯỚC 0 — Tạo file cấu hình trên máy bạn (mỗi thành viên làm 1 lần)
+# -----------------------------------------------------------------------------
+# Windows (CMD hoặc PowerShell, chạy tại thư mục gốc project):
+#   copy src\main\resources\email.properties.example src\main\resources\email.properties
+#
+# Sau đó chỉ sửa file email.properties (file này KHÔNG commit lên Git).
+#
+# =============================================================================
+# PHẦN DÙNG CHUNG CẢ NHÓM (copy giống nhau từ admin)
+# =============================================================================
+#
+# mail.smtp.username  → Gmail dùng để GỬI mail hệ thống (có thể là email nhóm)
+# mail.smtp.password  → App Password 16 ký tự (KHÔNG phải mật khẩu đăng nhập Gmail)
+# mail.from           → Thường trùng với mail.smtp.username
+# mail.from.name      → Tên hiển thị khi người nhận mở email (giữ ÉPCINE)
+#
+# Cách admin tạo App Password (làm 1 lần, chia team qua Zalo/Discord):
+#   1. Đăng nhập Gmail hệ thống
+#   2. https://myaccount.google.com/security → bật "Xác minh 2 bước"
+#   3. https://myaccount.google.com/apppasswords
+#      - App: Mail · Thiết bị: Windows Computer (hoặc Other)
+#      - Google sinh 16 ký tự → dán vào mail.smtp.password (bỏ hết dấu cách)
+#
+# Hoặc mỗi người tự dùng Gmail riêng để test — điền username/password Gmail của mình.
+#
+# =============================================================================
+# PHẦN MỖI NGƯỜI TỰ SỬA (theo Tomcat trên máy mình)
+# =============================================================================
+#
+# app.base.url → URL gốc của app, KHÔNG có dấu / ở cuối
+#
+# Cách xem URL Tomcat của bạn:
+#   1. Chạy project trên Tomcat / Smart Tomcat
+#   2. Mở trang đăng nhập trên trình duyệt
+#   3. Copy phần URL TRƯỚC "/login"
+#
+# Ví dụ thanh địa chỉ:
+#   http://localhost:9999/MovieTicketBookingSystem_war_exploded/login
+#   → app.base.url=http://localhost:9999/MovieTicketBookingSystem_war_exploded
+#
+# Ví dụ khác (port 8080, deploy WAR):
+#   http://localhost:8080/MovieTicketBookingSystem/login
+#   → app.base.url=http://localhost:8080/MovieTicketBookingSystem
+#
+# Sai URL → link "xác thực email" trong mail sẽ mở sai trang / 404.
+#
+# =============================================================================
+# SAU KHI SỬA
+# =============================================================================
+#   1. Build → Rebuild Project (IntelliJ)
+#   2. Restart Tomcat
+#   3. Test: /register với email mới → kiểm tra hộp thư (cả Spam)
+#
+# =============================================================================
+
+mail.smtp.host=smtp.gmail.com
+mail.smtp.port=587
+mail.smtp.auth=true
+mail.smtp.starttls.enable=true
+
+# [CHUNG hoặc riêng] Gmail gửi mail
+mail.smtp.username=your.email@gmail.com
+mail.smtp.password=YOUR_16_CHAR_APP_PASSWORD
+
+# [CHUNG hoặc riêng] Người nhận thấy email từ đâu
+mail.from=your.email@gmail.com
+mail.from.name=ÉPCINE
+
+# [RIÊNG — mỗi máy] Xem hướng dẫn ở trên để lấy đúng URL Tomcat
+app.base.url=http://localhost:8080/MovieTicketBookingSystem

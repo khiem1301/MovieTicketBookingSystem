@@ -24,6 +24,25 @@ public class UserDAO {
             INNER JOIN Roles r ON u.role_id = r.id
             """;
 
+    public Optional<User> findByEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return Optional.empty();
+        }
+        String sql = SELECT_WITH_ROLE + " WHERE u.email = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email.trim().toLowerCase());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findByEmail failed", e);
+        }
+        return Optional.empty();
+    }
+
     public Optional<User> findByEmailOrUsername(String identifier) {
         String sql = SELECT_WITH_ROLE + " WHERE u.email = ? OR u.username = ?";
         try (Connection conn = DBContext.getConnection();
@@ -138,6 +157,28 @@ public class UserDAO {
             return id;
         } catch (SQLException e) {
             throw new RuntimeException("insert user failed", e);
+        }
+    }
+
+    public void updateGoogleProfile(String userId, String fullName, String avatarUrl) {
+        String sql = """
+                UPDATE Users
+                SET full_name = CASE WHEN ? IS NOT NULL AND LTRIM(RTRIM(?)) <> '' THEN ? ELSE full_name END,
+                    avatar_url = CASE WHEN ? IS NOT NULL AND LTRIM(RTRIM(?)) <> '' THEN ? ELSE avatar_url END
+                WHERE id = ?
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, fullName);
+            ps.setString(2, fullName);
+            ps.setString(3, fullName);
+            ps.setString(4, avatarUrl);
+            ps.setString(5, avatarUrl);
+            ps.setString(6, avatarUrl);
+            ps.setString(7, userId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("updateGoogleProfile failed", e);
         }
     }
 
