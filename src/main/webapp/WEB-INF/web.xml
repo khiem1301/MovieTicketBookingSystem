@@ -4,6 +4,10 @@
          xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
          version="6.0">
 
+  <session-config>
+    <session-timeout>1</session-timeout>
+  </session-config>
+
   <!-- Welcome page -->
   <welcome-file-list>
     <welcome-file>index.jsp</welcome-file>
@@ -16,6 +20,26 @@
   </filter>
   <filter-mapping>
     <filter-name>EncodingFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <!-- FR-29: require login for protected URLs -->
+  <filter>
+    <filter-name>AuthFilter</filter-name>
+    <filter-class>filter.AuthFilter</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>AuthFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <!-- FR-29: restrict URLs by role -->
+  <filter>
+    <filter-name>RoleFilter</filter-name>
+    <filter-class>filter.RoleFilter</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>RoleFilter</filter-name>
     <url-pattern>/*</url-pattern>
   </filter-mapping>
 

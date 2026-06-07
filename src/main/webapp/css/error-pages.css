@@ -1,0 +1,139 @@
+/* ============================================================
+   ÉPCINE — Error / Session pages
+   Dark cinema theme · red glow
+   ============================================================ */
+
+.error-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a0a;
+  padding: 32px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.error-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 70% 55% at 75% 45%,
+    rgba(229, 57, 53, 0.22) 0%,
+    transparent 68%
+  );
+  pointer-events: none;
+}
+
+.error-page--403::before {
+  background: radial-gradient(
+    ellipse 60% 50% at 50% 42%,
+    rgba(229, 57, 53, 0.28) 0%,
+    transparent 70%
+  );
+}
+
+.error-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 520px;
+  text-align: center;
+}
+
+.error-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(229, 57, 53, 0.12);
+  box-shadow: 0 0 32px rgba(229, 57, 53, 0.35);
+  margin-bottom: 28px;
+  color: #ef5350;
+}
+
+.error-icon-wrap svg {
+  width: 32px;
+  height: 32px;
+}
+
+.error-code {
+  font-size: clamp(72px, 14vw, 108px);
+  font-weight: 800;
+  line-height: 1;
+  color: #e53935;
+  text-shadow:
+    0 0 24px rgba(229, 57, 53, 0.65),
+    0 0 48px rgba(229, 57, 53, 0.35);
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.error-title {
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 14px;
+  letter-spacing: -0.01em;
+}
+
+.error-desc {
+  font-size: 15px;
+  line-height: 1.65;
+  color: #9e9e9e;
+  max-width: 420px;
+  margin: 0 auto 32px;
+}
+
+.error-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.error-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 22px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: opacity 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.error-btn--primary {
+  background: linear-gradient(180deg, #ef5350 0%, #e53935 50%, #c62828 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 18px rgba(229, 57, 53, 0.35);
+}
+
+.error-btn--primary:hover {
+  opacity: 0.92;
+}
+
+.error-btn--ghost {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.error-btn--ghost:hover {
+  border-color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.error-path {
+  margin-top: 20px;
+  font-size: 12px;
+  color: #616161;
+  word-break: break-all;
+}

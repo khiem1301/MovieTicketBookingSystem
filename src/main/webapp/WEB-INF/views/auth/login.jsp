@@ -28,16 +28,83 @@
         </div>
       </c:if>
 
-      <c:if test="${not empty param.registered}">
+      <c:if test="${param.registered == '1'}">
         <div class="auth-alert auth-alert--success" role="status">
-          Đăng ký thành công. Vui lòng đăng nhập.
+          Đăng ký thành công.
+          <c:if test="${not empty param.username}">
+            Đăng nhập bằng tên đăng nhập: <strong><c:out value="${param.username}"/></strong>
+          </c:if>
+          <c:if test="${empty param.username}">
+            Vui lòng đăng nhập.
+          </c:if>
+        </div>
+      </c:if>
+
+      <c:if test="${param.verified == '1'}">
+        <div class="auth-alert auth-alert--success" role="status">
+          Email đã được xác thực. Bạn có thể đăng nhập ngay.
+        </div>
+      </c:if>
+
+      <c:if test="${param.verify == 'invalid'}">
+        <div class="auth-alert auth-alert--error" role="alert">
+          Liên kết xác thực không hợp lệ hoặc đã hết hạn.
+        </div>
+      </c:if>
+
+      <c:if test="${param.verify == 'error'}">
+        <div class="auth-alert auth-alert--error" role="alert">
+          Không thể xác thực email. Vui lòng thử lại sau.
+        </div>
+      </c:if>
+
+      <c:if test="${param.google == 'not_configured'}">
+        <div class="auth-alert auth-alert--error" role="alert">
+          Chưa cấu hình Google OAuth. Xem hướng dẫn trong <code>google.properties.example</code>.
+        </div>
+      </c:if>
+      <c:if test="${param.google == 'cancelled'}">
+        <div class="auth-alert auth-alert--error" role="alert">Bạn đã hủy đăng nhập Google.</div>
+      </c:if>
+      <c:if test="${param.google == 'error' or param.google == 'invalid_state' or param.google == 'missing_code'}">
+        <div class="auth-alert auth-alert--error" role="alert">
+          Đăng nhập Google thất bại. Kiểm tra lại <code>google.redirect.uri</code> trong Google Cloud Console.
+        </div>
+      </c:if>
+      <c:if test="${param.google == 'no_email'}">
+        <div class="auth-alert auth-alert--error" role="alert">
+          Tài khoản Google không có email. Vui lòng dùng tài khoản Google khác.
+        </div>
+      </c:if>
+      <c:if test="${param.google == 'banned'}">
+        <div class="auth-alert auth-alert--error" role="alert">Tài khoản đã bị khóa.</div>
+      </c:if>
+      <c:if test="${param.google == 'session_expired'}">
+        <div class="auth-alert auth-alert--error" role="alert">
+          Phiên Google hết hạn. Vui lòng thử lại.
         </div>
       </c:if>
 
       <c:if test="${param.logout == 'success'}">
-        <div class="auth-alert auth-alert--success" role="status">
+        <div class="auth-alert auth-alert--success" role="status" id="logout-success-banner">
           Đăng xuất thành công. Vui lòng đăng nhập lại nếu cần.
         </div>
+        <script>
+          (function () {
+            var banner = document.getElementById('logout-success-banner');
+            if (!banner) return;
+            setTimeout(function () {
+              banner.style.transition = 'opacity 0.4s ease';
+              banner.style.opacity = '0';
+              setTimeout(function () {
+                banner.remove();
+                if (window.history.replaceState) {
+                  window.history.replaceState(null, '', '${pageContext.request.contextPath}/login');
+                }
+              }, 400);
+            }, 4000);
+          })();
+        </script>
       </c:if>
 
       <form class="auth-form" action="${pageContext.request.contextPath}/login" method="post" novalidate>
@@ -81,7 +148,7 @@
                    class="auth-input auth-input--has-toggle"
                    placeholder="••••••••" autocomplete="current-password" required/>
             <button type="button" class="auth-toggle-pw" id="togglePassword"
-                    aria-label="Hiện hoặc ẩn mật khẩu">
+                    data-target="password" aria-label="Hiện hoặc ẩn mật khẩu">
               <svg class="icon-eye" width="18" height="18" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -106,6 +173,8 @@
 
         <button type="submit" class="auth-btn-submit">Đăng nhập</button>
       </form>
+
+      <%@ include file="/WEB-INF/views/auth/google-button.jsp" %>
 
       <p class="auth-footer-text">
         Chưa có tài khoản?
