@@ -17,6 +17,10 @@
   max-width: 420px;
 }
 
+.auth-wrapper--wide {
+  max-width: 460px;
+}
+
 .auth-card {
   background: var(--bg-card);
   border: 1px solid var(--accent);
@@ -186,6 +190,30 @@
 }
 
 /* ── Submit button ───────────────────────────────────────── */
+.auth-input--date {
+  color-scheme: dark;
+}
+
+.auth-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-top: -6px;
+}
+
+.auth-pending-text {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.65;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+.auth-pending-text--dev {
+  font-size: 12px;
+  word-break: break-all;
+}
+
 .auth-btn-submit {
   width: 100%;
   padding: 13px 20px;
@@ -197,11 +225,80 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   transition: filter var(--transition), transform 0.1s ease;
   letter-spacing: 0.02em;
 }
 .auth-btn-submit:hover { filter: brightness(1.08); }
 .auth-btn-submit:active { transform: scale(0.98); }
+
+/* ── Google OAuth ─────────────────────────────────────────── */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 4px 0 2px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.auth-btn-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background var(--transition), border-color var(--transition);
+}
+.auth-btn-google:hover {
+  background: #242424;
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.auth-btn-google__icon {
+  flex-shrink: 0;
+}
+
+.auth-google-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.auth-google-profile__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.auth-google-profile__name {
+  font-size: 14px;
+  font-weight: 600;
+}
+.auth-google-profile__email {
+  font-size: 12px;
+  color: var(--text-muted);
+}
 
 /* ── Footer links ─────────────────────────────────────────── */
 .auth-footer-text {

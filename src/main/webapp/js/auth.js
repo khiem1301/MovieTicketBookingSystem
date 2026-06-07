@@ -1,22 +1,25 @@
 (function () {
   'use strict';
 
-  var toggleBtn = document.getElementById('togglePassword');
-  var passwordInput = document.getElementById('password');
+  function bindToggle(btn) {
+    var targetId = btn.getAttribute('data-target') || 'password';
+    var input = document.getElementById(targetId);
+    if (!input) return;
 
-  if (toggleBtn && passwordInput) {
-    toggleBtn.addEventListener('click', function (e) {
+    btn.addEventListener('click', function (e) {
       e.preventDefault();
       e.stopPropagation();
 
-      var isHidden = passwordInput.type === 'password';
-      passwordInput.type = isHidden ? 'text' : 'password';
-      passwordInput.focus();
+      var isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      input.focus();
 
-      var eye = toggleBtn.querySelector('.icon-eye');
-      var eyeOff = toggleBtn.querySelector('.icon-eye-off');
+      var eye = btn.querySelector('.icon-eye');
+      var eyeOff = btn.querySelector('.icon-eye-off');
       if (eye) eye.style.display = isHidden ? 'none' : '';
       if (eyeOff) eyeOff.style.display = isHidden ? '' : 'none';
     });
   }
+
+  document.querySelectorAll('.auth-toggle-pw').forEach(bindToggle);
 })();

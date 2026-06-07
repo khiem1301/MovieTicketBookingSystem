@@ -1,0 +1,78 @@
+# =============================================================================
+# ÉPCINE — Cấu hình Đăng nhập Google (OAuth 2.0)
+# Nút "Đăng nhập bằng Google" trên /login và /register
+# =============================================================================
+#
+# BƯỚC 0 — Tạo file cấu hình trên máy bạn (mỗi thành viên làm 1 lần)
+# -----------------------------------------------------------------------------
+# Windows (CMD hoặc PowerShell, chạy tại thư mục gốc project):
+#   copy src\main\resources\google.properties.example src\main\resources\google.properties
+#
+# Sau đó chỉ sửa file google.properties (file này KHÔNG commit lên Git).
+#
+# =============================================================================
+# PHẦN DÙNG CHUNG CẢ NHÓM (copy giống nhau từ admin)
+# =============================================================================
+#
+# google.client.id     → Client ID từ Google Cloud Console
+# google.client.secret → Client Secret từ Google Cloud Console
+#
+# Admin tạo 1 OAuth client, cả nhóm dùng chung ID + Secret.
+#
+# Hướng dẫn admin tạo OAuth (làm 1 lần trên https://console.cloud.google.com/):
+#
+#   1. Tạo project (VD: EPCINE)
+#
+#   2. APIs & Services → OAuth consent screen
+#      - User type: External
+#      - App name: ÉPCINE
+#      - Scopes: openid, userinfo.email, userinfo.profile
+#      - Test users: thêm Gmail của từng thành viên (khi app ở chế độ Testing)
+#
+#   3. APIs & Services → Credentials → Create Credentials → OAuth client ID
+#      - Application type: Web application
+#      - Authorized redirect URIs: thêm URL callback của TỪNG thành viên
+#        (mỗi người có port/context Tomcat khác nhau → thêm nhiều dòng)
+#
+#      Ví dụ thêm cả hai nếu nhóm deploy khác nhau:
+#        http://localhost:8080/MovieTicketBookingSystem/auth/google/callback
+#        http://localhost:9999/MovieTicketBookingSystem_war_exploded/auth/google/callback
+#
+#   4. Copy Client ID và Client Secret → chia team (không đưa lên Git)
+#
+# =============================================================================
+# PHẦN MỖI NGƯỜI TỰ SỬA (theo Tomcat trên máy mình)
+# =============================================================================
+#
+# google.redirect.uri → URL callback, phải KHỚP 100% với 1 dòng trong Google Console
+#
+# Cách lấy URL:
+#   1. Lấy app.base.url từ email.properties (hoặc xem URL trình duyệt trước /login)
+#   2. Thêm đuôi: /auth/google/callback
+#
+# Ví dụ:
+#   app.base.url = http://localhost:9999/MovieTicketBookingSystem_war_exploded
+#   → google.redirect.uri=http://localhost:9999/MovieTicketBookingSystem_war_exploded/auth/google/callback
+#
+# Lưu ý:
+#   - Không thêm dấu / ở cuối callback URL
+#   - Port (8080, 9999, ...) và context path phải đúng với Tomcat của BẠN
+#   - Sai 1 ký tự → Google báo redirect_uri_mismatch
+#   - Gửi URL callback của bạn cho admin để họ thêm vào Google Console (nếu chưa có)
+#
+# =============================================================================
+# SAU KHI SỬA
+# =============================================================================
+#   1. google.client.id KHÔNG được còn placeholder YOUR_GOOGLE_...
+#   2. Build → Rebuild Project → Restart Tomcat
+#   3. Mở /login → phải thấy nút "Đăng nhập bằng Google"
+#   4. Bấm nút → chọn Gmail → đăng nhập hoặc hoàn tất ngày sinh (tài khoản mới)
+#
+# =============================================================================
+
+# [CHUNG] từ Google Cloud Console
+google.client.id=YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com
+google.client.secret=YOUR_GOOGLE_CLIENT_SECRET
+
+# [RIÊNG — mỗi máy] = <app.base.url>/auth/google/callback
+google.redirect.uri=http://localhost:8080/MovieTicketBookingSystem/auth/google/callback

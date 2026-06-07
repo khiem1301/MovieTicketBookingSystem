@@ -48,3 +48,7 @@ build/
 **/database.properties
 !**/database.properties.example
 **/database.properties.backup
+**/email.properties
+!**/email.properties.example
+**/google.properties
+!**/google.properties.example
