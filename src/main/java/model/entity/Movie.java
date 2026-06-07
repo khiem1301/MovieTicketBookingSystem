@@ -16,7 +16,6 @@ public class Movie {
     private String posterUrl;
     private String backdropUrl;
     private String director;
-    private String castMembers;
     private String language;
     private String subtitle;
     private String ageRating;
@@ -56,9 +55,6 @@ public class Movie {
 
     public String getDirector() { return director; }
     public void setDirector(String director) { this.director = director; }
-
-    public String getCastMembers() { return castMembers; }
-    public void setCastMembers(String castMembers) { this.castMembers = castMembers; }
 
     public String getLanguage() { return language; }
     public void setLanguage(String language) { this.language = language; }
