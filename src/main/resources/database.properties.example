@@ -6,4 +6,4 @@ db.server=localhost
 db.port=1433
 db.name=MovieTicketDB
 db.username=sa
-db.password=YOUR_PASSWORD_HERE
+db.password=123
