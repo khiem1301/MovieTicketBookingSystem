@@ -7,8 +7,10 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import model.entity.User;
+import utils.AuthPageUtil;
 import utils.AuthRedirectUtil;
 import utils.PasswordUtil;
+import utils.RememberMeUtil;
 import utils.SessionUtil;
 
 import java.io.IOException;
@@ -22,6 +24,12 @@ public class LoginServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
+        if (RememberMeUtil.tryAutoLogin(req, resp)) {
+            resp.sendRedirect(AuthRedirectUtil.resolvePostLoginRedirect(
+                    req, SessionUtil.getUserRole(req)));
+            return;
+        }
+
         if (SessionUtil.getLoggedUser(req) != null) {
             resp.sendRedirect(AuthRedirectUtil.defaultRedirectForRole(
                     req, SessionUtil.getUserRole(req)));
@@ -34,6 +42,7 @@ public class LoginServlet extends HttpServlet {
             req.setAttribute("rememberMe", true);
         }
 
+        AuthPageUtil.prepareOAuthAttributes(req, req.getParameter("redirect"));
         req.getRequestDispatcher(VIEW).forward(req, resp);
     }
 
@@ -82,10 +91,13 @@ public class LoginServlet extends HttpServlet {
 
             userDAO.updateLastLoginAt(user.getId());
             SessionUtil.setLoggedIn(req, user);
+            SessionUtil.markHadLogin(resp);
             if (rememberMe) {
                 SessionUtil.setRememberCookie(resp, identifier);
+                RememberMeUtil.issueToken(resp, user.getId());
             } else {
                 SessionUtil.clearRememberCookie(resp);
+                RememberMeUtil.clearToken(resp);
             }
 
             resp.sendRedirect(AuthRedirectUtil.resolvePostLoginRedirect(req, user.getRoleName()));
@@ -99,6 +111,7 @@ public class LoginServlet extends HttpServlet {
     private void forwardView(HttpServletRequest req, HttpServletResponse resp, String errorMessage)
             throws ServletException, IOException {
         req.setAttribute("errorMessage", errorMessage);
+        AuthPageUtil.prepareOAuthAttributes(req, req.getParameter("redirect"));
         req.getRequestDispatcher(VIEW).forward(req, resp);
     }
 

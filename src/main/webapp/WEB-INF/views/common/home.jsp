@@ -7,11 +7,27 @@
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 
 <c:if test="${param.logout == 'success'}">
-  <div class="container" style="padding-top:16px;">
+  <div class="container" style="padding-top:16px;" id="logout-success-banner">
     <div style="padding:11px 14px;border-radius:8px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.35);color:#a5d6a7;font-size:14px;">
       Đăng xuất thành công.
     </div>
   </div>
+  <script>
+    (function () {
+      var banner = document.getElementById('logout-success-banner');
+      if (!banner) return;
+      setTimeout(function () {
+        banner.style.transition = 'opacity 0.4s ease';
+        banner.style.opacity = '0';
+        setTimeout(function () {
+          banner.remove();
+          if (window.history.replaceState) {
+            window.history.replaceState(null, '', '${pageContext.request.contextPath}/home');
+          }
+        }, 400);
+      }, 4000);
+    })();
+  </script>
 </c:if>
 
 <%-- DEBUG BANNER: chỉ hiện khi DB lỗi — xóa sau khi fix xong --%>

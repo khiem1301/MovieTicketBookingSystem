@@ -11,7 +11,8 @@ public final class SessionUtil {
 
     public static final String ATTR_LOGGED_USER = "loggedUser";
     public static final String ATTR_USER_ROLE   = "userRole";
-    public static final String COOKIE_REMEMBER  = "epcine_remember_id";
+    public static final String COOKIE_REMEMBER   = "epcine_remember_id";
+    public static final String COOKIE_HAD_LOGIN  = "epcine_had_login";
 
     private SessionUtil() {}
 
@@ -27,6 +28,38 @@ public final class SessionUtil {
             session.invalidate();
         }
         clearRememberCookie(response);
+        RememberMeUtil.clearToken(response);
+        clearHadLoginCookie(response);
+    }
+
+    /** Browser-session marker: used to distinguish session timeout from guest access. */
+    public static void markHadLogin(HttpServletResponse response) {
+        Cookie cookie = new Cookie(COOKIE_HAD_LOGIN, "1");
+        cookie.setPath("/");
+        cookie.setMaxAge(-1);
+        cookie.setHttpOnly(true);
+        response.addCookie(cookie);
+    }
+
+    public static boolean hadPreviousLogin(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            return false;
+        }
+        for (Cookie cookie : cookies) {
+            if (COOKIE_HAD_LOGIN.equals(cookie.getName()) && "1".equals(cookie.getValue())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void clearHadLoginCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie(COOKIE_HAD_LOGIN, "");
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        cookie.setHttpOnly(true);
+        response.addCookie(cookie);
     }
 
     public static SessionUser getLoggedUser(HttpServletRequest request) {
