@@ -7,6 +7,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title><c:out value="${not empty pageTitle ? pageTitle : 'ÉpCine'}"/></title>
   <link rel="stylesheet" href="${pageContext.request.contextPath}/css/main.css"/>
+  <c:if test="${not empty extraCss}">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/${extraCss}.css"/>
+  </c:if>
 </head>
 <body>
 
@@ -125,7 +128,9 @@
                 <a href="${pageContext.request.contextPath}/manager/dashboard">Quản lý</a>
               </c:if>
               <c:if test="${sessionScope.userRole == 'ADMIN'}">
-                <a href="${pageContext.request.contextPath}/admin/users">Quản trị</a>
+                <span class="dropdown-divider-label">Quản trị hệ thống</span>
+                <a href="${pageContext.request.contextPath}/admin/dashboard">Bảng điều khiển</a>
+                <a href="${pageContext.request.contextPath}/admin/users">Quản lý người dùng</a>
               </c:if>
               <a href="${pageContext.request.contextPath}/logout"
                  style="color:#ef5350 !important;">Đăng xuất</a>
