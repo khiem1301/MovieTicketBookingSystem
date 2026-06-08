@@ -11,6 +11,9 @@
   <c:if test="${not empty extraCss}">
     <link rel="stylesheet" href="${pageContext.request.contextPath}/css/${extraCss}.css"/>
   </c:if>
+  <c:if test="${not empty extraCss2}">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/${extraCss2}.css"/>
+  </c:if>
 </head>
 <body>
 
@@ -131,6 +134,7 @@
                 <a href="${pageContext.request.contextPath}/manager/movies">Quản lý phim</a>
                 <a href="${pageContext.request.contextPath}/manager/genres">Quản lý thể loại</a>
                 <a href="${pageContext.request.contextPath}/manager/rooms">Quản lý phòng chiếu</a>
+                <a href="${pageContext.request.contextPath}/manager/seat-types">Quản lý loại ghế</a>
               </c:if>
               <c:if test="${sessionScope.userRole == 'ADMIN'}">
                 <a href="${pageContext.request.contextPath}/manager/movies">Quản lý phim</a>

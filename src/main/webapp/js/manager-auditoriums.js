@@ -4,6 +4,7 @@
   var grid = document.getElementById('audRoomGrid');
   if (!grid) return;
 
+  var ctx = grid.dataset.ctx || '';
   var cards = Array.prototype.slice.call(
     grid.querySelectorAll('.aud-room-card:not(.aud-room-card--add)')
   );
@@ -13,13 +14,7 @@
   var detailProjection = document.getElementById('audDetailProjection');
   var detailAudio = document.getElementById('audDetailAudio');
   var detailRatio = document.getElementById('audDetailRatio');
-  var zoneStandard = document.getElementById('audZoneStandard');
-
-  function statusLabel(status) {
-    if (status === 'ACTIVE') return 'Hoạt động';
-    if (status === 'MAINTENANCE') return 'Bảo trì';
-    return 'Ngưng';
-  }
+  var detailLink = document.getElementById('audDetailLink');
 
   function selectCard(card) {
     cards.forEach(function (c) {
@@ -33,7 +28,9 @@
     if (detailProjection) detailProjection.textContent = card.dataset.projection || '—';
     if (detailAudio) detailAudio.textContent = card.dataset.audio || '—';
     if (detailRatio) detailRatio.textContent = card.dataset.screenRatio || '—';
-    if (zoneStandard) zoneStandard.textContent = (card.dataset.capacity || '0') + ' ghế';
+    if (detailLink && card.dataset.id) {
+      detailLink.href = ctx + '/manager/rooms/detail?id=' + encodeURIComponent(card.dataset.id);
+    }
   }
 
   function applyFilter(filter) {
@@ -41,21 +38,40 @@
       var status = card.dataset.status;
       var show = filter === 'ALL'
         || (filter === 'ACTIVE' && status === 'ACTIVE')
-        || (filter === 'MAINTENANCE' && (status === 'MAINTENANCE' || status === 'INACTIVE'));
+        || (filter === 'MAINTENANCE' && status === 'MAINTENANCE')
+        || (filter === 'INACTIVE' && status === 'INACTIVE');
       card.classList.toggle('aud-room-card--hidden', !show);
     });
   }
 
+  var addRoomInput = document.getElementById('audAddRoomInput');
+  var addCard = document.getElementById('audAddRoomCard');
+  if (addCard && addRoomInput) {
+    addCard.addEventListener('click', function (e) {
+      if (e.target.closest('button[type="submit"]') || e.target.closest('input')) return;
+      addRoomInput.focus();
+    });
+  }
+
   cards.forEach(function (card) {
-    card.addEventListener('click', function () {
+    card.addEventListener('click', function (e) {
+      if (e.target.closest('.aud-status-form') || e.target.closest('.aud-btn--detail')) return;
       selectCard(card);
     });
     card.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') {
+        if (e.target.closest('.aud-btn--detail')) return;
         e.preventDefault();
         selectCard(card);
       }
     });
+
+    var toggle = card.querySelector('.aud-status-select');
+    if (toggle) {
+      toggle.addEventListener('click', function (e) {
+        e.stopPropagation();
+      });
+    }
   });
 
   filters.forEach(function (btn) {
