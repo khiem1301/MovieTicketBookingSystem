@@ -115,21 +115,7 @@ public class BookingDAO {
 
     /** Lấy VAT rate hiện hành từ VatRules; fallback 8% nếu chưa cấu hình. */
     public BigDecimal getCurrentVatRate() {
-        String sql = """
-                SELECT TOP 1 vat_rate FROM VatRules
-                WHERE status = 'ACTIVE'
-                  AND start_date <= GETDATE()
-                  AND (end_date IS NULL OR end_date >= GETDATE())
-                ORDER BY start_date DESC
-                """;
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            if (rs.next()) return rs.getBigDecimal("vat_rate");
-        } catch (SQLException e) {
-            throw new RuntimeException("getCurrentVatRate failed", e);
-        }
-        return new BigDecimal("8.00");
+        return new VatRuleDAO().findCurrentActiveRate();
     }
 
     private String generateBookingCode() {

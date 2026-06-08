@@ -2,7 +2,8 @@
 
 Hệ thống đặt vé xem phim — **Java 17 · JSP/Servlet · SQL Server · Maven · Tomcat 10**.
 
-> Chi tiết nghiệp vụ, schema 26 bảng và 50 FR: `[project_summary_final.md](project_summary_final.md)`
+> Chi tiết nghiệp vụ, schema 26 bảng và 50 FR: [`project_summary_final.md`](project_summary_final.md)  
+> Module Admin (tính năng đã triển khai): [`ADMIN_MODULE_DETAIL.md`](ADMIN_MODULE_DETAIL.md)
 
 ---
 
