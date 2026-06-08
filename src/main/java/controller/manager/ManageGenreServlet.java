@@ -24,13 +24,21 @@ public class ManageGenreServlet extends HttpServlet {
         if ("edit".equals(req.getParameter("action"))) {
             String id = req.getParameter("id");
             Genre editing = (id != null) ? genreDAO.getById(id) : null;
-            if (editing != null) req.setAttribute("editGenre", editing);
+            if (editing != null) {
+                if (genreDAO.hasLinkedMovies(id)) {
+                    req.setAttribute("error",
+                            "Không thể sửa thể loại \"" + editing.getGenreName()
+                                    + "\" vì đang có phim sử dụng.");
+                } else {
+                    req.setAttribute("editGenre", editing);
+                }
+            }
         }
 
         loadAndForward(req, resp);
     }
 
-    // POST action=create | update
+    // POST action=create | update | delete
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
@@ -39,10 +47,10 @@ public class ManageGenreServlet extends HttpServlet {
         req.setCharacterEncoding("UTF-8");
         String action = req.getParameter("action");
 
-        if ("update".equals(action)) {
-            handleUpdate(req, resp);
-        } else {
-            handleCreate(req, resp);
+        switch (action != null ? action : "") {
+            case "update" -> handleUpdate(req, resp);
+            case "delete" -> handleDelete(req, resp);
+            default       -> handleCreate(req, resp);
         }
     }
 
@@ -92,9 +100,38 @@ public class ManageGenreServlet extends HttpServlet {
             loadAndForward(req, resp);
             return;
         }
+        if (genreDAO.hasLinkedMovies(id)) {
+            req.setAttribute("error",
+                    "Không thể sửa thể loại \"" + editing.getGenreName()
+                            + "\" vì đang có phim sử dụng.");
+            req.setAttribute("editGenre", editing);
+            req.setAttribute("inputValue", name != null ? name.trim() : editing.getGenreName());
+            loadAndForward(req, resp);
+            return;
+        }
 
         genreDAO.update(id, name);
         resp.sendRedirect(req.getContextPath() + "/manager/genres?success=updated");
+    }
+
+    private void handleDelete(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        String id = req.getParameter("id");
+        Genre genre = (id != null) ? genreDAO.getById(id) : null;
+        if (genre == null) {
+            resp.sendRedirect(req.getContextPath() + "/manager/genres");
+            return;
+        }
+        if (genreDAO.hasLinkedMovies(id)) {
+            req.setAttribute("error",
+                    "Không thể xóa thể loại \"" + genre.getGenreName()
+                            + "\" vì đang có phim sử dụng.");
+            loadAndForward(req, resp);
+            return;
+        }
+
+        genreDAO.delete(id);
+        resp.sendRedirect(req.getContextPath() + "/manager/genres?success=deleted");
     }
 
     private boolean isAuthorized(HttpServletRequest req) {
@@ -105,6 +142,7 @@ public class ManageGenreServlet extends HttpServlet {
     private void loadAndForward(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         req.setAttribute("genreList", genreDAO.getAll());
+        req.setAttribute("genreIdsInUse", genreDAO.getGenreIdsInUse());
         req.getRequestDispatcher("/WEB-INF/views/manager/genre-list.jsp").forward(req, resp);
     }
 }
