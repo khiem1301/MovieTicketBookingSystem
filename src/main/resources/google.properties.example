@@ -86,17 +86,13 @@
 #   3. Bấm vào phần Đăng nhập → phải thấy nút "Đăng nhập bằng Google"
 #   4. Bấm nút → chọn Gmail → đăng nhập hoặc hoàn tất ngày sinh (tài khoản mới)
 #
+# =============================================================================
+# Sửa config bên dưới theo hướng dẫn bên trên
+# =============================================================================
 #
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
-#
+# Cần sửa: google.client.id, google.client.secret (lấy từ admin nhóm qua Zalo/Discord)
+# Cần sửa: google.redirect.uri (URL Tomcat máy bạn + /auth/google/callback)
 
-
+google.client.id=<google-client-id>.apps.googleusercontent.com
+google.client.secret=<google-client-secret>
+google.redirect.uri=http://localhost:<PORT>/<CONTEXT_PATH>/auth/google/callback

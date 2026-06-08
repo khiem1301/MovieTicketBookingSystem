@@ -90,4 +90,19 @@
 # Nếu chưa cấu hình đúng: trang pending vẫn hiện link xác thực để test (dev).
 #
 # =============================================================================
+# Sửa config bên dưới theo hướng dẫn bên trên:
+# =============================================================================
+#
+# Giữ nguyên: mail.smtp.host/port/auth/starttls, mail.from.name
+# Cần sửa:    mail.smtp.username, mail.smtp.password, mail.from, app.base.url
+
+mail.smtp.host=smtp.gmail.com
+mail.smtp.port=587
+mail.smtp.auth=true
+mail.smtp.starttls.enable=true
+mail.smtp.username=<gmail-cua-ban>@gmail.com
+mail.smtp.password=<app-password-16-ky-tu>
+mail.from=<gmail-cua-ban>@gmail.com
+mail.from.name=ÉPCINE
+app.base.url=http://localhost:<PORT>/<CONTEXT_PATH>
 
