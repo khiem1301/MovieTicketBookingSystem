@@ -178,6 +178,8 @@ MovieTicketBookingSystem/
 | `/admin/users/create` | `UserCreateServlet` | Tạo Staff/Manager |
 | `/admin/users/status` | `UserStatusServlet` | POST: lock/unlock/deactivate |
 | `/admin/users/reset-password` | `UserResetPasswordServlet` | POST: đặt lại mật khẩu |
+| `/admin/config` | `SystemConfigListServlet` | Cấu hình loyalty (SystemConfig) |
+| `/admin/config/update` | `SystemConfigUpdateServlet` | POST: lưu cấu hình loyalty |
 
 ### 4.3 Manager — role `MANAGER`
 
@@ -510,6 +512,7 @@ Menu dropdown MANAGER (`header.jsp`): Quản lý phim · Quản lý thể loại
 | Đăng nhập / Đăng ký / Google OAuth | ✅ Hoàn thành | Email verify, remember-me |
 | Trang chủ + Danh sách phim | ✅ Hoàn thành | Filter, search |
 | Admin — Quản lý user | ✅ Hoàn thành | Xem [`ADMIN_MODULE_DETAIL.md`](ADMIN_MODULE_DETAIL.md) |
+| Admin — Cấu hình loyalty | ✅ Hoàn thành | 4 key SystemConfig; VAT chưa có UI |
 | Manager — Phim & Thể loại | ✅ Hoàn thành | CRUD + upload ảnh |
 | Manager — Phòng chiếu (FR-26) | 🟡 UI + read DB | List/detail + layout editor frontend; chưa CRUD phòng / lưu ghế DB |
 | Staff — Đặt vé quầy | ✅ Hoàn thành | Booking OFFLINE |
@@ -518,7 +521,7 @@ Menu dropdown MANAGER (`header.jsp`): Quản lý phim · Quản lý thể loại
 | Loyalty / Điểm tích lũy | ❌ Chưa làm | Schema + seed config |
 | Reviews | ❌ Chưa làm | Nav link có, chưa servlet |
 | Profile | ❌ Chưa làm | Path reserve trong AccessControl |
-| System Config UI | ❌ Chưa làm | Placeholder trên admin dashboard |
+| System Config UI (loyalty) | ✅ Hoàn thành | `/admin/config` — VAT vẫn placeholder |
 | Báo cáo / Thống kê | ❌ Chưa làm | Placeholder trên admin dashboard |
 | Unit tests | ❌ Chưa có | Chỉ `.gitkeep` trong `src/test` |
 

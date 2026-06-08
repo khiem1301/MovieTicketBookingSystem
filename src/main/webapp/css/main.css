@@ -1150,6 +1150,29 @@ ul { list-style: none; }
   text-decoration: none;
 }
 .mgr-btn--edit:hover { border-color: #64b5f6; background: rgba(100,181,246,0.1); }
+.mgr-btn--disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  color: var(--text-muted);
+}
+.mgr-btn--delete:hover { border-color: #ef5350; background: rgba(239,83,80,0.12); }
+.mgr-td-actions {
+  white-space: nowrap;
+}
+.mgr-action-group {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+.mgr-inline-form {
+  display: inline-flex;
+  margin: 0;
+  vertical-align: middle;
+}
+.mgr-inline-form .mgr-btn {
+  padding: 0;
+}
 .mgr-btn--valid {
   width: auto;
   padding: 0 10px;
