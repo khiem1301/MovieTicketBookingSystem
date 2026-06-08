@@ -18,27 +18,44 @@
 # google.client.secret → Client Secret từ Google Cloud Console
 #
 # Admin tạo 1 OAuth client, cả nhóm dùng chung ID + Secret.
+# (Hiện tại tài khoản OAuth client đang được cấu hình sẵn là của người làm nên tính năng này "Gia Long" 
+# nếu muốn dùng chung thì phần google.client.id và google.client.secret không cần phải sửa gì chỉ cần đưa cho "Gia Long" URL Tomcat bên máy của bạn để "Gia Long" cấu hình vào Google Cloud Console,
+# xuống luôn phần MỖI NGƯỜI TỰ SỬA)
 #
+# Nếu bạn muốn tự tạo OAuth không muốn dùng chung thì đây là cách làm:
 # Hướng dẫn admin tạo OAuth (làm 1 lần trên https://console.cloud.google.com/):
 #
-#   1. Tạo project (VD: EPCINE)
-#
-#   2. APIs & Services → OAuth consent screen
-#      - User type: External
-#      - App name: ÉPCINE
-#      - Scopes: openid, userinfo.email, userinfo.profile
-#      - Test users: thêm Gmail của từng thành viên (khi app ở chế độ Testing)
-#
-#   3. APIs & Services → Credentials → Create Credentials → OAuth client ID
+#   1. Sau khi truy cập đường link, ở góc bên trái trên cùng của màn hình, cạnh Google Cloud --> click chọn Open Project Picker
+#   2. Bấm vào New Project
+#   3. Điền thông tin cho 2 trường xong rồi nhấn Create
+#           Project name: EPCINE
+#           Parent source: No organization
+#   4. Cung cấp quyền cho các thành viên khác:
+#           - Sau khi Create xong bấm vào IAM & Admin hiện trên màn hình (Nếu không thấy có cái thạch 3 gạch ngang cạnh Google Cloud góc bên trái trên cùng)
+#           - Sẽ hiện ra màn hình của IAM -> chọn Grant access 
+#           - Điền tên mail của các thành viên, assign role thì chọn Basic -> Editor
+#   5. Bấm vào APIs & Services → OAuth consent screen → Điền các thông tin trong trường → Create
+#      - Chọn app name ví dụ: ÉPCINE
+#      - Chú ý ở phần Audience: chọn External
+#   6. Sau khi Create xong hiện trên màn hình thấy Create OAuth client click vào
 #      - Application type: Web application
-#      - Authorized redirect URIs: thêm URL callback của TỪNG thành viên
-#        (mỗi người có port/context Tomcat khác nhau → thêm nhiều dòng)
+#      - Name: (Ví dụ: EPCINE Local)
+#      - Authorized JavaScript origins: Cái này có thể bỏ
+#      - Authorized redirect URIs: thêm URL callback của bạn theo ví dụ bên dưới, nếu làm theo nhóm thì add cho cả TỪNG thành viên
+#        (mỗi người có port/context Tomcat khác nhau → thêm nhiều dòng
+#        Ngoài ra như ở bước 4: Các thành viên có thể tự vào để config URL của riêng họ)
+#
+#      Ví dụ điền URL: URL Tomcat của bạn + auth/google/callback
+#           URL Tomcat: http://localhost:9999/MovieTicketBookingSystem_war_exploded/ thì thêm auth/google/callback vào sau
 #
 #      Ví dụ thêm cả hai nếu nhóm deploy khác nhau:
 #        http://localhost:8080/MovieTicketBookingSystem/auth/google/callback
 #        http://localhost:9999/MovieTicketBookingSystem_war_exploded/auth/google/callback
+#      
+#      - Sau khi điền xong bấm Create
 #
-#   4. Copy Client ID và Client Secret → chia team (không đưa lên Git)
+#   5. Sau khi Create xong sẽ hiện thông tin của OAuth client
+#      Copy Client ID và Client Secret rồi sửa vào google.properties phần google.client.id và google.client.secret
 #
 # =============================================================================
 # PHẦN MỖI NGƯỜI TỰ SỬA (theo Tomcat trên máy mình)
@@ -47,6 +64,7 @@
 # google.redirect.uri → URL callback, phải KHỚP 100% với 1 dòng trong Google Console
 #
 # Cách lấy URL:
+# (Nếu có làm bước trước đó (tự tạo OAuth) thì URL điền vào google.redirect.uri chính là URL điền vào phần Authorized redirect URIs)
 #   1. Lấy app.base.url từ email.properties (hoặc xem URL trình duyệt trước /login)
 #   2. Thêm đuôi: /auth/google/callback
 #
@@ -65,14 +83,20 @@
 # =============================================================================
 #   1. google.client.id KHÔNG được còn placeholder YOUR_GOOGLE_...
 #   2. Build → Rebuild Project → Restart Tomcat
-#   3. Mở /login → phải thấy nút "Đăng nhập bằng Google"
+#   3. Bấm vào phần Đăng nhập → phải thấy nút "Đăng nhập bằng Google"
 #   4. Bấm nút → chọn Gmail → đăng nhập hoặc hoàn tất ngày sinh (tài khoản mới)
 #
-# =============================================================================
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
+#
 
-# [CHUNG] từ Google Cloud Console
-google.client.id=YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com
-google.client.secret=YOUR_GOOGLE_CLIENT_SECRET
 
-# [RIÊNG — mỗi máy] = <app.base.url>/auth/google/callback
-google.redirect.uri=http://localhost:8080/MovieTicketBookingSystem/auth/google/callback
