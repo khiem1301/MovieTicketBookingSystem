@@ -52,15 +52,19 @@ public class CinemaRoomDAO {
         return null;
     }
 
-    public void create(String roomName) {
+    public String create(String roomName) {
         String sql = """
                 INSERT INTO CinemaRooms (id, room_name, capacity, status)
+                OUTPUT INSERTED.id
                 VALUES (NEWID(), ?, 0, 'ACTIVE')
                 """;
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, roomName.trim());
-            ps.executeUpdate();
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString(1);
+            }
+            throw new RuntimeException("CinemaRoomDAO.create failed: no id returned");
         } catch (SQLException e) {
             throw new RuntimeException("CinemaRoomDAO.create failed", e);
         }

@@ -88,9 +88,10 @@
 
 .aud-detail-summary__actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 220px;
 }
 
 .aud-rename-form {
@@ -98,10 +99,12 @@
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+  width: 100%;
 }
 
 .aud-rename-input {
-  min-width: 180px;
+  flex: 1;
+  min-width: 140px;
   padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid rgba(175, 135, 130, 0.25);
@@ -115,7 +118,23 @@
   border-color: rgba(229, 9, 20, 0.4);
 }
 
-.aud-status-form { margin: 0; }
+.aud-status-form--detail {
+  margin: 0;
+  width: 100%;
+}
+
+.aud-status-form--detail .aud-status-field {
+  width: 100%;
+}
+
+.aud-status-form--detail .aud-status-select-wrap {
+  width: 100%;
+}
+
+.aud-status-form--detail .aud-status-select {
+  width: 100%;
+  min-width: 0;
+}
 
 /* ── Editor shell ── */
 .slt-editor {
@@ -474,42 +493,38 @@
   gap: 16px;
 }
 
-.slt-row-label-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  width: 32px;
-  flex-shrink: 0;
-}
-
 .slt-row-label {
   width: 32px;
   text-align: right;
   font-weight: 700;
   color: rgba(233, 188, 182, 0.45);
   font-size: 14px;
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .slt-row-remove {
-  width: 22px;
-  height: 22px;
-  border: none;
-  border-radius: 6px;
-  background: rgba(26, 9, 8, 0.5);
+  width: 32px;
+  height: 40px;
+  flex-shrink: 0;
+  align-self: center;
+  border: 1px dashed rgba(175, 135, 130, 0.3);
+  border-radius: 10px;
+  background: rgba(26, 9, 8, 0.4);
   color: rgba(233, 188, 182, 0.45);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s ease, background 0.2s ease;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
 }
 
-.slt-row-remove .material-symbols-outlined { font-size: 14px; }
+.slt-row-remove .material-symbols-outlined { font-size: 18px; }
 
 .slt-row-remove:hover {
   color: #ffb4aa;
-  background: rgba(229, 9, 20, 0.2);
+  border-color: rgba(229, 9, 20, 0.45);
+  background: rgba(229, 9, 20, 0.15);
 }
 
 .slt-row {
@@ -549,6 +564,28 @@
 .slt-seat--couple   { background: #e50914; color: #fff; }
 .slt-seat--sweetbox { background: #0072d7; color: #fff; }
 
+.slt-seat--custom {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.slt-active-type-hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(233, 188, 182, 0.55);
+  margin: -4px 0 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px dashed rgba(175, 135, 130, 0.2);
+  display: none;
+}
+
+.slt-active-type-hint--visible {
+  display: block;
+  color: #ffb4aa;
+  border-color: rgba(229, 9, 20, 0.35);
+  background: rgba(229, 9, 20, 0.08);
+}
+
 .slt-seat:hover {
   transform: scale(1.08);
   box-shadow: 0 0 10px rgba(229, 9, 20, 0.45);
@@ -572,6 +609,25 @@
 }
 
 .slt-gap:hover { border-color: rgba(255, 180, 170, 0.45); }
+
+.slt-cell--deletable {
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(229, 9, 20, 0.25);
+}
+
+.slt-cell--deletable:hover {
+  box-shadow: inset 0 0 0 2px rgba(229, 9, 20, 0.55);
+}
+
+.slt-seat.slt-cell--deletable:hover {
+  transform: scale(1.08);
+  filter: brightness(0.85);
+}
+
+.slt-gap.slt-cell--deletable:hover {
+  border-color: rgba(229, 9, 20, 0.55);
+  background: rgba(229, 9, 20, 0.08);
+}
 
 .slt-row-empty {
   min-width: 160px;
@@ -638,24 +694,17 @@
   background: rgba(229, 9, 20, 0.1);
 }
 
-.slt-add-row-btn--toolbar {
-  width: auto;
-  margin-top: 0;
-  padding: 10px 14px;
-  border-style: solid;
-  border-color: rgba(94, 63, 59, 0.35);
-  background: rgba(70, 47, 44, 0.35);
-}
-
 .slt-toolbar {
   position: absolute;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 6px;
-  padding: 8px;
+  gap: 4px;
+  padding: 8px 10px;
+  max-width: calc(100% - 32px);
   background: rgba(58, 37, 34, 0.85);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(94, 63, 59, 0.35);
@@ -665,13 +714,15 @@
 
 .slt-tool {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: 10px 12px;
   border-radius: 12px;
   font-size: 13px;
   font-weight: 600;
   color: #e9bcb6;
+  white-space: nowrap;
   transition: all 0.2s ease;
 }
 
@@ -679,6 +730,16 @@
 
 .slt-tool--active {
   background: rgba(229, 9, 20, 0.2);
+  color: #ffb4aa;
+}
+
+.slt-tool--danger:hover {
+  color: #ffb4aa;
+  background: rgba(229, 9, 20, 0.12);
+}
+
+.slt-tool--danger.slt-tool--active {
+  background: rgba(229, 9, 20, 0.35);
   color: #ffb4aa;
 }
 
@@ -690,10 +751,11 @@
 }
 
 .slt-toolbar__count {
-  padding: 0 12px;
+  padding: 0 8px;
   font-size: 13px;
   color: #e9bcb6;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .slt-toolbar__count strong { color: #ffb4aa; }

@@ -46,8 +46,11 @@ public class ManageSeatTypeServlet extends HttpServlet {
         }
 
         req.setCharacterEncoding("UTF-8");
-        if ("update".equals(req.getParameter("action"))) {
+        String action = req.getParameter("action");
+        if ("update".equals(action)) {
             handleUpdate(req, resp);
+        } else if ("delete".equals(action)) {
+            handleDelete(req, resp);
         } else {
             handleCreate(req, resp);
         }
@@ -100,6 +103,22 @@ public class ManageSeatTypeServlet extends HttpServlet {
 
         seatTypeDAO.update(id, typeName, new BigDecimal(multiplierStr.trim()), description);
         resp.sendRedirect(req.getContextPath() + "/manager/seat-types?success=updated");
+    }
+
+    private void handleDelete(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String id = req.getParameter("id");
+        SeatType existing = (id != null) ? seatTypeDAO.getById(id) : null;
+        if (existing == null) {
+            resp.sendRedirect(req.getContextPath() + "/manager/seat-types");
+            return;
+        }
+
+        try {
+            seatTypeDAO.delete(id);
+            resp.sendRedirect(req.getContextPath() + "/manager/seat-types?success=deleted");
+        } catch (IllegalStateException e) {
+            resp.sendRedirect(req.getContextPath() + "/manager/seat-types?error=in_use");
+        }
     }
 
     private String validate(String typeName, String multiplierStr, String excludeId) {

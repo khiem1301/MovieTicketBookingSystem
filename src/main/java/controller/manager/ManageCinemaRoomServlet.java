@@ -89,8 +89,12 @@ public class ManageCinemaRoomServlet extends HttpServlet {
             return;
         }
 
-        roomDAO.create(roomName);
-        resp.sendRedirect(ctx + "/manager/rooms?success=created");
+        try {
+            String newId = roomDAO.create(roomName);
+            resp.sendRedirect(ctx + "/manager/rooms/detail?id=" + newId + "&success=created");
+        } catch (RuntimeException ex) {
+            resp.sendRedirect(ctx + "/manager/rooms?error=" + enc("Không thể tạo phòng. Vui lòng thử lại."));
+        }
     }
 
     private void handleUpdate(HttpServletRequest req, HttpServletResponse resp) throws IOException {

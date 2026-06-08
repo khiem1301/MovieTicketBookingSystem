@@ -1166,6 +1166,20 @@ ul { list-style: none; }
   color: #ef9a9a;
 }
 .mgr-btn--invalid:hover { border-color: #ef9a9a; background: rgba(239,154,154,0.12); }
+.mgr-btn--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.mgr-btn--blocked {
+  opacity: 0.55;
+  cursor: help;
+}
+.mgr-btn--blocked:hover {
+  border-color: #ef9a9a;
+  background: rgba(239, 154, 154, 0.12);
+  opacity: 0.85;
+}
+button.mgr-btn { font-family: inherit; }
 
 .mgr-status {
   display: inline-block;

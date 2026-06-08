@@ -136,4 +136,18 @@ public class SeatTypeDAO {
             throw new RuntimeException("SeatTypeDAO.countUsedIn failed", e);
         }
     }
+
+    public void delete(String id) {
+        if (countUsedIn(id) > 0) {
+            throw new IllegalStateException("Loại ghế đang được sử dụng bởi ghế trong layout, không thể xóa.");
+        }
+        String sql = "DELETE FROM SeatTypes WHERE id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("SeatTypeDAO.delete failed", e);
+        }
+    }
 }

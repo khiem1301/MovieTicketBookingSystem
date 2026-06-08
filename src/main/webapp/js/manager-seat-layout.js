@@ -17,17 +17,93 @@
     return s;
   }
 
-  var TYPE_META = {
-    regular:  { css: 'regular',  wide: false, icon: '' },
-    vip:      { css: 'vip',      wide: false, icon: '' },
-    couple:   { css: 'couple',   wide: true,  icon: 'favorite' },
-    sweetbox: { css: 'sweetbox', wide: true,  icon: 'weekend' }
+  var TYPE_META = {};
+
+  var STC = window.SeatTypeColors || {};
+  var PRESET_TYPE_KEYS = STC.PRESET_TYPE_KEYS || ['regular', 'vip', 'couple', 'sweetbox'];
+  var WIDE_TYPE_KEYS = { couple: true, sweetbox: true };
+  var ICON_TYPE_KEYS = { couple: 'favorite', sweetbox: 'weekend' };
+  var PRESET_COLORS = STC.PRESET_COLORS || {
+    regular: '#cccccc',
+    vip: '#ffd700',
+    couple: '#e50914',
+    sweetbox: '#0072d7'
   };
+
+  function colorForType(key) {
+    if (STC.colorForType) return STC.colorForType(key);
+    if (PRESET_COLORS[key]) return PRESET_COLORS[key];
+    var hash = 0;
+    for (var i = 0; i < key.length; i++) {
+      hash = key.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return 'hsl(' + (Math.abs(hash) % 360) + ', 52%, 48%)';
+  }
+
+  function initTypeMetaFromSidebar() {
+    var container = document.getElementById('sltSeatTypes');
+    if (STC.applySwatchColors) {
+      STC.applySwatchColors(container || document);
+    }
+    document.querySelectorAll('.slt-type-card').forEach(function (card) {
+      var key = normalizeType(card.dataset.typeKey || 'regular');
+      var nameEl = card.querySelector('.slt-type-name');
+      TYPE_META[key] = {
+        css: key,
+        wide: card.dataset.wide === 'true' || !!WIDE_TYPE_KEYS[key],
+        icon: ICON_TYPE_KEYS[key] || '',
+        color: colorForType(key),
+        label: nameEl ? nameEl.textContent.trim() : key
+      };
+    });
+  }
+
+  function getTypeMeta(typeKey) {
+    var key = normalizeType(typeKey);
+    if (!TYPE_META[key]) {
+      TYPE_META[key] = {
+        css: key,
+        wide: !!WIDE_TYPE_KEYS[key],
+        icon: ICON_TYPE_KEYS[key] || '',
+        color: colorForType(key),
+        label: key
+      };
+    }
+    return TYPE_META[key];
+  }
+
+  function applySeatElementStyle(seatEl, meta) {
+    seatEl.className = 'slt-seat';
+    if (PRESET_TYPE_KEYS.indexOf(meta.css) >= 0) {
+      seatEl.classList.add('slt-seat--' + meta.css);
+    } else {
+      seatEl.classList.add('slt-seat--custom');
+      seatEl.style.background = meta.color;
+      seatEl.style.color = '#fff';
+    }
+    if (meta.wide) seatEl.classList.add('slt-seat--wide');
+  }
+
+  function updateActiveTypeUI() {
+    var hint = document.getElementById('sltActiveTypeHint');
+    var meta = getTypeMeta(state.activeType);
+    if (hint) {
+      if (state.tool === 'add') {
+        hint.textContent = 'Đang chọn: ' + (meta.label || state.activeType) + ' — click lên layout để đặt ghế';
+        hint.classList.add('slt-active-type-hint--visible');
+      } else if (state.tool === 'delete') {
+        hint.textContent = 'Chế độ Xóa — click ghế hoặc lối đi để xóa';
+        hint.classList.add('slt-active-type-hint--visible');
+      } else {
+        hint.classList.remove('slt-active-type-hint--visible');
+      }
+    }
+  }
 
   var state = {
     rows: [],
     tool: 'select',
-    activeType: 'regular',
+    activeType: null,
     selected: null,
     dirty: false
   };
@@ -258,7 +334,17 @@
   function emptyRowHint() {
     if (state.tool === 'gap') return t('emptyGap');
     if (state.tool === 'add') return t('emptyAdd');
+    if (state.tool === 'delete') return t('emptyDelete');
     return t('emptySelect');
+  }
+
+  function deleteCellAt(rowIdx, colIdx) {
+    state.rows[rowIdx].cells.splice(colIdx, 1);
+    if (state.selected && state.selected.row === rowIdx && state.selected.col === colIdx) {
+      state.selected = null;
+    }
+    markDirty();
+    render();
   }
 
   function appendGap(rowIdx) {
@@ -268,6 +354,10 @@
   }
 
   function appendSeat(rowIdx) {
+    if (!ensureActiveTypeSelected()) {
+      alert('Chọn loại ghế ở sidebar trước khi thêm ghế.');
+      return;
+    }
     state.rows[rowIdx].cells.push({
       kind: 'seat',
       id: uid(),
@@ -308,26 +398,10 @@
       var rowEl = document.createElement('div');
       rowEl.className = 'slt-row';
 
-      var labelWrap = document.createElement('div');
-      labelWrap.className = 'slt-row-label-wrap';
-
       var labelEl = document.createElement('span');
       labelEl.className = 'slt-row-label';
       labelEl.textContent = row.label;
-      labelWrap.appendChild(labelEl);
-
-      if (state.rows.length > 1) {
-        var removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'slt-row-remove';
-        removeBtn.dataset.row = String(rowIdx);
-        removeBtn.title = t('removeRow', { label: row.label });
-        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
-        removeBtn.addEventListener('click', onRemoveRowClick);
-        labelWrap.appendChild(removeBtn);
-      }
-
-      rowEl.appendChild(labelWrap);
+      rowEl.appendChild(labelEl);
 
       var cellsEl = document.createElement('div');
       cellsEl.className = 'slt-row-cells';
@@ -336,25 +410,28 @@
         if (cell.kind === 'gap') {
           var gapEl = document.createElement('div');
           gapEl.className = 'slt-gap';
+          if (state.tool === 'delete') gapEl.classList.add('slt-cell--deletable');
           gapEl.dataset.row = String(rowIdx);
           gapEl.dataset.col = String(cellIdx);
-          gapEl.title = t('gapTitle');
+          gapEl.title = state.tool === 'delete' ? t('deleteGap') : t('gapTitle');
           gapEl.addEventListener('click', onCellClick);
           cellsEl.appendChild(gapEl);
           return;
         }
 
-        var meta = TYPE_META[cell.type] || TYPE_META.regular;
+        var meta = getTypeMeta(cell.type);
         var seatEl = document.createElement('button');
         seatEl.type = 'button';
-        seatEl.className = 'slt-seat slt-seat--' + meta.css;
-        if (meta.wide) seatEl.classList.add('slt-seat--wide');
+        applySeatElementStyle(seatEl, meta);
+        if (state.tool === 'delete') seatEl.classList.add('slt-cell--deletable');
         if (state.selected && state.selected.row === rowIdx && state.selected.col === cellIdx) {
           seatEl.classList.add('slt-seat--selected');
         }
         seatEl.dataset.row = String(rowIdx);
         seatEl.dataset.col = String(cellIdx);
-        seatEl.title = cell.code || '';
+        seatEl.title = state.tool === 'delete'
+          ? (cell.code ? cell.code + ' — ' + t('deleteSeat') : t('deleteSeat'))
+          : (cell.code || '');
 
         if (meta.icon) {
           var icon = document.createElement('span');
@@ -389,10 +466,23 @@
       }
 
       rowEl.appendChild(cellsEl);
+
+      if (state.rows.length > 1) {
+        var removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'slt-row-remove';
+        removeBtn.dataset.row = String(rowIdx);
+        removeBtn.title = t('removeRow', { label: row.label });
+        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+        removeBtn.addEventListener('click', onRemoveRowClick);
+        rowEl.appendChild(removeBtn);
+      }
+
       gridEl.appendChild(rowEl);
     });
 
     updateCounts();
+    updateActiveTypeUI();
   }
 
   function onCellClick(e) {
@@ -402,13 +492,16 @@
 
     if (state.tool === 'select') {
       if (cell.kind === 'gap') {
-        state.rows[rowIdx].cells.splice(colIdx, 1);
-        markDirty();
-        render();
+        deleteCellAt(rowIdx, colIdx);
         return;
       }
       state.selected = { row: rowIdx, col: colIdx };
       render();
+      return;
+    }
+
+    if (state.tool === 'delete') {
+      deleteCellAt(rowIdx, colIdx);
       return;
     }
 
@@ -424,6 +517,10 @@
     }
 
     if (state.tool === 'add') {
+      if (!ensureActiveTypeSelected()) {
+        alert('Chưa có loại ghế nào. Thêm loại ghế trong Quản lý loại ghế trước.');
+        return;
+      }
       if (cell.kind === 'gap') {
         var code = nextSeatCode(rowIdx);
         state.rows[rowIdx].cells[colIdx] = {
@@ -459,6 +556,21 @@
     render();
   }
 
+  function ensureActiveTypeSelected() {
+    var activeCard = document.querySelector('.slt-type-card--active');
+    if (activeCard) {
+      state.activeType = normalizeType(activeCard.dataset.typeKey || 'regular');
+      return !!state.activeType;
+    }
+    var firstCard = document.querySelector('.slt-type-card');
+    if (firstCard) {
+      firstCard.classList.add('slt-type-card--active');
+      state.activeType = normalizeType(firstCard.dataset.typeKey || 'regular');
+      return true;
+    }
+    return false;
+  }
+
   function bindTools() {
     document.querySelectorAll('.slt-tool').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -467,27 +579,28 @@
         });
         btn.classList.add('slt-tool--active');
         state.tool = btn.dataset.tool || 'select';
+        if (state.tool === 'add') {
+          ensureActiveTypeSelected();
+        }
         render();
       });
     });
   }
 
   function bindTypes() {
-    document.querySelectorAll('.slt-type-card').forEach(function (card, idx) {
+    document.querySelectorAll('.slt-type-card').forEach(function (card) {
       card.addEventListener('click', function () {
         document.querySelectorAll('.slt-type-card').forEach(function (c) {
           c.classList.remove('slt-type-card--active');
         });
         card.classList.add('slt-type-card--active');
-        state.activeType = card.dataset.typeKey || 'regular';
+        state.activeType = normalizeType(card.dataset.typeKey || 'regular');
         state.tool = 'add';
         document.querySelectorAll('.slt-tool').forEach(function (b) {
           b.classList.toggle('slt-tool--active', b.dataset.tool === 'add');
         });
         render();
       });
-      if (idx === 0) card.classList.add('slt-type-card--active');
-      if (idx === 0) state.activeType = card.dataset.typeKey || 'regular';
     });
   }
 
@@ -520,26 +633,24 @@
       saveBtn.addEventListener('click', submitToBackend);
     }
 
-    ['sltAddRow', 'sltAddRowFooter'].forEach(function (id) {
-      var btn = document.getElementById(id);
-      if (btn) btn.addEventListener('click', addRow);
-    });
+    var addRowBtn = document.getElementById('sltAddRowFooter');
+    if (addRowBtn) addRowBtn.addEventListener('click', addRow);
 
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Delete' && state.selected && state.tool === 'select') {
-        var r = state.selected.row;
-        var c = state.selected.col;
-        var cell = state.rows[r].cells[c];
-        if (cell && cell.kind === 'seat') {
-          state.rows[r].cells.splice(c, 1);
-          state.selected = null;
-          markDirty();
-          render();
-        }
+      if (e.key !== 'Delete' || !state.selected) return;
+      if (state.tool !== 'select' && state.tool !== 'delete') return;
+      var r = state.selected.row;
+      var c = state.selected.col;
+      var cell = state.rows[r].cells[c];
+      if (!cell) return;
+      if (state.tool === 'delete' || cell.kind === 'seat') {
+        deleteCellAt(r, c);
       }
     });
   }
 
+  initTypeMetaFromSidebar();
+  ensureActiveTypeSelected();
   state.rows = loadLayout();
   bindTools();
   bindTypes();

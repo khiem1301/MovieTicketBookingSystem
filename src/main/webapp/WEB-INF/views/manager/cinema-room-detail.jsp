@@ -21,6 +21,9 @@
       <span><c:out value="${room.roomName}"/></span>
     </div>
 
+    <c:if test="${param.success == 'created'}">
+      <div class="mgr-alert mgr-alert--success aud-alert">✓ Đã tạo phòng chiếu mới! Hãy thiết lập layout ghế bên dưới.</div>
+    </c:if>
     <c:if test="${param.success == 'updated'}">
       <div class="mgr-alert mgr-alert--success aud-alert">✓ Đã cập nhật tên phòng!</div>
     </c:if>
@@ -61,7 +64,7 @@
               <span class="aud-status-pill aud-status-pill--maint">Bảo trì</span>
             </c:when>
             <c:otherwise>
-              <span class="aud-status-pill aud-status-pill--off">Ngưng</span>
+              <span class="aud-status-pill aud-status-pill--off">Ngưng hoạt động</span>
             </c:otherwise>
           </c:choose>
         </div>
@@ -88,20 +91,23 @@
             Lưu tên
           </button>
         </form>
-        <form method="post" action="${pageContext.request.contextPath}/manager/rooms/update" class="aud-status-form">
+        <form method="post" action="${pageContext.request.contextPath}/manager/rooms/update" class="aud-status-form aud-status-form--detail">
           <input type="hidden" name="roomId" value="<c:out value='${room.id}'/>"/>
           <input type="hidden" name="action" value="toggle"/>
           <input type="hidden" name="from" value="detail"/>
-          <c:choose>
-            <c:when test="${room.status == 'ACTIVE'}">
-              <input type="hidden" name="status" value="MAINTENANCE"/>
-              <button type="submit" class="aud-btn aud-btn--outline">Bảo trì</button>
-            </c:when>
-            <c:otherwise>
-              <input type="hidden" name="status" value="ACTIVE"/>
-              <button type="submit" class="aud-btn aud-btn--outline">Kích hoạt</button>
-            </c:otherwise>
-          </c:choose>
+          <label class="aud-status-field">
+            <span class="aud-status-field-label">Trạng thái</span>
+            <span class="aud-status-select-wrap">
+              <select name="status"
+                      class="aud-status-select aud-status-select--${room.status}"
+                      onchange="this.form.submit()">
+                <option value="ACTIVE" ${room.status == 'ACTIVE' ? 'selected' : ''}>Hoạt động</option>
+                <option value="MAINTENANCE" ${room.status == 'MAINTENANCE' ? 'selected' : ''}>Bảo trì</option>
+                <option value="INACTIVE" ${room.status == 'INACTIVE' ? 'selected' : ''}>Ngưng hoạt động</option>
+              </select>
+              <span class="material-symbols-outlined aud-status-select-icon" aria-hidden="true">expand_more</span>
+            </span>
+          </label>
         </form>
       </div>
     </div>
@@ -149,15 +155,18 @@
         <aside class="slt-sidebar">
           <section class="slt-sidebar__section">
             <h3 class="slt-sidebar__title">Loại ghế</h3>
+            <p class="slt-active-type-hint" id="sltActiveTypeHint">Chọn loại ghế bên dưới trước khi đặt lên layout</p>
             <div class="slt-seat-types" id="sltSeatTypes">
               <c:forEach var="st" items="${seatTypeList}">
                 <c:set var="typeKey" value="${fn:toLowerCase(st.typeName)}"/>
+                <c:set var="isWide" value="${st.typeName == 'COUPLE' or st.typeName == 'SWEETBOX'}"/>
                 <button type="button"
                         class="slt-type-card slt-type-card--${typeKey}"
                         data-type-id="<c:out value='${st.id}'/>"
                         data-type-key="${typeKey}"
+                        data-wide="${isWide ? 'true' : 'false'}"
                         data-multiplier="<c:out value='${st.priceMultiplier}'/>">
-                  <span class="slt-type-swatch slt-type-swatch--${typeKey}"></span>
+                  <span class="slt-type-swatch slt-type-swatch--${typeKey}" data-type-key="${typeKey}"></span>
                   <span class="slt-type-info">
                     <span class="slt-type-name">
                       <c:choose>
@@ -230,10 +239,9 @@
               <span class="material-symbols-outlined">space_bar</span>
               Lối đi
             </button>
-            <div class="slt-toolbar__divider"></div>
-            <button type="button" class="slt-add-row-btn slt-add-row-btn--toolbar" id="sltAddRow" title="Thêm hàng ghế mới (D, E, …)">
-              <span class="material-symbols-outlined">add_row_below</span>
-              Thêm hàng
+            <button type="button" class="slt-tool slt-tool--danger" data-tool="delete">
+              <span class="material-symbols-outlined">delete</span>
+              Xóa
             </button>
             <div class="slt-toolbar__divider"></div>
             <span class="slt-toolbar__count">
@@ -266,6 +274,9 @@
       appendGap: 'Th\u00eam l\u1ed1i \u0111i cu\u1ed1i h\u00e0ng',
       appendSeat: 'Th\u00eam gh\u1ebf cu\u1ed1i h\u00e0ng',
       gapTitle: 'L\u1ed1i \u0111i \u2014 click \u0111\u1ec3 x\u00f3a (ch\u1ebf \u0111\u1ed9 Ch\u1ecdn)',
+      deleteSeat: 'Click \u0111\u1ec3 x\u00f3a gh\u1ebf',
+      deleteGap: 'Click \u0111\u1ec3 x\u00f3a l\u1ed1i \u0111i',
+      emptyDelete: 'H\u00e0ng tr\u1ed1ng',
       removeRow: 'X\u00f3a h\u00e0ng {label}',
       maxRows: '\u0110\u00e3 \u0111\u1ea1t t\u1ed1i \u0111a 26 h\u00e0ng (A\u2013Z).',
       minRows: 'Ph\u1ea3i gi\u1eef \u00edt nh\u1ea5t m\u1ed9t h\u00e0ng gh\u1ebf.',
@@ -278,5 +289,6 @@
     }
   };
 </script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/seat-type-colors.js"></script>
 <script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-seat-layout.js"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

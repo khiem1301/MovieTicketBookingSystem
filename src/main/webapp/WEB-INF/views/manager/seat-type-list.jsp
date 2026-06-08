@@ -22,6 +22,12 @@
   <c:if test="${param.success == 'updated'}">
     <div class="mgr-alert mgr-alert--success">✓ Đã cập nhật loại ghế thành công!</div>
   </c:if>
+  <c:if test="${param.success == 'deleted'}">
+    <div class="mgr-alert mgr-alert--success">✓ Đã xóa loại ghế thành công!</div>
+  </c:if>
+  <c:if test="${param.error == 'in_use'}">
+    <div class="mgr-alert mgr-alert--error">Không thể xóa — loại ghế đang được sử dụng trong layout phòng chiếu.</div>
+  </c:if>
 
   <div class="mgr-grid">
 
@@ -106,7 +112,9 @@
             <tr class="${editSeatType.id == st.id ? 'mgr-row--editing' : ''}">
               <td class="mgr-td-num">${stIdx.count}</td>
               <td>
-                <span class="slt-type-swatch slt-type-swatch--${typeKey}" style="display:inline-block;vertical-align:middle;margin-right:8px;width:14px;height:14px;border-radius:3px;"></span>
+                <span class="slt-type-swatch slt-type-swatch--${typeKey}"
+                      data-type-key="${typeKey}"
+                      style="display:inline-block;vertical-align:middle;margin-right:8px;width:14px;height:14px;border-radius:3px;"></span>
                 <c:out value="${st.typeName}"/>
               </td>
               <td>×<fmt:formatNumber value="${st.priceMultiplier}" minFractionDigits="2" maxFractionDigits="2"/></td>
@@ -114,6 +122,25 @@
               <td>
                 <a href="${pageContext.request.contextPath}/manager/seat-types?action=edit&id=<c:out value='${st.id}'/>"
                    class="mgr-btn mgr-btn--edit" title="Sửa">✏️</a>
+                <c:choose>
+                  <c:when test="${usageMap[st.id] > 0}">
+                    <button type="button"
+                            class="mgr-btn mgr-btn--invalid mgr-btn--blocked"
+                            title="Đang có ${usageMap[st.id]} ghế sử dụng — không thể xóa"
+                            data-type-name="<c:out value='${st.typeName}'/>"
+                            data-usage-count="${usageMap[st.id]}"
+                            onclick="showSeatTypeDeleteBlocked(this)">🗑️</button>
+                  </c:when>
+                  <c:otherwise>
+                    <form method="post" action="${pageContext.request.contextPath}/manager/seat-types"
+                          style="display:inline"
+                          onsubmit="return confirm('Xóa loại ghế &quot;<c:out value='${st.typeName}'/>&quot;? Hành động này không thể hoàn tác.');">
+                      <input type="hidden" name="action" value="delete"/>
+                      <input type="hidden" name="id" value="<c:out value='${st.id}'/>"/>
+                      <button type="submit" class="mgr-btn mgr-btn--invalid" title="Xóa">🗑️</button>
+                    </form>
+                  </c:otherwise>
+                </c:choose>
               </td>
             </tr>
           </c:forEach>
@@ -124,4 +151,16 @@
 </div>
 
 <link rel="stylesheet" href="${pageContext.request.contextPath}/css/manager-seat-layout.css"/>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/seat-type-colors.js"></script>
+<script charset="UTF-8">
+  function showSeatTypeDeleteBlocked(btn) {
+    var name = btn.dataset.typeName || 'loại ghế này';
+    var count = btn.dataset.usageCount || '0';
+    alert('Không thể xóa "' + name + '" — đang có ' + count + ' ghế sử dụng trong layout phòng chiếu.');
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.SeatTypeColors) SeatTypeColors.applySwatchColors();
+  });
+</script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

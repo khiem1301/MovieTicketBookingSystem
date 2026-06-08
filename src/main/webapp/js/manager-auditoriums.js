@@ -38,14 +38,24 @@
       var status = card.dataset.status;
       var show = filter === 'ALL'
         || (filter === 'ACTIVE' && status === 'ACTIVE')
-        || (filter === 'MAINTENANCE' && (status === 'MAINTENANCE' || status === 'INACTIVE'));
+        || (filter === 'MAINTENANCE' && status === 'MAINTENANCE')
+        || (filter === 'INACTIVE' && status === 'INACTIVE');
       card.classList.toggle('aud-room-card--hidden', !show);
+    });
+  }
+
+  var addRoomInput = document.getElementById('audAddRoomInput');
+  var addCard = document.getElementById('audAddRoomCard');
+  if (addCard && addRoomInput) {
+    addCard.addEventListener('click', function (e) {
+      if (e.target.closest('button[type="submit"]') || e.target.closest('input')) return;
+      addRoomInput.focus();
     });
   }
 
   cards.forEach(function (card) {
     card.addEventListener('click', function (e) {
-      if (e.target.closest('.aud-toggle') || e.target.closest('.aud-btn--detail')) return;
+      if (e.target.closest('.aud-status-form') || e.target.closest('.aud-btn--detail')) return;
       selectCard(card);
     });
     card.addEventListener('keydown', function (e) {
@@ -56,7 +66,7 @@
       }
     });
 
-    var toggle = card.querySelector('.aud-toggle-input');
+    var toggle = card.querySelector('.aud-status-select');
     if (toggle) {
       toggle.addEventListener('click', function (e) {
         e.stopPropagation();
