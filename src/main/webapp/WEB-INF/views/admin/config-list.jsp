@@ -81,11 +81,31 @@
     </div>
 
     <div class="admin-card">
-      <h2 class="admin-section-title">Thuế VAT</h2>
-      <p style="font-size:13px;color:var(--text-muted);">
-        Quản lý quy tắc VAT (<code>VatRules</code>) sẽ được bổ sung ở phase tiếp theo.
-        Hiện tại hệ thống lấy VAT từ rule ACTIVE trong database.
-      </p>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div>
+          <h2 class="admin-section-title">Thuế VAT</h2>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">
+            Quản lý quy tắc thuế suất (<code>VatRules</code>) — áp dụng cho đơn đặt vé mới.
+          </p>
+          <c:choose>
+            <c:when test="${not empty currentVatRule}">
+              <p style="font-size:14px;margin:0;">
+                Đang áp dụng:
+                <strong>
+                  <fmt:formatNumber value="${currentVatRule.vatRate}" minFractionDigits="0" maxFractionDigits="2"/>%
+                </strong>
+                — <c:out value="${currentVatRule.ruleName}"/>
+              </p>
+            </c:when>
+            <c:otherwise>
+              <p style="font-size:14px;margin:0;">Chưa cấu hình — mặc định <strong>8%</strong></p>
+            </c:otherwise>
+          </c:choose>
+        </div>
+        <a href="${pageContext.request.contextPath}/admin/vat" class="admin-btn admin-btn--primary">
+          Quản lý VAT →
+        </a>
+      </div>
     </div>
 
   </div>

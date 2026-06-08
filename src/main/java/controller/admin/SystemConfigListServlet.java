@@ -1,6 +1,8 @@
 package controller.admin;
 
 import dal.SystemConfigDAO;
+import dal.VatRuleDAO;
+import model.entity.VatRule;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -39,8 +41,11 @@ public class SystemConfigListServlet extends HttpServlet {
                 .max((a, b) -> a.getUpdatedAt().compareTo(b.getUpdatedAt()))
                 .orElse(null);
 
+        VatRule currentVatRule = new VatRuleDAO().findCurrentActive().orElse(null);
+
         req.setAttribute("configs", configs);
         req.setAttribute("lastUpdated", lastUpdated);
+        req.setAttribute("currentVatRule", currentVatRule);
         req.setAttribute("flashSuccess", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_SUCCESS));
         req.setAttribute("flashError", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_ERROR));
 
