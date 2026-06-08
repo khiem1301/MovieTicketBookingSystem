@@ -89,6 +89,37 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  align-items: stretch;
+}
+
+.aud-add-room-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.aud-add-room-input {
+  min-width: 200px;
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(175, 135, 130, 0.25);
+  background: rgba(26, 9, 8, 0.6);
+  color: #ffdad5;
+  font-size: 14px;
+}
+
+.aud-add-room-input:focus {
+  outline: none;
+  border-color: rgba(229, 9, 20, 0.45);
+}
+
+.aud-toggle-form {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
 }
 
 .aud-btn {
@@ -316,6 +347,100 @@
 
 .aud-room-seats .material-symbols-outlined { font-size: 14px; }
 
+.aud-room-status-wrap {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.aud-status-form {
+  margin: 0;
+}
+
+.aud-status-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.aud-status-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  min-width: 132px;
+  padding: 7px 30px 7px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(175, 135, 130, 0.28);
+  background: rgba(26, 9, 8, 0.65);
+  color: #ffdad5;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.aud-status-select:hover {
+  border-color: rgba(255, 180, 170, 0.45);
+  background: rgba(42, 22, 20, 0.85);
+}
+
+.aud-status-select:focus {
+  outline: none;
+  border-color: rgba(229, 9, 20, 0.5);
+  box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.15);
+}
+
+.aud-status-select--ACTIVE {
+  border-color: rgba(229, 9, 20, 0.35);
+  color: #ffb4aa;
+}
+
+.aud-status-select--MAINTENANCE {
+  border-color: rgba(175, 135, 130, 0.45);
+  color: #e9bcb6;
+}
+
+.aud-status-select--INACTIVE {
+  border-color: rgba(120, 120, 120, 0.35);
+  color: rgba(233, 188, 182, 0.65);
+}
+
+.aud-status-select option {
+  background: #2a1614;
+  color: #ffdad5;
+}
+
+.aud-status-select-icon {
+  position: absolute;
+  right: 8px;
+  pointer-events: none;
+  font-size: 18px;
+  color: rgba(233, 188, 182, 0.55);
+}
+
+.aud-status-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.aud-status-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(233, 188, 182, 0.55);
+}
+
+.aud-status-form--detail .aud-status-select {
+  min-width: 170px;
+  padding-top: 9px;
+  padding-bottom: 9px;
+  font-size: 13px;
+}
+
 .aud-room-toggle-wrap {
   display: flex;
   flex-direction: column;
@@ -387,6 +512,40 @@
 
 .aud-room-card__body { position: relative; z-index: 1; }
 
+.aud-room-card__foot {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(175, 135, 130, 0.1);
+}
+
+.aud-btn--detail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffb4aa;
+  background: rgba(229, 9, 20, 0.08);
+  border: 1px solid rgba(255, 180, 170, 0.25);
+  transition: all 0.2s ease;
+}
+
+.aud-btn--detail:hover {
+  background: rgba(229, 9, 20, 0.18);
+  border-color: rgba(255, 180, 170, 0.45);
+  color: #ffdad5;
+}
+
+.aud-btn--detail .material-symbols-outlined { font-size: 16px; }
+
 .aud-room-chips {
   display: flex;
   flex-wrap: wrap;
@@ -448,12 +607,56 @@
   border-style: dashed;
   border-width: 2px;
   text-align: center;
-  opacity: 0.85;
 }
 
 .aud-room-card--add:hover {
   border-color: rgba(255, 180, 170, 0.5);
   background: rgba(46, 26, 24, 0.8);
+}
+
+.aud-add-card-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 4px;
+}
+
+.aud-add-card-input {
+  width: 100%;
+  max-width: 240px;
+  margin: 12px 0 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(175, 135, 130, 0.3);
+  background: rgba(26, 9, 8, 0.5);
+  color: #ffdad5;
+  font-size: 14px;
+  text-align: center;
+}
+
+.aud-add-card-input:focus {
+  outline: none;
+  border-color: rgba(229, 9, 20, 0.45);
+}
+
+.aud-add-card-submit {
+  width: 100%;
+  max-width: 240px;
+  justify-content: center;
+}
+
+.aud-add-panel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 280px;
+  margin-top: 20px;
+}
+
+.aud-detail__empty .aud-add-room-input {
+  width: 100%;
 }
 
 .aud-add-icon {

@@ -19,6 +19,15 @@ public class Seat {
 
     public Seat() {}
 
+    public Seat(String roomId, String seatTypeId, String seatRow, int seatColumn, String seatCode) {
+        this.roomId = roomId;
+        this.seatTypeId = seatTypeId;
+        this.seatRow = seatRow;
+        this.seatColumn = seatColumn;
+        this.seatCode = seatCode;
+        this.status = "ACTIVE";
+    }
+
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

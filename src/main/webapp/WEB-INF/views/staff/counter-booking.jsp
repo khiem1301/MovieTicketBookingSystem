@@ -335,6 +335,6 @@
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
 
-<script src="${pageContext.request.contextPath}/js/counter-booking.js"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/counter-booking.js"></script>
 </body>
 </html>

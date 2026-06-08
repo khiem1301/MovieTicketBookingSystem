@@ -189,6 +189,6 @@
     </div>
   </div>
 
-  <script src="${pageContext.request.contextPath}/js/auth.js"></script>
+  <script charset="UTF-8" src="${pageContext.request.contextPath}/js/auth.js"></script>
 </body>
 </html>
