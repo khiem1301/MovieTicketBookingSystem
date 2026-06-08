@@ -130,6 +130,7 @@
               <c:if test="${sessionScope.userRole == 'MANAGER'}">
                 <a href="${pageContext.request.contextPath}/manager/movies">Quản lý phim</a>
                 <a href="${pageContext.request.contextPath}/manager/genres">Quản lý thể loại</a>
+                <a href="${pageContext.request.contextPath}/manager/rooms">Quản lý phòng chiếu</a>
               </c:if>
               <c:if test="${sessionScope.userRole == 'ADMIN'}">
                 <a href="${pageContext.request.contextPath}/manager/movies">Quản lý phim</a>
