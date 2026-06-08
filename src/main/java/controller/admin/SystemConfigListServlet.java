@@ -1,6 +1,7 @@
 package controller.admin;
 
 import dal.SystemConfigDAO;
+import dal.SystemConfigLogDAO;
 import dal.VatRuleDAO;
 import model.entity.VatRule;
 import jakarta.servlet.ServletException;
@@ -9,6 +10,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import model.entity.SystemConfig;
+import model.entity.SystemConfigLog;
 import utils.AdminAuthUtil;
 import utils.ConfigKeys;
 
@@ -41,10 +43,19 @@ public class SystemConfigListServlet extends HttpServlet {
                 .max((a, b) -> a.getUpdatedAt().compareTo(b.getUpdatedAt()))
                 .orElse(null);
 
-        VatRule currentVatRule = new VatRuleDAO().findCurrentActive().orElse(null);
+        VatRule currentVatRule = new VatRuleDAO().findEffectiveNow().orElse(null);
+        List<SystemConfigLog> loyaltyHistory = List.of();
+        boolean historyTableMissing = false;
+        try {
+            loyaltyHistory = new SystemConfigLogDAO().findLoyaltyHistory(30);
+        } catch (RuntimeException ex) {
+            historyTableMissing = true;
+        }
 
         req.setAttribute("configs", configs);
         req.setAttribute("lastUpdated", lastUpdated);
+        req.setAttribute("loyaltyHistory", loyaltyHistory);
+        req.setAttribute("historyTableMissing", historyTableMissing);
         req.setAttribute("currentVatRule", currentVatRule);
         req.setAttribute("flashSuccess", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_SUCCESS));
         req.setAttribute("flashError", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_ERROR));
