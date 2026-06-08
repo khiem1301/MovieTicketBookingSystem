@@ -138,6 +138,7 @@
                 <span class="dropdown-divider-label">Quản trị hệ thống</span>
                 <a href="${pageContext.request.contextPath}/admin/dashboard">Bảng điều khiển</a>
                 <a href="${pageContext.request.contextPath}/admin/users">Quản lý người dùng</a>
+                <a href="${pageContext.request.contextPath}/admin/config">Cấu hình hệ thống</a>
               </c:if>
               <a href="${pageContext.request.contextPath}/logout"
                  style="color:#ef5350 !important;">Đăng xuất</a>
