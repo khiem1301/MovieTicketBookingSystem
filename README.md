@@ -125,13 +125,15 @@ File cấu hình kết nối SQL Server nằm tại `src/main/resources/database
 
 #### Các script hỗ trợ (`scripts/`)
 
-| Script | Chạy khi nào | Tác dụng |
-|--------|--------------|----------|
-| `install-git-hooks.bat` | **Một lần** sau khi clone | Cài hook Git — tự khôi phục `database.properties` sau mỗi `git pull` |
-| `setup.bat` | Lần đầu / khi chưa có file config | Copy `.example` → `database.properties` (không ghi đè nếu đã có) |
-| `setup.ps1` | Tương đương `setup.bat` | Dùng trong PowerShell |
-| `backup-database-properties.bat` | **Trước** `git pull` | Lưu bản sao → `database.properties.backup` (gitignored) |
-| `restore-database-properties.bat` | **Sau** `git pull` / khi file bị mất | Khôi phục từ `.backup`, hoặc tạo từ `.example` nếu chưa có backup |
+
+| Script                            | Chạy khi nào                         | Tác dụng                                                             |
+| --------------------------------- | ------------------------------------ | -------------------------------------------------------------------- |
+| `install-git-hooks.bat`           | **Một lần** sau khi clone            | Cài hook Git — tự khôi phục `database.properties` sau mỗi `git pull` |
+| `setup.bat`                       | Lần đầu / khi chưa có file config    | Copy `.example` → `database.properties` (không ghi đè nếu đã có)     |
+| `setup.ps1`                       | Tương đương `setup.bat`              | Dùng trong PowerShell                                                |
+| `backup-database-properties.bat`  | **Trước** `git pull`                 | Lưu bản sao → `database.properties.backup` (gitignored)              |
+| `restore-database-properties.bat` | **Sau** `git pull` / khi file bị mất | Khôi phục từ `.backup`, hoặc tạo từ `.example` nếu chưa có backup    |
+
 
 PowerShell tương ứng: `.\scripts\setup.ps1`
 
@@ -216,6 +218,369 @@ Sau đó sửa mật khẩu và chạy `backup-database-properties.bat`.
 
 ---
 
+### Cấu hình email (Gmail SMTP)
+
+File cấu hình gửi mail nằm tại `src/main/resources/email.properties`. File này **chỉ tồn tại trên máy bạn** — không đưa lên Git (chỉ có `email.properties.example` trên repo).
+
+**Mục đích:** App dùng SMTP để **gửi email xác thực đăng ký** (FR-01). Sau khi khách bấm **Tạo tài khoản** với email, hệ thống gửi link *Xác thực email* vào hộp thư.
+
+> Hướng dẫn gốc (comment trong repo): `src/main/resources/email.properties.example`
+
+#### A. Lần đầu cấu hình (làm theo thứ tự)
+
+**1.** Tạo file cấu hình — mở CMD hoặc PowerShell tại **thư mục gốc project**, chạy:
+
+```bat
+copy src\main\resources\email.properties.example src\main\resources\email.properties
+```
+
+**2.** Mở `src/main/resources/email.properties` và điền đầy đủ theo các bước bên dưới (Bước 2 → 4 trong file `.example`).
+
+---
+
+#### B. Lấy Gmail + App Password (phần **CHUNG** — cả nhóm có thể dùng 1 Gmail)
+
+**B.1** Chọn **1 Gmail** để app dùng **GỬI** mail (Gmail cá nhân hoặc Gmail nhóm đều được).
+
+**B.2** Bật **Xác minh 2 bước** cho Gmail đó:
+
+- Truy cập: [https://myaccount.google.com/security](https://myaccount.google.com/security)
+- Tìm **Xác minh 2 bước** → **Bật**
+
+**B.3** Tạo **Mật khẩu ứng dụng** (App Password):
+
+- Truy cập: [https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+- Điền tên cho ứng dụng: `ÉPCINE`
+- Google hiện **16 ký tự** (VD: `abcd efgh ijkl mnop`)
+- **Copy** rồi **xóa hết khoảng trống** → thành `abcdefghijklmnop`
+
+**B.4** Điền vào `email.properties`:
+
+```properties
+mail.smtp.username=phamtrangialong2005@gmail.com
+mail.smtp.password=abcdefghijklmnop
+mail.from=phamtrangialong2005@gmail.com
+mail.from.name=ÉPCINE
+```
+
+
+| Key                  | Ý nghĩa                                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `mail.smtp.username` | Gmail dùng để gửi mail (VD như trên)                                                                                   |
+| `mail.smtp.password` | **App Password** 16 ký tự (đã bỏ dấu cách) — **KHÔNG** phải mật khẩu đăng nhập Gmail thường                            |
+| `mail.from`          | Thường **giống** `mail.smtp.username`                                                                                  |
+| `mail.from.name`     | Tên hiển thị ở cột **Người gửi** trong hộp thư (VD: `ÉPCINE <phamtrangialong2005@gmail.com>`). **Giữ nguyên** `ÉPCINE` |
+
+
+> **Quan trọng:** Không điền mật khẩu đăng nhập Gmail thường — chỉ dùng **App Password**.
+
+> **Nếu dùng theo nhóm:** Admin tạo App Password **một lần**, chia `username` + `password` cho team qua kênh riêng (Zalo/Discord). **Không** commit lên Git.
+
+---
+
+#### C. Điền `app.base.url` (phần **RIÊNG** — mỗi máy khác nhau)
+
+Đây là **URL gốc** của app trên Tomcat **máy bạn**. Link xác thực trong email được ghép từ dòng này.
+
+**Cách lấy URL đúng trong IntelliJ:**
+
+1. Ở góc **bên phải trên cùng** trong IntelliJ, bấm vào **Tomcat** (ngay cạnh nút icon ▶)
+2. Chọn **Edit Configurations...**
+3. Nhìn vào thanh **URL** → đó là URL Tomcat của bạn
+
+**Ví dụ A — port 9999 (deploy exploded WAR):**
+
+```text
+Thanh URL: http://localhost:9999/MovieTicketBookingSystem_war_exploded/
+```
+
+→ Điền:
+
+```properties
+app.base.url=http://localhost:9999/MovieTicketBookingSystem_war_exploded
+```
+
+**Ví dụ B — port 8080 (deploy WAR):**
+
+```text
+Thanh URL: http://localhost:8080/MovieTicketBookingSystem/
+```
+
+→ Điền:
+
+```properties
+app.base.url=http://localhost:8080/MovieTicketBookingSystem
+```
+
+**Quy tắc:**
+
+- ✓ **Không** thêm dấu `/` ở cuối
+- ✓ Đúng **port** (`9999`, `8080`, …)
+- ✓ Đúng **tên context** (`MovieTicketBookingSystem_war_exploded` hoặc `MovieTicketBookingSystem`)
+
+Sai URL → link trong email mở sai trang / **404**.
+
+---
+
+#### D. Bốn dòng SMTP Gmail (giữ nguyên, không sửa)
+
+Thêm vào `email.properties`:
+
+```properties
+mail.smtp.host=smtp.gmail.com
+mail.smtp.port=587
+mail.smtp.auth=true
+mail.smtp.starttls.enable=true
+```
+
+---
+
+#### E. Mẫu file `email.properties` hoàn chỉnh
+
+```properties
+mail.smtp.host=smtp.gmail.com
+mail.smtp.port=587
+mail.smtp.auth=true
+mail.smtp.starttls.enable=true
+
+mail.smtp.username=<gmail-cua-ban>@gmail.com
+mail.smtp.password=<app-password-16-ky-tu>
+mail.from=<gmail-cua-ban>@gmail.com
+mail.from.name=ÉPCINE
+
+app.base.url=http://localhost:<PORT>/<CONTEXT_PATH>
+```
+
+Thay `<PORT>` và `<CONTEXT_PATH>` theo Tomcat trên máy bạn (xem mục **C**).
+
+---
+
+#### F. Rebuild và kiểm tra
+
+**1.** IntelliJ: góc phải trên cùng, cạnh Tomcat → bấm icon **Restart** server, rồi chạy lại project.
+
+**2.** Vào trang **Đăng ký** (`/register`), điền thông tin tạo tài khoản — **email phải chưa có trong DB**.
+
+**3.** Hệ thống gửi mail xác thực → kiểm tra hộp thư (kể cả thư mục **Spam**).
+
+
+| Kết quả                                  | Ý nghĩa                                                                   |
+| ---------------------------------------- | ------------------------------------------------------------------------- |
+| Trang pending báo **đã gửi email**       | SMTP cấu hình đúng                                                        |
+| Trang pending hiện **link xác thực dev** | Chưa cấu hình đúng — vẫn tạo được tài khoản, dùng link trên trang để test |
+
+
+---
+
+#### G. Lỗi thường gặp (email)
+
+
+| Lỗi                         | Cách xử lý                                                                  |
+| --------------------------- | --------------------------------------------------------------------------- |
+| `535 Authentication failed` | Sai App Password hoặc chưa bật Xác minh 2 bước — tạo lại App Password       |
+| Không nhận được mail        | Kiểm tra **Spam**; thử Gmail khác; rebuild + restart Tomcat                 |
+| Link trong mail bị 404      | Sửa `app.base.url` cho khớp URL Tomcat (mục **C**)                          |
+| Sửa file nhưng không đổi    | **Rebuild Project** + **Restart Tomcat** (file nằm trong `target/classes/`) |
+
+
+> **Quan trọng:** Không commit `email.properties` lên Git. Nếu lỡ push App Password, **thu hồi và tạo App Password mới** trên Google.
+
+---
+
+#### H. Phân chia cấu hình trong nhóm
+
+
+| Mục                                          | Cả nhóm giống nhau? | Ghi chú                                                         |
+| -------------------------------------------- | ------------------- | --------------------------------------------------------------- |
+| `mail.smtp.username` / `password` / `from`   | **Có thể**          | Dùng chung 1 Gmail hệ thống, hoặc mỗi người Gmail riêng để test |
+| `mail.from.name`                             | **Có**              | Giữ `ÉPCINE` — tên thương hiệu hiện trên hộp thư người nhận     |
+| `mail.smtp.host`, `port`, `auth`, `starttls` | **Có**              | Giữ mặc định Gmail                                              |
+| `app.base.url`                               | **Không**           | Mỗi máy tự sửa theo URL Tomcat của mình                         |
+
+
+Chi tiết đầy đủ trong comment: `email.properties.example`.
+
+---
+
+### Cấu hình Google OAuth (Đăng nhập bằng Google)
+
+File cấu hình OAuth nằm tại `src/main/resources/google.properties`. File này **chỉ tồn tại trên máy bạn** — không đưa lên Git (chỉ có `google.properties.example` trên repo).
+
+**Mục đích:** Bật nút **Đăng nhập bằng Google** trên `/login` và `/register`. Khách chọn Gmail để đăng nhập; tài khoản mới sẽ được yêu cầu nhập ngày sinh trước khi hoàn tất.
+
+> Hướng dẫn gốc (comment trong repo): `src/main/resources/google.properties.example`
+
+#### A. Lần đầu cấu hình (làm theo thứ tự)
+
+**1.** Tạo file cấu hình — mở CMD hoặc PowerShell tại **thư mục gốc project**, chạy:
+
+```bat
+copy src\main\resources\google.properties.example src\main\resources\google.properties
+```
+
+**2.** Mở `src/main/resources/google.properties` và điền theo các bước bên dưới.
+
+> **Lưu ý:** Nên cấu hình `email.properties` trước (mục **Cấu hình email**) vì `google.redirect.uri` lấy từ `app.base.url`.
+
+---
+
+#### B. Client ID + Client Secret (phần **CHUNG** — cả nhóm dùng chung)
+
+OAuth client hiện đã được admin (**Gia Long**) tạo sẵn trên Google Cloud Console. Điền **Client ID** và **Client Secret** do admin chia qua kênh riêng (Zalo/Discord) — **không** ghi secret thật vào README hay Git:
+
+```properties
+google.client.id=<google-client-id>.apps.googleusercontent.com
+google.client.secret=<google-client-secret>
+```
+
+
+| Key                    | Ý nghĩa                               |
+| ---------------------- | ------------------------------------- |
+| `google.client.id`     | Client ID từ Google Cloud Console     |
+| `google.client.secret` | Client Secret từ Google Cloud Console |
+
+
+> **Nhóm dùng chung:** Copy từ `google.properties.example`, rồi thay `<google-client-id>` và `<google-client-secret>` bằng giá trị admin gửi.
+
+> **Quan trọng:** Không commit `google.properties` lên Git. Client Secret chỉ lưu local.
+
+---
+
+#### C. Điền `google.redirect.uri` (phần **RIÊNG** — mỗi máy khác nhau)
+
+Đây là **URL callback** sau khi Google xác thực xong. Phải **khớp 100%** với một dòng trong **Authorized redirect URIs** trên Google Cloud Console.
+
+**Cách lấy URL:**
+
+1. Lấy `app.base.url` từ `email.properties` (hoặc xem URL trình duyệt trước `/login`)
+2. Thêm đuôi: `/auth/google/callback`
+
+**Ví dụ A — port 9999 (deploy exploded WAR):**
+
+```properties
+# email.properties
+app.base.url=http://localhost:9999/MovieTicketBookingSystem_war_exploded
+```
+
+→ Điền vào `google.properties`:
+
+```properties
+google.redirect.uri=http://localhost:9999/MovieTicketBookingSystem_war_exploded/auth/google/callback
+```
+
+**Ví dụ B — port 8080 (deploy WAR):**
+
+```properties
+google.redirect.uri=http://localhost:8080/MovieTicketBookingSystem/auth/google/callback
+```
+
+**Quy tắc:**
+
+- ✓ **Không** thêm dấu `/` ở cuối callback URL
+- ✓ Đúng **port** (`9999`, `8080`, …) và **context path** với Tomcat của bạn
+- ✓ Sai 1 ký tự → Google báo `redirect_uri_mismatch`
+
+**Nếu dùng OAuth chung của nhóm:** Gửi URL callback của bạn cho admin (Gia Long) để họ **thêm** vào Google Console → **Authorized redirect URIs** (nếu chưa có).
+
+---
+
+#### D. (Tùy chọn) Tự tạo OAuth client riêng
+
+Chỉ cần làm khi **không** dùng OAuth chung của nhóm. Admin tạo **một lần** trên [Google Cloud Console](https://console.cloud.google.com/):
+
+**D.1** Góc trái trên cùng bên cạnh **Google Cloud** → **Select a project** → **New Project**
+
+- Project name: `EPCINE`
+- Parent: `No organization` → **Create**
+
+**D.2** Cấp quyền cho thành viên (nếu cần):
+
+- Chọn 3 gạch bên cạnh **Google Cloud** → **IAM & Admin** → **Grant access**
+- Điền email thành viên → Role: **Basic → Editor**
+
+**D.3** Chọn 3 gạch bên cạnh **Google Cloud** → **APIs & Services** → **OAuth consent screen** → điền thông tin → **Create**
+
+- App name: `ÉPCINE`
+- Audience: **External**
+
+**D.4** **Create OAuth client**
+
+- Application type: **Web application**
+- Name: `EPCINE Local` (hoặc tương tự)
+- **Authorized JavaScript origins:** có thể bỏ qua
+- **Authorized redirect URIs:** thêm URL callback của **từng** thành viên (mỗi người một dòng nếu port/context khác nhau)
+Ví dụ:
+
+```text
+http://localhost:8080/MovieTicketBookingSystem/auth/google/callback
+http://localhost:9999/MovieTicketBookingSystem_war_exploded/auth/google/callback
+```
+
+→ **Create** → copy **Client ID** và **Client Secret** vào `google.client.id` / `google.client.secret`.
+
+---
+
+#### E. Mẫu file `google.properties` hoàn chỉnh
+
+```properties
+google.client.id=<google-client-id>.apps.googleusercontent.com
+google.client.secret=<google-client-secret>
+google.redirect.uri=http://localhost:<PORT>/<CONTEXT_PATH>/auth/google/callback
+```
+
+Thay `<PORT>` và `<CONTEXT_PATH>` theo Tomcat trên máy bạn (xem mục **C**).
+
+---
+
+#### F. Rebuild và kiểm tra
+
+**1.** **Build → Rebuild Project** → **Restart Tomcat**.
+
+**2.** Vào `/login` → phải thấy nút **Đăng nhập bằng Google**.
+
+**3.** Bấm nút → chọn Gmail:
+
+
+| Kết quả                     | Ý nghĩa                                                  |
+| --------------------------- | -------------------------------------------------------- |
+| Đăng nhập thành công        | Email đã có trong DB → vào trang chủ                     |
+| Yêu cầu nhập ngày sinh      | Gmail mới → hoàn tất form rồi đăng nhập                  |
+| Lỗi `redirect_uri_mismatch` | Sai `google.redirect.uri` hoặc chưa add URL trên Console |
+| Không thấy nút Google       | Chưa có `google.properties` hoặc chưa rebuild            |
+
+
+---
+
+#### G. Lỗi thường gặp (Google OAuth)
+
+
+| Lỗi                       | Cách xử lý                                                                 |
+| ------------------------- | -------------------------------------------------------------------------- |
+| `redirect_uri_mismatch`   | Sửa `google.redirect.uri` cho khớp Tomcat; nhờ admin thêm URL trên Console |
+| `invalid_client`          | Kiểm tra `google.client.id` / `google.client.secret`                       |
+| Không thấy nút Google     | Tạo `google.properties`, rebuild + restart Tomcat                          |
+| Sửa file nhưng không đổi  | **Rebuild Project** + **Restart Tomcat**                                   |
+| Google chặn app (Testing) | Trên OAuth consent screen, thêm Gmail test user hoặc publish app           |
+
+
+> **Quan trọng:** Không commit `google.properties` lên Git. Nếu lỡ push Client Secret, **thu hồi và tạo secret mới** trên Google Console.
+
+---
+
+#### H. Phân chia cấu hình trong nhóm
+
+
+| Mục                    | Cả nhóm giống nhau? | Ghi chú                                                     |
+| ---------------------- | ------------------- | ----------------------------------------------------------- |
+| `google.client.id`     | **Có**              | Dùng chung OAuth client của admin                           |
+| `google.client.secret` | **Có**              | Dùng chung — không commit lên Git                           |
+| `google.redirect.uri`  | **Không**           | Mỗi máy tự sửa; gửi URL cho admin để add vào Google Console |
+
+
+Chi tiết đầy đủ trong comment: `google.properties.example`.
+
+---
+
 ### Bước 2 — Tạo database và bảng
 
 1. Bật SQL Server, bật **SQL Server Authentication** cho user `sa` (nếu dùng `sa`).
@@ -249,27 +614,32 @@ target/MovieTicketBookingSystem-1.0-SNAPSHOT.war
 ## Xử lý lỗi thường gặp
 
 
-| Lỗi                           | Cách xử lý                                                   |
-| ----------------------------- | ------------------------------------------------------------ |
-| `Missing database.properties` | Chạy `scripts\restore-database-properties.bat` hoặc `scripts\setup.bat` |
-| Pull xong mất `database.properties` | `backup` → pull → `restore` (xem **Bước 1 — mục B**) |
-| Login failed for user `sa`    | Kiểm tra mật khẩu, bật Mixed Mode trong SQL Server           |
-| Cannot open database          | Chạy `create_database.sql` hoặc sửa `db.name` cho khớp       |
-| Driver not found              | `mvn clean package` để tải dependency JDBC                   |
-| Tiếng Việt bị lỗi trên form   | Kiểm tra `EncodingFilter` và `pageEncoding="UTF-8"` trên JSP |
+| Lỗi                                 | Cách xử lý                                                              |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| `Missing database.properties`       | Chạy `scripts\restore-database-properties.bat` hoặc `scripts\setup.bat` |
+| Pull xong mất `database.properties` | `backup` → pull → `restore` (xem **Bước 1 — mục B**)                    |
+| Login failed for user `sa`          | Kiểm tra mật khẩu, bật Mixed Mode trong SQL Server                      |
+| Cannot open database                | Chạy `create_database.sql` hoặc sửa `db.name` cho khớp                  |
+| Driver not found                    | `mvn clean package` để tải dependency JDBC                              |
+| Tiếng Việt bị lỗi trên form         | Kiểm tra `EncodingFilter` và `pageEncoding="UTF-8"` trên JSP            |
+| `535 Authentication failed` (email) | Kiểm tra App Password Gmail, không dùng mật khẩu đăng nhập thường       |
+| Link xác thực email bị 404          | Sửa `app.base.url` trong `email.properties` cho khớp URL Tomcat         |
+| `redirect_uri_mismatch` (Google)    | Sửa `google.redirect.uri`; nhờ admin thêm URL callback trên Console     |
 
 
 ---
 
 ## Checklist thành viên mới
 
-- [ ] Clone repo
-- [ ] `scripts\install-git-hooks.bat` (một lần)
-- [ ] `scripts\setup.bat` → sửa `db.server`, `db.password`
-- [ ] `scripts\backup-database-properties.bat`
-- [ ] Chạy `Database/create_database.sql`
-- [ ] `mvn clean package` (hoặc Build trong IDE)
-- [ ] Cấu hình Tomcat 10 và chạy WAR
+- Clone repo
+- `scripts\install-git-hooks.bat` (một lần)
+- `scripts\setup.bat` → sửa `db.server`, `db.password`
+- `scripts\backup-database-properties.bat`
+- Chạy `Database/create_database.sql`
+- `copy src\main\resources\email.properties.example src\main\resources\email.properties` → cấu hình Gmail SMTP (xem mục **Cấu hình email**)
+- `copy src\main\resources\google.properties.example src\main\resources\google.properties` → cấu hình Google OAuth (xem mục **Cấu hình Google OAuth**)
+- `mvn clean package` (hoặc Build trong IDE)
+- Cấu hình Tomcat 10 và chạy WAR
 
 > Trước mỗi lần pull: `backup-database-properties.bat` → pull → `restore-database-properties.bat`
 
@@ -311,8 +681,8 @@ Cú pháp:
 
 Trong đó:
 
-* `<pic>` — mã thành viên (vd: `morgan`, `khiemnx`, `minhnt`, `gialong`).
-* `<task-name>` — mô tả công việc, dùng **kebab-case** (chữ thường, nối bằng dấu `-`).
+- `<pic>` — mã thành viên (vd: `morgan`, `khiemnx`, `minhnt`, `gialong`).
+- `<task-name>` — mô tả công việc, dùng **kebab-case** (chữ thường, nối bằng dấu `-`).
 
 ### Ví dụ — Feature
 
@@ -453,6 +823,10 @@ target/
 **/database.properties
 !**/database.properties.example
 **/database.properties.backup
+**/email.properties
+!**/email.properties.example
+**/google.properties
+!**/google.properties.example
 ```
 
 ### Không được push lên repository
@@ -460,15 +834,21 @@ target/
 - File build (`target/`, `*.war`, `*.class`).
 - File cấu hình IDE (`.idea/`, `*.iml`).
 - `**database.properties**` — chứa server name và mật khẩu SQL cá nhân.
+- `**email.properties**` — chứa Gmail và App Password SMTP.
+- `**google.properties**` — chứa Google OAuth Client Secret.
 
 ### Cấu hình database đúng cách
 
 
-| File                          | Trên Git? | Mục đích                |
-| ----------------------------- | --------- | ----------------------- |
-| `database.properties.example` | Có        | Mẫu cấu hình cho team   |
-| `database.properties`         | **Không** | Cấu hình local từng máy |
+| File                          | Trên Git? | Mục đích                    |
+| ----------------------------- | --------- | --------------------------- |
+| `database.properties.example` | Có        | Mẫu cấu hình cho team       |
+| `database.properties`         | **Không** | Cấu hình local từng máy     |
 | `database.properties.backup`  | **Không** | Backup local trước/sau pull |
+| `email.properties.example`    | Có        | Mẫu hướng dẫn Gmail SMTP    |
+| `email.properties`            | **Không** | Gmail + App Password local  |
+| `google.properties.example`   | Có        | Mẫu hướng dẫn Google OAuth  |
+| `google.properties`           | **Không** | Client ID/Secret local      |
 
 
 **Thành viên mới sau khi clone:**
@@ -694,7 +1074,11 @@ MovieTicketBookingSystem
 ├── src/main/resources/
 │   ├── database.properties.example   # Trên Git
 │   ├── database.properties           # Local only — gitignored
-│   └── database.properties.backup    # Local backup — gitignored
+│   ├── database.properties.backup    # Local backup — gitignored
+│   ├── email.properties.example      # Trên Git — hướng dẫn Gmail SMTP
+│   ├── email.properties              # Local only — gitignored
+│   ├── google.properties.example     # Trên Git — hướng dẫn Google OAuth
+│   └── google.properties             # Local only — gitignored
 ├── src/test/java/
 ├── Database/
 │   └── create_database.sql
@@ -749,6 +1133,10 @@ MovieTicketBookingSystem
 
 - `database.properties.example` — mẫu cấu hình DB trên Git.
 - `database.properties` — cấu hình thật, **mỗi dev tự tạo local**.
+- `email.properties.example` — hướng dẫn cấu hình Gmail SMTP (FR-01); chi tiết: mục **Cấu hình email** trong README.
+- `email.properties` — Gmail + App Password, **mỗi dev tự tạo local**.
+- `google.properties.example` — hướng dẫn Google OAuth; chi tiết: mục **Cấu hình Google OAuth** trong README.
+- `google.properties` — Client ID/Secret + redirect URI, **mỗi dev tự tạo local**.
 
 ### Database (`Database/`)
 
