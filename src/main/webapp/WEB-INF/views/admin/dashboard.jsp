@@ -69,14 +69,14 @@
         <span class="admin-module-link">Truy cập →</span>
       </a>
 
-      <div class="admin-module-card admin-module-card--disabled">
+      <a href="${pageContext.request.contextPath}/admin/config" class="admin-module-card admin-module-card--active">
         <div class="admin-module-icon">⚙️</div>
         <h3 class="admin-module-title">Cấu hình hệ thống</h3>
         <p class="admin-module-desc">
-          Tham số vận hành, VAT, tích điểm — sắp ra mắt.
+          Tham số tích điểm loyalty — earn/redeem rate, min/max mỗi đơn.
         </p>
-        <span class="admin-module-badge">Sắp có</span>
-      </div>
+        <span class="admin-module-link">Truy cập →</span>
+      </a>
 
       <div class="admin-module-card admin-module-card--disabled">
         <div class="admin-module-icon">📊</div>
