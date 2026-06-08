@@ -91,19 +91,3 @@
 #
 # =============================================================================
 
-# --- Bước 4: giữ nguyên ---
-mail.smtp.host=smtp.gmail.com
-mail.smtp.port=587
-mail.smtp.auth=true
-mail.smtp.starttls.enable=true
-
-# --- Bước 2: Gmail + App Password ---
-mail.smtp.username=your.email@gmail.com
-mail.smtp.password=YOUR_16_CHAR_APP_PASSWORD
-
-# --- Bước 2: người nhận thấy email từ đâu ---
-mail.from=your.email@gmail.com
-mail.from.name=ÉPCINE
-
-# --- Bước 3: URL Tomcat trên MÁY BẠN (sửa cho đúng) ---
-app.base.url=http://localhost:8080/MovieTicketBookingSystem
