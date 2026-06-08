@@ -33,7 +33,7 @@
 
     // Cập nhật danh sách ghế
     if (selected.length === 0) {
-      selectedList.innerHTML = '<p class="text-muted">Chưa chọn ghế nào.</p>';
+      selectedList.innerHTML = '<p class="text-muted">Ch\u01b0a ch\u1ecdn gh\u1ebf n\u00e0o.</p>';
     } else {
       selectedList.innerHTML = selected.map(btn => {
         const price = parseFloat(btn.dataset.price) || 0;
@@ -92,7 +92,7 @@
       const selected = getSelectedSeats();
       if (selected.length === 0) {
         e.preventDefault();
-        alert('Vui lòng chọn ít nhất một ghế trước khi đặt vé.');
+        alert('Vui l\u00f2ng ch\u1ecdn \u00edt nh\u1ea5t m\u1ed9t gh\u1ebf tr\u01b0\u1edbc khi \u0111\u1eb7t v\u00e9.');
       }
     });
   }

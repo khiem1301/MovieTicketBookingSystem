@@ -14,6 +14,15 @@
   </welcome-file-list>
 
   <!-- UTF-8 encoding cho mọi request/response -->
+  <mime-mapping>
+    <extension>js</extension>
+    <mime-type>application/javascript</mime-type>
+  </mime-mapping>
+  <mime-mapping>
+    <extension>css</extension>
+    <mime-type>text/css</mime-type>
+  </mime-mapping>
+
   <filter>
     <filter-name>EncodingFilter</filter-name>
     <filter-class>filter.EncodingFilter</filter-class>

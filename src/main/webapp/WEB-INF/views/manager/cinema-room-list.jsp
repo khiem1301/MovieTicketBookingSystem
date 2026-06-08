@@ -28,19 +28,26 @@
         </p>
       </div>
       <div class="aud-header-actions">
-        <button type="button" class="aud-btn aud-btn--ghost" disabled title="Sắp ra mắt">
-          <span class="material-symbols-outlined">tune</span>
-          Cấu hình hệ thống
-        </button>
-        <button type="button" class="aud-btn aud-btn--primary" disabled title="Sắp ra mắt">
-          <span class="material-symbols-outlined">add</span>
-          Thêm phòng chiếu
-        </button>
+        <form method="post" action="${pageContext.request.contextPath}/manager/rooms" class="aud-add-room-form">
+          <input type="text" name="roomName" maxlength="100" required
+                 placeholder="Tên phòng mới..."
+                 class="aud-add-room-input"/>
+          <button type="submit" class="aud-btn aud-btn--primary">
+            <span class="material-symbols-outlined">add</span>
+            Thêm phòng chiếu
+          </button>
+        </form>
       </div>
     </header>
 
-    <c:if test="${param.success == 'updated'}">
+    <c:if test="${param.success == 'created'}">
+      <div class="mgr-alert mgr-alert--success aud-alert">✓ Đã thêm phòng chiếu thành công!</div>
+    </c:if>
+    <c:if test="${param.success == 'status_updated'}">
       <div class="mgr-alert mgr-alert--success aud-alert">✓ Đã cập nhật trạng thái phòng chiếu!</div>
+    </c:if>
+    <c:if test="${not empty error}">
+      <div class="mgr-alert mgr-alert--error aud-alert"><c:out value="${error}"/></div>
     </c:if>
 
     <div class="aud-layout">
@@ -62,7 +69,7 @@
         </div>
 
         <%-- Cards grid --%>
-        <div class="aud-cards-grid" id="audRoomGrid">
+        <div class="aud-cards-grid" id="audRoomGrid" data-ctx="${pageContext.request.contextPath}">
 
           <c:choose>
             <c:when test="${empty roomList}">
@@ -113,14 +120,28 @@
                     </div>
 
                     <div class="aud-room-toggle-wrap">
-                      <label class="aud-toggle${isMaintenance or isInactive ? ' aud-toggle--disabled' : ''}">
-                        <input type="checkbox"
-                               class="aud-toggle-input"
-                               ${isLive ? 'checked' : ''}
-                               ${isMaintenance or isInactive ? 'disabled' : ''}
-                               aria-label="Trạng thái phòng"/>
-                        <span class="aud-toggle-track"></span>
-                      </label>
+                      <form method="post" action="${pageContext.request.contextPath}/manager/rooms/update"
+                            class="aud-toggle-form" onclick="event.stopPropagation()">
+                        <input type="hidden" name="roomId" value="<c:out value='${room.id}'/>"/>
+                        <input type="hidden" name="action" value="toggle"/>
+                        <c:choose>
+                          <c:when test="${isLive}">
+                            <input type="hidden" name="status" value="MAINTENANCE"/>
+                          </c:when>
+                          <c:otherwise>
+                            <input type="hidden" name="status" value="ACTIVE"/>
+                          </c:otherwise>
+                        </c:choose>
+                        <label class="aud-toggle${isMaintenance or isInactive ? ' aud-toggle--disabled' : ''}">
+                          <input type="checkbox"
+                                 class="aud-toggle-input"
+                                 ${isLive ? 'checked' : ''}
+                                 ${isMaintenance or isInactive ? 'disabled' : ''}
+                                 onchange="if(!this.disabled) this.form.submit()"
+                                 aria-label="Trạng thái phòng"/>
+                          <span class="aud-toggle-track"></span>
+                        </label>
+                      </form>
                       <span class="aud-room-status-label${isLive ? ' aud-room-status-label--live' : ''}">
                         <c:choose>
                           <c:when test="${isLive}">Hoạt động</c:when>
@@ -173,12 +194,20 @@
                       </c:otherwise>
                     </c:choose>
                   </div>
+
+                  <div class="aud-room-card__foot">
+                    <a href="${pageContext.request.contextPath}/manager/rooms/detail?id=<c:out value='${room.id}'/>"
+                       class="aud-btn aud-btn--detail"
+                       onclick="event.stopPropagation()">
+                      Chi tiết
+                      <span class="material-symbols-outlined">arrow_forward</span>
+                    </a>
+                  </div>
                 </article>
               </c:forEach>
 
-              <%-- Add new placeholder --%>
-              <article class="aud-room-card aud-room-card--add glass-panel" tabindex="0" role="button"
-                       aria-label="Thêm phòng chiếu mới" title="Sắp ra mắt">
+              <%-- Add new — link to create via header form --%>
+              <article class="aud-room-card aud-room-card--add glass-panel" aria-hidden="true">
                 <div class="aud-add-icon">
                   <span class="material-symbols-outlined">add</span>
                 </div>
@@ -252,36 +281,15 @@
                 </ul>
               </section>
 
-              <section class="aud-detail__section">
-                <h4 class="aud-section-title">Khu vực ghế</h4>
-                <div class="aud-zones" id="audDetailZones">
-                  <div class="aud-zone">
-                    <div class="aud-zone__left">
-                      <span class="aud-zone-dot aud-zone-dot--vip"></span>
-                      <span>VIP</span>
-                    </div>
-                    <span class="aud-zone-count">—</span>
-                  </div>
-                  <div class="aud-zone">
-                    <div class="aud-zone__left">
-                      <span class="aud-zone-dot aud-zone-dot--premium"></span>
-                      <span>Premium</span>
-                    </div>
-                    <span class="aud-zone-count">—</span>
-                  </div>
-                  <div class="aud-zone">
-                    <div class="aud-zone__left">
-                      <span class="aud-zone-dot aud-zone-dot--standard"></span>
-                      <span>Thường</span>
-                    </div>
-                    <span class="aud-zone-count" id="audZoneStandard"><c:out value="${selectedRoom.capacity}"/> ghế</span>
-                  </div>
-                </div>
-                <p class="aud-zones-hint">Chi tiết khu vực ghế sẽ hiển thị khi cấu hình layout.</p>
-              </section>
             </div>
 
             <div class="aud-detail__footer">
+              <a id="audDetailLink"
+                 href="${pageContext.request.contextPath}/manager/rooms/detail?id=<c:out value='${selectedRoom.id}'/>"
+                 class="aud-btn aud-btn--primary aud-btn--block">
+                <span class="material-symbols-outlined">open_in_new</span>
+                Xem chi tiết
+              </a>
               <button type="button" class="aud-btn aud-btn--outline aud-btn--block" disabled title="Sắp ra mắt">
                 <span class="material-symbols-outlined">calendar_month</span>
                 Xem lịch chiếu
@@ -305,5 +313,5 @@
   </div>
 </div>
 
-<script src="${pageContext.request.contextPath}/js/manager-auditoriums.js"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-auditoriums.js"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

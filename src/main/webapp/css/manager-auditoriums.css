@@ -89,6 +89,37 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  align-items: stretch;
+}
+
+.aud-add-room-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.aud-add-room-input {
+  min-width: 200px;
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(175, 135, 130, 0.25);
+  background: rgba(26, 9, 8, 0.6);
+  color: #ffdad5;
+  font-size: 14px;
+}
+
+.aud-add-room-input:focus {
+  outline: none;
+  border-color: rgba(229, 9, 20, 0.45);
+}
+
+.aud-toggle-form {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
 }
 
 .aud-btn {
@@ -386,6 +417,40 @@
 .aud-room-status-label--live { color: #ffb4aa; }
 
 .aud-room-card__body { position: relative; z-index: 1; }
+
+.aud-room-card__foot {
+  position: relative;
+  z-index: 1;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(175, 135, 130, 0.1);
+}
+
+.aud-btn--detail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffb4aa;
+  background: rgba(229, 9, 20, 0.08);
+  border: 1px solid rgba(255, 180, 170, 0.25);
+  transition: all 0.2s ease;
+}
+
+.aud-btn--detail:hover {
+  background: rgba(229, 9, 20, 0.18);
+  border-color: rgba(255, 180, 170, 0.45);
+  color: #ffdad5;
+}
+
+.aud-btn--detail .material-symbols-outlined { font-size: 16px; }
 
 .aud-room-chips {
   display: flex;

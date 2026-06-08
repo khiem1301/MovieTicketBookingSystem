@@ -125,6 +125,6 @@
   </div>
 </footer>
 
-<script src="${pageContext.request.contextPath}/js/main.js"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/main.js"></script>
 </body>
 </html>
