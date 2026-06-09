@@ -81,6 +81,95 @@
     </div>
 
     <div class="admin-card">
+      <h2 class="admin-section-title">Lịch sử chỉnh sửa tích điểm</h2>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+        Ghi lại mỗi lần admin lưu thay đổi — hiển thị giá trị mới và giá trị trước đó (nếu có).
+      </p>
+      <c:choose>
+        <c:when test="${not empty loyaltyHistory}">
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Thời gian</th>
+                  <th>Người sửa</th>
+                  <th>Tích điểm<br/><span style="font-weight:400;font-size:11px;">điểm/1.000đ</span></th>
+                  <th>Đổi điểm<br/><span style="font-weight:400;font-size:11px;">điểm/10.000đ</span></th>
+                  <th>Min/đơn</th>
+                  <th>Max/đơn</th>
+                </tr>
+              </thead>
+              <tbody>
+                <c:forEach var="log" items="${loyaltyHistory}">
+                  <tr>
+                    <td class="cell-muted" style="white-space:nowrap;">
+                      <fmt:formatDate value="${log.updatedAt}" pattern="dd/MM/yyyy HH:mm"/>
+                    </td>
+                    <td>
+                      <c:choose>
+                        <c:when test="${not empty log.updatedByName}">
+                          <c:out value="${log.updatedByName}"/>
+                        </c:when>
+                        <c:otherwise>—</c:otherwise>
+                      </c:choose>
+                    </td>
+                    <td>
+                      <c:out value="${log.earnRate}"/>
+                      <c:if test="${not empty log.previousEarnRate and log.previousEarnRate != log.earnRate}">
+                        <span class="cell-muted" style="display:block;font-size:11px;">
+                          trước: <c:out value="${log.previousEarnRate}"/>
+                        </span>
+                      </c:if>
+                    </td>
+                    <td>
+                      <c:out value="${log.redeemRate}"/>
+                      <c:if test="${not empty log.previousRedeemRate and log.previousRedeemRate != log.redeemRate}">
+                        <span class="cell-muted" style="display:block;font-size:11px;">
+                          trước: <c:out value="${log.previousRedeemRate}"/>
+                        </span>
+                      </c:if>
+                    </td>
+                    <td>
+                      <c:out value="${log.minRedeem}"/>
+                      <c:if test="${not empty log.previousMinRedeem and log.previousMinRedeem != log.minRedeem}">
+                        <span class="cell-muted" style="display:block;font-size:11px;">
+                          trước: <c:out value="${log.previousMinRedeem}"/>
+                        </span>
+                      </c:if>
+                    </td>
+                    <td>
+                      <c:out value="${log.maxRedeemPerOrder}"/>
+                      <c:if test="${not empty log.previousMaxRedeemPerOrder and log.previousMaxRedeemPerOrder != log.maxRedeemPerOrder}">
+                        <span class="cell-muted" style="display:block;font-size:11px;">
+                          trước: <c:out value="${log.previousMaxRedeemPerOrder}"/>
+                        </span>
+                      </c:if>
+                    </td>
+                  </tr>
+                </c:forEach>
+              </tbody>
+            </table>
+          </div>
+        </c:when>
+        <c:otherwise>
+          <c:choose>
+            <c:when test="${historyTableMissing}">
+              <p style="font-size:13px;color:var(--text-muted);margin:0;">
+                Chưa có bảng lịch sử. Chạy script
+                <code>Database/migrations/add_system_config_log.sql</code> trên SQL Server rồi tải lại trang.
+              </p>
+            </c:when>
+            <c:otherwise>
+              <p style="font-size:13px;color:var(--text-muted);margin:0;">
+                Chưa có lịch sử chỉnh sửa. Lịch sử sẽ được ghi sau lần lưu thay đổi đầu tiên.
+              </p>
+            </c:otherwise>
+          </c:choose>
+        </c:otherwise>
+      </c:choose>
+    </div>
+
+    <div class="admin-card">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
         <div>
           <h2 class="admin-section-title">Thuế VAT</h2>

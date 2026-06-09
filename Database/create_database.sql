@@ -54,6 +54,7 @@ IF OBJECT_ID('SeatTypes',             'U') IS NOT NULL DROP TABLE SeatTypes;
 IF OBJECT_ID('CinemaRooms',           'U') IS NOT NULL DROP TABLE CinemaRooms;
 IF OBJECT_ID('CinemaInfo',            'U') IS NOT NULL DROP TABLE CinemaInfo;
 IF OBJECT_ID('VatRules',              'U') IS NOT NULL DROP TABLE VatRules;
+IF OBJECT_ID('SystemConfigLog',       'U') IS NOT NULL DROP TABLE SystemConfigLog;
 IF OBJECT_ID('SystemConfig',          'U') IS NOT NULL DROP TABLE SystemConfig;
 IF OBJECT_ID('PasswordResetTokens',  'U') IS NOT NULL DROP TABLE PasswordResetTokens;
 IF OBJECT_ID('Users',                 'U') IS NOT NULL DROP TABLE Users;
@@ -142,6 +143,27 @@ CREATE TABLE SystemConfig (
 
     CONSTRAINT PK_SystemConfig         PRIMARY KEY (config_key),
     CONSTRAINT FK_SystemConfig_Updated FOREIGN KEY (updated_by) REFERENCES Users(id)
+);
+GO
+
+-- ------------------------------------------------------------
+-- 4b. SystemConfigLog — lịch sử chỉnh sửa loyalty
+-- ------------------------------------------------------------
+CREATE TABLE SystemConfigLog (
+    id                            UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    earn_rate                     NVARCHAR(20)     NOT NULL,
+    redeem_rate                   NVARCHAR(20)     NOT NULL,
+    min_redeem                    NVARCHAR(20)     NOT NULL,
+    max_redeem_per_order          NVARCHAR(20)     NOT NULL,
+    previous_earn_rate            NVARCHAR(20)     NULL,
+    previous_redeem_rate          NVARCHAR(20)     NULL,
+    previous_min_redeem           NVARCHAR(20)     NULL,
+    previous_max_redeem_per_order NVARCHAR(20)     NULL,
+    updated_by                    UNIQUEIDENTIFIER NULL,
+    updated_at                    DATETIME2        NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT PK_SystemConfigLog      PRIMARY KEY (id),
+    CONSTRAINT FK_SystemConfigLog_User FOREIGN KEY (updated_by) REFERENCES Users(id)
 );
 GO
 
@@ -678,6 +700,8 @@ CREATE INDEX IX_Promotions_Status   ON Promotions(status);
 CREATE INDEX IX_Promotions_Dates    ON Promotions(start_date, end_date);
 
 CREATE INDEX IX_MovieReviews_Movie  ON MovieReviews(movie_id);
+
+CREATE INDEX IX_SystemConfigLog_UpdatedAt ON SystemConfigLog(updated_at DESC);
 
 CREATE INDEX IX_LoyaltyPointsLog_User ON LoyaltyPointsLog(user_id, created_at);
 CREATE INDEX IX_LoyaltyPointsLog_Booking ON LoyaltyPointsLog(booking_id);

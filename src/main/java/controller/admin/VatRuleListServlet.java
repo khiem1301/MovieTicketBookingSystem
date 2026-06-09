@@ -28,15 +28,33 @@ public class VatRuleListServlet extends HttpServlet {
         }
 
         VatRuleDAO dao = new VatRuleDAO();
-        Optional<VatRule> currentRule = dao.findCurrentActive();
+        Optional<VatRule> currentRule = dao.findEffectiveNow();
+        List<VatRule> scheduledList = dao.findScheduledList();
         List<VatRule> history = dao.findHistory();
 
+        VatRule editRule = resolveEditRule(dao, trim(req.getParameter("edit")));
+
         req.setAttribute("currentRule", currentRule.orElse(null));
+        req.setAttribute("scheduledList", scheduledList);
+        req.setAttribute("editRule", editRule);
         req.setAttribute("history", history);
         req.setAttribute("defaultStartDate", LocalDate.now().toString());
         req.setAttribute("flashSuccess", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_SUCCESS));
         req.setAttribute("flashError", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_ERROR));
 
         req.getRequestDispatcher(VIEW).forward(req, resp);
+    }
+
+    private VatRule resolveEditRule(VatRuleDAO dao, String editId) {
+        if (editId == null || editId.isBlank()) {
+            return null;
+        }
+        return dao.findById(editId)
+                .filter(dao::isScheduledEditable)
+                .orElse(null);
+    }
+
+    private String trim(String value) {
+        return value == null ? null : value.trim();
     }
 }

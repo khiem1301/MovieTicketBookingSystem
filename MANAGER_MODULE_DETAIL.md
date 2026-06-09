@@ -4,6 +4,7 @@
 > **Phạm vi:** Toàn bộ source code liên quan đến quản lý rạp (MANAGER)  
 > **Tổng quan dự án:** [`SOURCE_CODE_OVERVIEW.md`](SOURCE_CODE_OVERVIEW.md)  
 > **Spec nghiệp vụ:** [`project_summary_final.md`](project_summary_final.md)  
+> **Database & migration:** [`Database/README.md`](Database/README.md)  
 > **Module liên quan:** [`ADMIN_MODULE_DETAIL.md`](ADMIN_MODULE_DETAIL.md)
 
 ---
