@@ -143,6 +143,7 @@ public class ManageGenreServlet extends HttpServlet {
             throws ServletException, IOException {
         req.setAttribute("genreList", genreDAO.getAll());
         req.setAttribute("genreIdsInUse", genreDAO.getGenreIdsInUse());
+        req.setAttribute("movieCountMap", genreDAO.getMovieCountPerGenre());
         req.getRequestDispatcher("/WEB-INF/views/manager/genre-list.jsp").forward(req, resp);
     }
 }
