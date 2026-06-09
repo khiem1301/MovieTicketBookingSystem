@@ -3,7 +3,7 @@ package controller.manager;
 import dal.GenreDAO;
 import dal.MovieDAO;
 import model.entity.Movie;
-import util.MovieImageUpload;
+import utils.MovieImageUpload;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;

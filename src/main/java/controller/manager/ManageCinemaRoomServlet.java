@@ -5,7 +5,7 @@ import dal.SeatDAO;
 import dal.SeatTypeDAO;
 import model.entity.CinemaRoom;
 import model.entity.Seat;
-import util.SeatLayoutJsonUtil;
+import utils.SeatLayoutJsonUtil;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;

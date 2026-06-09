@@ -1,4 +1,4 @@
-package util;
+package utils;
 
 import model.entity.Seat;
 import org.json.JSONArray;

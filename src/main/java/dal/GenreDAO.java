@@ -4,8 +4,10 @@ import model.entity.Genre;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class GenreDAO {
@@ -100,6 +102,21 @@ public class GenreDAO {
         } catch (SQLException e) {
             throw new RuntimeException("GenreDAO.hasLinkedMovies failed", e);
         }
+    }
+
+    public Map<String, Integer> getMovieCountPerGenre() {
+        String sql = "SELECT genre_id, COUNT(movie_id) AS cnt FROM MovieGenres GROUP BY genre_id";
+        Map<String, Integer> map = new HashMap<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                map.put(rs.getString("genre_id"), rs.getInt("cnt"));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("GenreDAO.getMovieCountPerGenre failed", e);
+        }
+        return map;
     }
 
     public Set<String> getGenreIdsInUse() {
