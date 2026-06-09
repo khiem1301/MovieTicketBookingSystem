@@ -21,8 +21,7 @@ public class ShowtimeDAO {
                        NULL AS genre_names
                 FROM Movies m
                 JOIN Showtimes s ON m.id = s.movie_id
-                WHERE s.status IN ('OPEN', 'SCHEDULED')
-                  AND s.start_time >= GETDATE()
+                WHERE s.status IN ('SCHEDULED', 'OPEN', 'SOLD_OUT')
                 ORDER BY m.title
                 """;
         List<Movie> result = new ArrayList<>();
@@ -49,8 +48,7 @@ public class ShowtimeDAO {
                 JOIN Movies m      ON m.id = s.movie_id
                 JOIN CinemaRooms cr ON cr.id = s.room_id
                 WHERE s.movie_id = ?
-                  AND s.status IN ('OPEN', 'SCHEDULED')
-                  AND s.start_time >= GETDATE()
+                  AND s.status IN ('SCHEDULED', 'OPEN', 'SOLD_OUT')
                 ORDER BY s.start_time
                 """;
         List<Showtime> result = new ArrayList<>();

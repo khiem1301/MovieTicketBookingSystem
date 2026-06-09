@@ -1,9 +1,11 @@
 package dal;
 
+import model.dto.BookingDetailDTO;
 import model.entity.Booking;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -111,6 +113,92 @@ public class BookingDAO {
             throw new RuntimeException("getById failed", e);
         }
         return null;
+    }
+
+    /**
+     * Lấy booking kèm thông tin showtime + danh sách ghế để hiển thị trang payment/print.
+     */
+    public BookingDetailDTO getDetailById(String bookingId) {
+        String sql = """
+                SELECT b.id, b.booking_code, b.customer_name, b.customer_phone,
+                       b.booking_status, b.payment_status,
+                       b.total_amount, b.final_amount, b.vat_rate_snapshot,
+                       m.title AS movie_title, m.poster_url AS movie_poster_url,
+                       cr.room_name, s.start_time
+                FROM Bookings b
+                JOIN Showtimes s  ON s.id = b.showtime_id
+                JOIN Movies m     ON m.id = s.movie_id
+                JOIN CinemaRooms cr ON cr.id = s.room_id
+                WHERE b.id = ?
+                """;
+        String seatSql = """
+                SELECT se.seat_code, st.type_name, bs.ticket_price
+                FROM BookingSeats bs
+                JOIN Seats se     ON se.id = bs.seat_id
+                JOIN SeatTypes st ON st.id = se.seat_type_id
+                WHERE bs.booking_id = ?
+                ORDER BY se.seat_row, se.seat_column
+                """;
+        try (Connection conn = DBContext.getConnection()) {
+            BookingDetailDTO dto = null;
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, bookingId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        dto = new BookingDetailDTO();
+                        dto.setBookingId(rs.getString("id"));
+                        dto.setBookingCode(rs.getString("booking_code"));
+                        dto.setCustomerName(rs.getString("customer_name"));
+                        dto.setCustomerPhone(rs.getString("customer_phone"));
+                        dto.setBookingStatus(rs.getString("booking_status"));
+                        dto.setPaymentStatus(rs.getString("payment_status"));
+                        dto.setTotalAmount(rs.getBigDecimal("total_amount"));
+                        dto.setFinalAmount(rs.getBigDecimal("final_amount"));
+                        dto.setVatRate(rs.getBigDecimal("vat_rate_snapshot"));
+                        dto.setMovieTitle(rs.getString("movie_title"));
+                        dto.setMoviePosterUrl(rs.getString("movie_poster_url"));
+                        dto.setRoomName(rs.getString("room_name"));
+                        dto.setStartTime(rs.getTimestamp("start_time"));
+                    }
+                }
+            }
+            if (dto == null) return null;
+
+            List<BookingDetailDTO.SeatItem> seats = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(seatSql)) {
+                ps.setString(1, bookingId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        seats.add(new BookingDetailDTO.SeatItem(
+                                rs.getString("seat_code"),
+                                rs.getString("type_name"),
+                                rs.getBigDecimal("ticket_price")));
+                    }
+                }
+            }
+            dto.setSeats(seats);
+            return dto;
+        } catch (SQLException e) {
+            throw new RuntimeException("getDetailById failed", e);
+        }
+    }
+
+    /**
+     * Xác nhận thanh toán: cập nhật booking_status → CONFIRMED, payment_status → PAID.
+     */
+    public void confirmPayment(String bookingId) {
+        String sql = """
+                UPDATE Bookings
+                SET booking_status = 'CONFIRMED', payment_status = 'PAID'
+                WHERE id = ?
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, bookingId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("confirmPayment failed", e);
+        }
     }
 
     /** Lấy VAT rate hiện hành từ VatRules; fallback 8% nếu chưa cấu hình. */
