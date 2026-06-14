@@ -16,12 +16,14 @@ public class GenreDAO {
         Genre g = new Genre();
         g.setId(rs.getString("id"));
         g.setGenreName(rs.getString("genre_name"));
+        g.setDescription(rs.getString("description"));
+        g.setActive(rs.getBoolean("is_active"));
         g.setCreatedAt(rs.getTimestamp("created_at"));
         return g;
     }
 
     public List<Genre> getAll() {
-        String sql = "SELECT id, genre_name, created_at FROM Genres ORDER BY genre_name";
+        String sql = "SELECT id, genre_name, description, is_active, created_at FROM Genres ORDER BY genre_name";
         List<Genre> list = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -33,8 +35,21 @@ public class GenreDAO {
         return list;
     }
 
+    public List<Genre> getAllActive() {
+        String sql = "SELECT id, genre_name, description, is_active, created_at FROM Genres WHERE is_active = 1 ORDER BY genre_name";
+        List<Genre> list = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) list.add(mapRow(rs));
+        } catch (SQLException e) {
+            throw new RuntimeException("GenreDAO.getAllActive failed", e);
+        }
+        return list;
+    }
+
     public Genre getById(String id) {
-        String sql = "SELECT id, genre_name, created_at FROM Genres WHERE id = ?";
+        String sql = "SELECT id, genre_name, description, is_active, created_at FROM Genres WHERE id = ?";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, id);
@@ -74,11 +89,13 @@ public class GenreDAO {
         }
     }
 
-    public void create(String genreName) {
-        String sql = "INSERT INTO Genres (id, genre_name) VALUES (NEWID(), ?)";
+    public void create(String genreName, String description, boolean isActive) {
+        String sql = "INSERT INTO Genres (id, genre_name, description, is_active) VALUES (NEWID(), ?, ?, ?)";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, genreName.trim());
+            ps.setString(2, (description != null && !description.trim().isEmpty()) ? description.trim() : null);
+            ps.setBoolean(3, isActive);
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("GenreDAO.create failed", e);
@@ -101,6 +118,26 @@ public class GenreDAO {
             }
         } catch (SQLException e) {
             throw new RuntimeException("GenreDAO.hasLinkedMovies failed", e);
+        }
+    }
+
+    /** Thể loại có phim đang chiếu (NOW_SHOWING), suất chiếu sớm (EARLY_SHOWING) hoặc sắp chiếu (COMING_SOON). */
+    public boolean hasActiveOrUpcomingMovies(String genreId) {
+        String sql = """
+                SELECT COUNT(1)
+                FROM MovieGenres mg
+                INNER JOIN Movies m ON m.id = mg.movie_id
+                WHERE mg.genre_id = ?
+                  AND m.status IN ('NOW_SHOWING', 'EARLY_SHOWING', 'COMING_SOON')
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, genreId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("GenreDAO.hasActiveOrUpcomingMovies failed", e);
         }
     }
 
@@ -132,15 +169,47 @@ public class GenreDAO {
         return ids;
     }
 
-    public void update(String id, String genreName) {
-        String sql = "UPDATE Genres SET genre_name = ? WHERE id = ?";
+    /** Trả về tập ID thể loại có ít nhất một phim đang chiếu, suất chiếu sớm hoặc sắp chiếu. */
+    public Set<String> getGenreIdsWithActiveMovies() {
+        String sql = """
+                SELECT DISTINCT mg.genre_id
+                FROM MovieGenres mg
+                INNER JOIN Movies m ON m.id = mg.movie_id
+                WHERE m.status IN ('NOW_SHOWING', 'EARLY_SHOWING', 'COMING_SOON')
+                """;
+        Set<String> ids = new HashSet<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) ids.add(rs.getString("genre_id"));
+        } catch (SQLException e) {
+            throw new RuntimeException("GenreDAO.getGenreIdsWithActiveMovies failed", e);
+        }
+        return ids;
+    }
+
+    public void update(String id, String genreName, String description) {
+        String sql = "UPDATE Genres SET genre_name = ?, description = ? WHERE id = ?";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, genreName.trim());
-            ps.setString(2, id);
+            ps.setString(2, (description != null && !description.trim().isEmpty()) ? description.trim() : null);
+            ps.setString(3, id);
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("GenreDAO.update failed", e);
+        }
+    }
+
+    public void updateStatus(String id, boolean isActive) {
+        String sql = "UPDATE Genres SET is_active = ? WHERE id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBoolean(1, isActive);
+            ps.setString(2, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("GenreDAO.updateStatus failed", e);
         }
     }
 
