@@ -58,7 +58,7 @@
         </div>
 
         <div class="auth-field">
-          <label class="auth-label" for="phoneNumber">Số điện thoại (tùy chọn)</label>
+          <label class="auth-label" for="phoneNumber">Số điện thoại <span style="color:var(--accent)">*</span></label>
           <div class="auth-input-wrap">
             <span class="auth-input-icon" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -67,11 +67,11 @@
               </svg>
             </span>
             <input type="tel" id="phoneNumber" name="phoneNumber" class="auth-input"
-                   placeholder="0901234567" value="<c:out value='${phoneNumber}'/>"/>
+                   placeholder="0901234567" value="<c:out value='${phoneNumber}'/>" required/>
           </div>
         </div>
 
-        <p class="auth-hint">Ngày sinh bắt buộc để đặt vé phim có giới hạn độ tuổi (FR-01).</p>
+        <p class="auth-hint">Ngày sinh và số điện thoại đều bắt buộc để hoàn tất tài khoản (FR-01).</p>
 
         <button type="submit" class="auth-btn-submit">Hoàn tất và vào hệ thống</button>
       </form>

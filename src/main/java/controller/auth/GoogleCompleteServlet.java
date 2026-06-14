@@ -77,13 +77,9 @@ public class GoogleCompleteServlet extends HttpServlet {
             }
         }
 
-        if (phone != null && !phone.isBlank()) {
-            phone = phone.startsWith("+84") ? "0" + phone.substring(3) : phone;
-            if (new UserDAO().existsByPhone(phone)) {
-                errors.add("Số điện thoại đã được sử dụng.");
-            }
-        } else {
-            phone = null;
+        RegisterValidator.validatePhone(phone, new UserDAO()).ifPresent(errors::add);
+        if (errors.isEmpty()) {
+            phone = RegisterValidator.normalizePhone(phone);
         }
 
         if (!errors.isEmpty()) {

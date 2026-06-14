@@ -58,11 +58,6 @@
         </div>
       </c:if>
 
-      <c:if test="${param.google == 'not_configured'}">
-        <div class="auth-alert auth-alert--error" role="alert">
-          Chưa cấu hình Google OAuth. Xem hướng dẫn trong <code>google.properties.example</code>.
-        </div>
-      </c:if>
       <c:if test="${param.google == 'cancelled'}">
         <div class="auth-alert auth-alert--error" role="alert">Bạn đã hủy đăng nhập Google.</div>
       </c:if>

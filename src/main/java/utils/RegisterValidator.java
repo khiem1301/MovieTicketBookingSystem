@@ -6,6 +6,7 @@ import model.dto.RegisterForm;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 public final class RegisterValidator {
@@ -32,13 +33,9 @@ public final class RegisterValidator {
             errors.add("Ngày sinh không được là ngày trong tương lai.");
         }
 
-        boolean hasEmail = !isBlank(form.getEmail());
-        boolean hasPhone = !isBlank(form.getPhoneNumber());
-        if (!hasEmail && !hasPhone) {
-            errors.add("Vui lòng nhập email hoặc số điện thoại.");
-        }
-
-        if (hasEmail) {
+        if (isBlank(form.getEmail())) {
+            errors.add("Email không được để trống.");
+        } else {
             String email = form.getEmail().trim().toLowerCase();
             form.setEmail(email);
             if (!EMAIL_PATTERN.matcher(email).matches()) {
@@ -48,25 +45,41 @@ public final class RegisterValidator {
             }
         }
 
-        if (hasPhone) {
-            String phone = normalizePhone(form.getPhoneNumber().trim());
-            form.setPhoneNumber(phone);
-            if (!PHONE_PATTERN.matcher(phone).matches()) {
-                errors.add("Số điện thoại không hợp lệ (VD: 0901234567).");
-            } else if (userDAO.existsByPhone(phone)) {
-                errors.add("Số điện thoại đã được sử dụng.");
-            }
+        Optional<String> phoneError = validatePhone(form.getPhoneNumber(), userDAO);
+        if (phoneError.isPresent()) {
+            errors.add(phoneError.get());
+        } else {
+            form.setPhoneNumber(normalizePhone(form.getPhoneNumber().trim()));
         }
 
         if (form.getPassword() == null || form.getPassword().length() < 8) {
             errors.add("Mật khẩu phải có ít nhất 8 ký tự.");
         }
-        if (form.getConfirmPassword() == null
-                || !form.getConfirmPassword().equals(form.getPassword())) {
+        if (form.getConfirmPassword() == null || form.getConfirmPassword().isBlank()) {
+            errors.add("Xác nhận mật khẩu không được để trống.");
+        } else if (!form.getConfirmPassword().equals(form.getPassword())) {
             errors.add("Xác nhận mật khẩu không khớp.");
         }
 
         return errors;
+    }
+
+    /**
+     * Validates phone number: required, format, and duplicate check.
+     * Returns normalized phone via the mutable holder when valid.
+     */
+    public static Optional<String> validatePhone(String rawPhone, UserDAO userDAO) {
+        if (isBlank(rawPhone)) {
+            return Optional.of("Số điện thoại không được để trống.");
+        }
+        String phone = normalizePhone(rawPhone.trim());
+        if (!PHONE_PATTERN.matcher(phone).matches()) {
+            return Optional.of("Số điện thoại không hợp lệ (VD: 0901234567).");
+        }
+        if (userDAO.existsByPhone(phone)) {
+            return Optional.of("Số điện thoại đã được sử dụng.");
+        }
+        return Optional.empty();
     }
 
     public static String generateUsername(UserDAO userDAO, String email, String phone) {
@@ -92,7 +105,7 @@ public final class RegisterValidator {
         return candidate;
     }
 
-    private static String normalizePhone(String phone) {
+    public static String normalizePhone(String phone) {
         if (phone.startsWith("+84")) {
             return "0" + phone.substring(3);
         }

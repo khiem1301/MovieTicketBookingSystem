@@ -25,7 +25,8 @@ public class GoogleLoginServlet extends HttpServlet {
         }
 
         if (!GoogleOAuthUtil.isConfigured()) {
-            resp.sendRedirect(req.getContextPath() + "/login?google=not_configured");
+            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            req.getRequestDispatcher("/WEB-INF/views/error/404.jsp").forward(req, resp);
             return;
         }
 
