@@ -36,6 +36,36 @@ public class ShowtimeDAO {
     }
 
     /**
+     * FR-11 — Suất chiếu sắp tới của phim (từ hiện tại trở đi, không gồm CANCELLED).
+     */
+    public List<Showtime> getUpcomingShowtimesByMovieId(String movieId) {
+        String sql = """
+                SELECT s.id, s.movie_id, m.title AS movie_title, m.poster_url AS movie_poster_url,
+                       m.duration_minutes AS movie_duration, m.age_rating AS movie_age_rating,
+                       s.room_id, cr.room_name,
+                       s.start_time, s.end_time, s.base_price, s.status, s.created_at
+                FROM Showtimes s
+                JOIN Movies m       ON m.id = s.movie_id
+                JOIN CinemaRooms cr ON cr.id = s.room_id
+                WHERE s.movie_id = ?
+                  AND s.start_time >= GETDATE()
+                  AND s.status <> 'CANCELLED'
+                ORDER BY s.start_time
+                """;
+        List<Showtime> result = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, movieId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) result.add(mapShowtime(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("getUpcomingShowtimesByMovieId failed", e);
+        }
+        return result;
+    }
+
+    /**
      * FR-35 — Lấy danh sách suất chiếu còn lại trong ngày + tương lai theo phim.
      */
     public List<Showtime> getShowtimesByMovieId(String movieId) {

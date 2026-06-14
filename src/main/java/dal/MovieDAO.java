@@ -297,12 +297,39 @@ public class MovieDAO {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, id);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return mapRowFull(rs);
+                if (rs.next()) {
+                    Movie movie = mapRowFull(rs);
+                    loadGenres(movie);
+                    return movie;
+                }
             }
         } catch (SQLException e) {
             throw new RuntimeException("getById failed", e);
         }
         return null;
+    }
+
+    /** Nạp danh sách tên thể loại vào đối tượng Movie (dùng cho trang chi tiết / lịch chiếu). */
+    public void loadGenres(Movie movie) {
+        if (movie == null || movie.getId() == null) return;
+        String sql = """
+                SELECT g.genre_name
+                FROM Genres g
+                INNER JOIN MovieGenres mg ON mg.genre_id = g.id
+                WHERE mg.movie_id = ?
+                ORDER BY g.genre_name
+                """;
+        List<String> names = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, movie.getId());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) names.add(rs.getString("genre_name"));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("loadGenres failed", e);
+        }
+        movie.setGenres(names);
     }
 
     public List<String> getGenreIds(String movieId) {

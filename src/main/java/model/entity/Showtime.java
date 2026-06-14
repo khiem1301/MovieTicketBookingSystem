@@ -15,6 +15,7 @@ public class Showtime {
     private Timestamp startTime;
     private Timestamp endTime;
     private BigDecimal basePrice;
+    private BigDecimal effectivePrice;
     private String status;
     private Timestamp createdAt;
 
@@ -52,6 +53,9 @@ public class Showtime {
 
     public BigDecimal getBasePrice() { return basePrice; }
     public void setBasePrice(BigDecimal basePrice) { this.basePrice = basePrice; }
+
+    public BigDecimal getEffectivePrice() { return effectivePrice; }
+    public void setEffectivePrice(BigDecimal effectivePrice) { this.effectivePrice = effectivePrice; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
