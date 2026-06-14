@@ -155,7 +155,9 @@
         <aside class="slt-sidebar">
           <section class="slt-sidebar__section">
             <h3 class="slt-sidebar__title">Loại ghế</h3>
-            <p class="slt-active-type-hint" id="sltActiveTypeHint">Chọn loại ghế bên dưới trước khi đặt lên layout</p>
+            <p class="slt-active-type-hint" id="sltActiveTypeHint"
+               data-hint-add="Đang chọn: {label} — click lên layout để đặt ghế"
+               data-hint-delete="Chế độ Xóa — click ghế hoặc lối đi để xóa">Chọn loại ghế bên dưới trước khi đặt lên layout</p>
             <div class="slt-seat-types" id="sltSeatTypes">
               <c:forEach var="st" items="${seatTypeList}">
                 <c:set var="typeKey" value="${fn:toLowerCase(st.typeName)}"/>
@@ -254,7 +256,7 @@
 
       <p class="slt-backend-note">
         <span class="material-symbols-outlined">info</span>
-        Lối đi (gap) chỉ hiển thị trên editor — không lưu vào database. Dùng <strong>Thêm hàng</strong> để thêm hàng D, E, … (tối đa A–Z).
+        Lối đi được lưu theo vị trí cột trong layout. Dùng <strong>Thêm hàng</strong> để thêm hàng D, E, … (tối đa A–Z).
       </p>
     </div>
   </div>
@@ -273,7 +275,7 @@
       emptySelect: 'H\u00e0ng tr\u1ed1ng \u2014 ch\u1ecdn c\u00f4ng c\u1ee5 L\u1ed1i \u0111i ho\u1eb7c Th\u00eam gh\u1ebf',
       appendGap: 'Th\u00eam l\u1ed1i \u0111i cu\u1ed1i h\u00e0ng',
       appendSeat: 'Th\u00eam gh\u1ebf cu\u1ed1i h\u00e0ng',
-      gapTitle: 'L\u1ed1i \u0111i \u2014 click \u0111\u1ec3 x\u00f3a (ch\u1ebf \u0111\u1ed9 Ch\u1ecdn)',
+      gapTitle: 'L\u1ed1i \u0111i \u2014 d\u00f9ng c\u00f4ng c\u1ee5 X\u00f3a \u0111\u1ec3 g\u1ee1 b\u1ecf',
       deleteSeat: 'Click \u0111\u1ec3 x\u00f3a gh\u1ebf',
       deleteGap: 'Click \u0111\u1ec3 x\u00f3a l\u1ed1i \u0111i',
       emptyDelete: 'H\u00e0ng tr\u1ed1ng',
@@ -285,10 +287,12 @@
       confirmSave: 'L\u01b0u layout gh\u1ebf v\u00e0o database? ({n} gh\u1ebf)',
       confirmClear: 'X\u00f3a to\u00e0n b\u1ed9 gh\u1ebf tr\u00ean layout?',
       confirmDiscard: 'H\u1ee7y thay \u0111\u1ed5i v\u00e0 t\u1ea3i l\u1ea1i layout?',
-      placedMeta: '{n} gh\u1ebf \u0111\u00e3 \u0111\u1eb7t layout'
+      placedMeta: '{n} gh\u1ebf \u0111\u00e3 \u0111\u1eb7t layout',
+      alertSelectTypeSidebar: 'Ch\u1ecdn lo\u1ea1i gh\u1ebf \u1edf sidebar tr\u01b0\u1edbc khi th\u00eam gh\u1ebf.',
+      alertNoSeatType: 'Ch\u01b0a c\u00f3 lo\u1ea1i gh\u1ebf n\u00e0o. Th\u00eam lo\u1ea1i gh\u1ebf trong Qu\u1ea3n l\u00fd lo\u1ea1i gh\u1ebf tr\u01b0\u1edbc.'
     }
   };
 </script>
 <script charset="UTF-8" src="${pageContext.request.contextPath}/js/seat-type-colors.js"></script>
-<script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-seat-layout.js"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-seat-layout.js?v=2"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
