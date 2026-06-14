@@ -1,108 +1,23 @@
 # =============================================================================
-# ÉPCINE — HƯỚNG DẪN CẤU HÌNH email.properties (GỬI MAIL XÁC THỰC ĐĂNG KÝ)
+# ÉPCINE — email.properties (GỬI MAIL XÁC THỰC ĐĂNG KÝ — FR-01)
 # =============================================================================
 #
-# MỤC ĐÍCH
-#   File này giúp app GỬI EMAIL khi khách đăng ký tài khoản (FR-01).
-#   Ví dụ: gửi link "Xác thực email" sau khi bấm Tạo tài khoản.
+# Hướng dẫn đầy đủ từng bước: README.md → mục "3. Cấu hình Email SMTP"
 #
-# LƯU Ý QUAN TRỌNG
-#   - File thật tên: email.properties (KHÔNG commit lên Git)
-#   - File mẫu tên:  email.properties.example (có trên Git, chỉ để hướng dẫn)
-#
-# =============================================================================
-# BƯỚC 1 — TẠO FILE email.properties TRÊN MÁY BẠN
-# =============================================================================
-#
-# Mở CMD hoặc PowerShell tại thư mục gốc project, chạy:
-#
+# BƯỚC 1 — Tạo file trên máy bạn bằng CMD hoặc PowerShell (chạy tại thư mục gốc project):
 #   copy src\main\resources\email.properties.example src\main\resources\email.properties
 #
-# Sau đó mở file email.properties và điền theo Bước 2 → 4.
+# BƯỚC 2 — Copy phần SMTP nhóm (8 dòng dưới) — GIỮ NGUYÊN 8 dòng không cần sửa
+# BƯỚC 3 — Sửa DUY NHẤT app.base.url theo URL Tomcat trên máy bạn
 #
 # =============================================================================
-# BƯỚC 2 — LẤY GMAIL + APP PASSWORD (phần CHUNG, cả nhóm có thể dùng 1 Gmail)
-# =============================================================================
-#
-# 2.1  Chọn 1 Gmail để app dùng GỬI mail (Gmail cá nhân hoặc Gmail nhóm đều được).
-#
-# 2.2  Bật Xác minh 2 bước cho Gmail đó:
-#      https://myaccount.google.com/security
-#      → tìm "Xác minh 2 bước" → Bật
-#
-# 2.3  Tạo Mật khẩu ứng dụng (App Password):
-#      https://myaccount.google.com/apppasswords
-#      → Điền tên cho ứng dụng: ÉPCINE
-#      → Google hiện 16 ký tự (VD: abcd efgh ijkl mnop) - Copy ra đâu đó rồi xóa khoảng trống đi (Lúc này theo ví dụ sẽ là: abcdefghijklmnop)
-#
-# 2.4  Điền vào email.properties:
-#
-#      mail.smtp.username = Gmail vừa chọn (VD: phamtrangialong2005@gmail.com)
-#      mail.smtp.password = Chính là cái 16 ký tự nãy đã cho mà xóa khoảng trống đã làm ở bước 2.3
-#      mail.from          = thường GIỐNG mail.smtp.username
-#
-#      ⚠️ KHÔNG điền mật khẩu đăng nhập Gmail thường — chỉ dùng App Password!
-#
-# =============================================================================
-# BƯỚC 3 — ĐIỀN app.base.url (phần RIÊNG, MỖI MÁY KHÁC NHAU)
-# =============================================================================
-#
-# Đây là URL gốc của app trên Tomcat MÁY BẠN.
-# Link xác thực trong email sẽ dựa vào dòng này.
-#
-# Cách lấy URL đúng trong IntelliJ:
-#   1) Ở góc bên phải bên trên cùng trong IntelliJ bấm vào Tomcat ngay cạnh nút icon ▶
-#   2) Chọn Edit configurations...
-#   3) Nhìn vào thanh URL thì sẽ hiện ra URL của Tomcat
-#
-# Ví dụ A — máy bạn (port 9999):
-#   Thanh địa chỉ: http://localhost:9999/MovieTicketBookingSystem_war_exploded/
-#   → app.base.url=http://localhost:9999/MovieTicketBookingSystem_war_exploded
-#
-# Ví dụ B — máy khác (port 8080):
-#   Thanh địa chỉ: http://localhost:8080/MovieTicketBookingSystem/
-#   → app.base.url=http://localhost:8080/MovieTicketBookingSystem
-#
-# Quy tắc:
-#   ✓ Không thêm dấu / ở cuối
-#   ✓ Đúng port (9999, 8080, ...)
-#   ✓ Đúng tên context (MovieTicketBookingSystem_war_exploded hoặc MovieTicketBookingSystem)
-#
-# =============================================================================
-# BƯỚC 4 — 4 DÒNG SMTP GMAIL (GIỮ NGUYÊN, KHÔNG SỬA)
-# =============================================================================
-#
-#   mail.smtp.host=smtp.gmail.com
-#   mail.smtp.port=587
-#   mail.smtp.auth=true
-#   mail.smtp.starttls.enable=true
-#
-# =============================================================================
-# BƯỚC 5 — REBUILD VÀ TEST
-# =============================================================================
-#
-#   1) IntelliJ: Ở góc bên phải trên cùng của màn hình, cạnh Tomcat bấm vào icon bên cạnh Tomcat
-#   2) Bấm Restart server, rồi chạy lại project
-#   3) Bấm vào button Đăng ký rồi điền thông tin để tạo tài khoản, email điền vào phải là email chưa có trong DB
-#   4) Hệ thống sẽ gửi verify về mail, Kiểm tra hộp thư (kể cả thư mục Spam)
-#
-# Nếu gửi được: trang pending báo "đã gửi email".
-# Nếu chưa cấu hình đúng: trang pending vẫn hiện link xác thực để test (dev).
-#
-# =============================================================================
-# Sửa config bên dưới theo hướng dẫn bên trên:
-# =============================================================================
-#
-# Giữ nguyên: mail.smtp.host/port/auth/starttls, mail.from.name
-# Cần sửa:    mail.smtp.username, mail.smtp.password, mail.from, app.base.url
 
 mail.smtp.host=smtp.gmail.com
 mail.smtp.port=587
 mail.smtp.auth=true
 mail.smtp.starttls.enable=true
-mail.smtp.username=<gmail-cua-ban>@gmail.com
+mail.smtp.username=epcine88@gmail.com
 mail.smtp.password=<app-password-16-ky-tu>
-mail.from=<gmail-cua-ban>@gmail.com
+mail.from=epcine88@gmail.com
 mail.from.name=ÉPCINE
 app.base.url=http://localhost:<PORT>/<CONTEXT_PATH>
-

@@ -34,7 +34,7 @@
       <form class="auth-form" action="${pageContext.request.contextPath}/register" method="post" novalidate>
 
         <div class="auth-field">
-          <label class="auth-label" for="fullName">Họ và tên</label>
+          <label class="auth-label" for="fullName">Họ và tên <span style="color:var(--accent)">*</span></label>
           <div class="auth-input-wrap">
             <span class="auth-input-icon" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -51,7 +51,7 @@
         </div>
 
         <div class="auth-field">
-          <label class="auth-label" for="email">Email</label>
+          <label class="auth-label" for="email">Email <span style="color:var(--accent)">*</span></label>
           <div class="auth-input-wrap">
             <span class="auth-input-icon" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -63,12 +63,12 @@
             <input type="email" id="email" name="email" class="auth-input"
                    placeholder="email@example.com"
                    value="<c:out value='${form.email}'/>"
-                   autocomplete="email"/>
+                   autocomplete="email" required/>
           </div>
         </div>
 
         <div class="auth-field">
-          <label class="auth-label" for="phoneNumber">Số điện thoại</label>
+          <label class="auth-label" for="phoneNumber">Số điện thoại <span style="color:var(--accent)">*</span></label>
           <div class="auth-input-wrap">
             <span class="auth-input-icon" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -79,12 +79,12 @@
             <input type="tel" id="phoneNumber" name="phoneNumber" class="auth-input"
                    placeholder="0901234567"
                    value="<c:out value='${form.phoneNumber}'/>"
-                   autocomplete="tel"/>
+                   autocomplete="tel" required/>
           </div>
         </div>
 
         <div class="auth-field">
-          <label class="auth-label" for="dateOfBirth">Ngày sinh</label>
+          <label class="auth-label" for="dateOfBirth">Ngày sinh <span style="color:var(--accent)">*</span></label>
           <div class="auth-input-wrap">
             <span class="auth-input-icon" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -104,7 +104,7 @@
         </div>
 
         <div class="auth-field">
-          <label class="auth-label" for="password">Mật khẩu</label>
+          <label class="auth-label" for="password">Mật khẩu <span style="color:var(--accent)">*</span></label>
           <div class="auth-input-wrap">
             <span class="auth-input-icon" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -135,7 +135,7 @@
         </div>
 
         <div class="auth-field">
-          <label class="auth-label" for="confirmPassword">Xác nhận mật khẩu</label>
+          <label class="auth-label" for="confirmPassword">Xác nhận mật khẩu <span style="color:var(--accent)">*</span></label>
           <div class="auth-input-wrap">
             <span class="auth-input-icon" aria-hidden="true">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
@@ -165,7 +165,7 @@
           </div>
         </div>
 
-        <p class="auth-hint">Cần nhập ít nhất email hoặc số điện thoại. Có email sẽ gửi link xác thực.</p>
+        <p class="auth-hint">Email dùng để xác thực tài khoản. Số điện thoại dùng liên hệ khi đặt vé.</p>
 
         <button type="submit" class="auth-btn-submit">
           Tạo tài khoản

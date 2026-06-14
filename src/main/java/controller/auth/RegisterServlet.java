@@ -73,7 +73,6 @@ public class RegisterServlet extends HttpServlet {
             return;
         }
 
-        boolean hasEmail = form.getEmail() != null && !form.getEmail().isBlank();
         String username = RegisterValidator.generateUsername(
                 userDAO, form.getEmail(), form.getPhoneNumber());
 
@@ -85,19 +84,11 @@ public class RegisterServlet extends HttpServlet {
         user.setFullName(form.getFullName().trim());
         user.setDateOfBirth(form.getDateOfBirth());
         user.setPasswordHash(PasswordUtil.hash(form.getPassword()));
-        user.setStatus(hasEmail ? "INACTIVE" : "ACTIVE");
+        user.setStatus("INACTIVE");
 
         try {
             String userId = userDAO.insert(user);
-
-            if (hasEmail) {
-                handleEmailVerification(req, resp, userId, form);
-                return;
-            }
-
-            String encodedUser = URLEncoder.encode(username, StandardCharsets.UTF_8);
-            resp.sendRedirect(req.getContextPath()
-                    + "/login?registered=1&username=" + encodedUser);
+            handleEmailVerification(req, resp, userId, form);
         } catch (RuntimeException ex) {
             log("RegisterServlet: DB error", ex);
             forwardView(req, resp, form,
