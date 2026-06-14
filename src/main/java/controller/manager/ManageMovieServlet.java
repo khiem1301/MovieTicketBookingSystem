@@ -15,6 +15,7 @@ import jakarta.servlet.http.Part;
 
 import java.io.IOException;
 import java.sql.Date;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
 )
 public class ManageMovieServlet extends HttpServlet {
 
-    private static final Set<String> VALID_STATUS = Set.of("COMING_SOON", "NOW_SHOWING", "ENDED");
+    private static final Set<String> VALID_STATUS = Set.of("COMING_SOON", "NOW_SHOWING", "EARLY_SHOWING", "ENDED");
     private static final Set<String> VALID_AGE   = Set.of("P", "K", "T13", "T16", "T18", "C");
 
     private final MovieDAO movieDAO = new MovieDAO();
@@ -42,10 +43,12 @@ public class ManageMovieServlet extends HttpServlet {
         if ("edit".equals(req.getParameter("action"))) {
             String id = req.getParameter("id");
             Movie editing = (id != null) ? movieDAO.getById(id) : null;
-            if (editing != null) {
-                req.setAttribute("editMovie", editing);
-                req.setAttribute("selectedGenreIds", movieDAO.getGenreIds(id));
+            if (editing == null || "NOW_SHOWING".equals(editing.getStatus())) {
+                resp.sendRedirect(req.getContextPath() + "/manager/movies");
+                return;
             }
+            req.setAttribute("editMovie", editing);
+            req.setAttribute("selectedGenreIds", movieDAO.getGenreIds(id));
         }
 
         loadAndForward(req, resp);
@@ -88,7 +91,7 @@ public class ManageMovieServlet extends HttpServlet {
             throws ServletException, IOException {
         String id = req.getParameter("id");
         Movie existing = (id != null) ? movieDAO.getById(id) : null;
-        if (existing == null) {
+        if (existing == null || "NOW_SHOWING".equals(existing.getStatus())) {
             resp.sendRedirect(req.getContextPath() + "/manager/movies");
             return;
         }
@@ -129,6 +132,10 @@ public class ManageMovieServlet extends HttpServlet {
         if (movie.getAgeRating() != null && !movie.getAgeRating().isBlank()
                 && !VALID_AGE.contains(movie.getAgeRating())) {
             return "Độ tuổi xem không hợp lệ.";
+        }
+        if (movie.getReleaseDate() != null
+                && movie.getReleaseDate().toLocalDate().isBefore(LocalDate.now())) {
+            return "Ngày phát hành không được là ngày trong quá khứ.";
         }
 
         boolean dupTitle = excludeId == null
@@ -241,7 +248,7 @@ public class ManageMovieServlet extends HttpServlet {
     private void loadAndForward(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
         req.setAttribute("movieList", movieDAO.getAllForManager());
-        req.setAttribute("genreList", genreDAO.getAll());
+        req.setAttribute("genreList", genreDAO.getAllActive());
         req.getRequestDispatcher("/WEB-INF/views/manager/movie-list.jsp").forward(req, resp);
     }
 }

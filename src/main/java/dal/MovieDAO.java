@@ -236,14 +236,33 @@ public class MovieDAO {
         return result;
     }
 
-    // Manager: danh sách tất cả phim
+    // Manager: danh sách tất cả phim (kèm genre)
     public List<Movie> getAllForManager() {
-        String sql = "SELECT " + MOVIE_COLS + " FROM Movies ORDER BY created_at DESC";
+        String sql = """
+                SELECT m.id, m.title, m.slug, m.description, m.duration_minutes, m.release_date,
+                       m.trailer_url, m.poster_url, m.backdrop_url, m.director,
+                       m.language, m.subtitle, m.age_rating, m.status, m.average_rating, m.created_at,
+                       STRING_AGG(g.genre_name, ', ') AS genre_names
+                FROM Movies m
+                LEFT JOIN MovieGenres mg ON m.id = mg.movie_id
+                LEFT JOIN Genres g       ON mg.genre_id = g.id
+                GROUP BY m.id, m.title, m.slug, m.description, m.duration_minutes, m.release_date,
+                         m.trailer_url, m.poster_url, m.backdrop_url, m.director,
+                         m.language, m.subtitle, m.age_rating, m.status, m.average_rating, m.created_at
+                ORDER BY m.created_at DESC
+                """;
         List<Movie> list = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) list.add(mapRowFull(rs));
+            while (rs.next()) {
+                Movie m = mapRowFull(rs);
+                String genreNames = rs.getString("genre_names");
+                if (genreNames != null && !genreNames.isBlank()) {
+                    m.setGenres(Arrays.asList(genreNames.split(", ")));
+                }
+                list.add(m);
+            }
         } catch (SQLException e) {
             throw new RuntimeException("getAllForManager failed", e);
         }
@@ -392,7 +411,7 @@ public class MovieDAO {
 
     // Dropdown thể loại trong header
     public List<Genre> getAllGenres() {
-        return new GenreDAO().getAll();
+        return new GenreDAO().getAllActive();
     }
 
     private void insertMovie(Connection conn, String sql, Movie m) throws SQLException {
