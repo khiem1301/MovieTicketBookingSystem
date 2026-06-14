@@ -476,6 +476,22 @@ body {
 .genre-modal-body input[type="text"]:focus {
   border-color: rgba(229,57,53,0.6);
 }
+.genre-modal-body textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--transition);
+  box-sizing: border-box;
+}
+.genre-modal-body textarea:focus {
+  border-color: rgba(229,57,53,0.6);
+}
 .genre-hint {
   font-size: 12px;
   color: var(--text-dim);
@@ -534,4 +550,66 @@ body {
   padding: 56px 0;
   color: var(--text-muted);
   font-size: 15px;
+}
+
+/* ── Toggle status buttons ───────────────────────────────── */
+/* Deactivate — xanh lá, hover xám đỏ */
+.genre-action-btn--deactivate {
+  color: #66bb6a;
+}
+.genre-action-btn--deactivate:hover {
+  background: rgba(229, 57, 53, 0.14);
+  border-color: rgba(229, 57, 53, 0.45);
+  color: #ef5350;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(229,57,53,0.25);
+}
+
+/* Activate — xám, hover xanh lá */
+.genre-action-btn--activate {
+  color: #9e9e9e;
+}
+.genre-action-btn--activate:hover {
+  background: rgba(102, 187, 106, 0.14);
+  border-color: rgba(102, 187, 106, 0.45);
+  color: #66bb6a;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(102,187,106,0.25);
+}
+
+/* ── Status radio selector (Add modal) ───────────────────── */
+.genre-status-radios {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.genre-status-radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: normal;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  margin-bottom: 0;
+  padding: 8px 16px 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.09);
+  background: rgba(255,255,255,0.03);
+  transition: border-color 0.18s, background 0.18s;
+}
+
+.genre-status-radio:has(input:checked) {
+  border-color: rgba(229, 57, 53, 0.50);
+  background: rgba(229, 57, 53, 0.07);
+}
+
+.genre-status-radio input[type="radio"] {
+  accent-color: #e53935;
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
 }

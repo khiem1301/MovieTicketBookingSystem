@@ -949,7 +949,7 @@ ul { list-style: none; }
 }
 .mgr-genre-check {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   font-size: 13px;
   color: var(--text-muted);
@@ -959,7 +959,16 @@ ul { list-style: none; }
   transition: background var(--transition);
 }
 .mgr-genre-check:hover { background: rgba(255,255,255,0.04); }
-.mgr-genre-check input { accent-color: var(--accent); }
+.mgr-genre-check input { accent-color: var(--accent); margin-top: 2px; flex-shrink: 0; }
+.mgr-genre-name { color: var(--text); font-weight: 500; }
+.mgr-genre-desc {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.mgr-genre-check > span { display: flex; flex-direction: column; }
 
 .mgr-img-preview {
   width: 100px;
