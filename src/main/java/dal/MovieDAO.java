@@ -269,6 +269,28 @@ public class MovieDAO {
         return list;
     }
 
+    /** FR-25 — Phim có thể xếp lịch (đang chiếu / sắp chiếu). */
+    public List<Movie> getSchedulableMovies() {
+        String sql = """
+                SELECT m.id, m.title, m.slug, m.description, m.duration_minutes, m.release_date,
+                       m.trailer_url, m.poster_url, m.backdrop_url, m.director,
+                       m.language, m.subtitle, m.age_rating, m.status, m.average_rating, m.created_at,
+                       NULL AS genre_names
+                FROM Movies m
+                WHERE m.status IN ('NOW_SHOWING', 'COMING_SOON')
+                ORDER BY m.title
+                """;
+        List<Movie> list = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) list.add(mapRowFull(rs));
+        } catch (SQLException e) {
+            throw new RuntimeException("getSchedulableMovies failed", e);
+        }
+        return list;
+    }
+
     public Movie getById(String id) {
         String sql = "SELECT " + MOVIE_COLS + " FROM Movies WHERE id = ?";
         try (Connection conn = DBContext.getConnection();

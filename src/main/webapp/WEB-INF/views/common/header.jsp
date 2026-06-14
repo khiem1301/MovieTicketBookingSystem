@@ -137,6 +137,7 @@
                 <a href="${pageContext.request.contextPath}/manager/genres">Quản lý thể loại</a>
                 <a href="${pageContext.request.contextPath}/manager/rooms">Quản lý phòng chiếu</a>
                 <a href="${pageContext.request.contextPath}/manager/seat-types">Quản lý loại ghế</a>
+                <a href="${pageContext.request.contextPath}/manager/showtimes">Quản lý suất chiếu</a>
               </c:if>
               <c:if test="${sessionScope.userRole == 'ADMIN'}">
                 <a href="${pageContext.request.contextPath}/manager/movies">Quản lý phim</a>
