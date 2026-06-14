@@ -32,9 +32,11 @@ Module Manager dành cho người dùng có role **MANAGER** — người vận 
 | Quản lý phòng chiếu — layout ghế (editor) | FR-26 | ✅ |
 | Lưu layout ghế vào `Seats` (persist DB) | FR-26 | ✅ |
 | Quản lý loại ghế & hệ số giá (CRUD) | FR-27 | ✅ |
+| Quản lý suất chiếu — tạo / sửa / xóa | FR-25 | ✅ |
+| Kiểm tra trùng lịch cùng phòng | FR-25 | ✅ |
+| Khóa phim/phòng/giờ khi suất đã có booking | FR-25 | ✅ |
 | Xóa phòng chiếu | FR-26 | ❌ Chưa có |
 | Quản lý khuyến mãi (voucher) | FR-21 | ❌ Chưa có |
-| Quản lý suất chiếu | FR-25 | ❌ Chưa có |
 | Dashboard thống kê | FR-30 | ❌ Chưa có |
 | Báo cáo doanh thu | FR-31 | ❌ Chưa có |
 | Báo cáo bán vé | FR-32 | ❌ Chưa có |
@@ -43,7 +45,7 @@ Module Manager dành cho người dùng có role **MANAGER** — người vận 
 | Quản lý quy tắc giá (pricing rules) | FR-49 | ❌ Chưa có |
 | Cấu hình hệ thống / thông tin rạp | — | ❌ Chưa có |
 
-> **Ghi chú:** `package-info.java` ghi phạm vi FR-21 – FR-32, FR-45 – FR-49; đã có code cho FR-23, FR-24, **FR-26 (CRUD phòng + layout ghế)**, và **FR-27 (CRUD loại ghế)**.
+> **Ghi chú:** `package-info.java` ghi phạm vi FR-21 – FR-32, FR-45 – FR-49; đã có code cho FR-23, FR-24, **FR-25 (CRUD suất chiếu)**, **FR-26 (CRUD phòng + layout ghế)**, và **FR-27 (CRUD loại ghế)**.
 
 ---
 
@@ -56,6 +58,7 @@ src/main/java/controller/manager/
 ├── ManageMovieServlet.java       # /manager/movies — CRUD phim + upload ảnh + soft delete
 ├── ManageGenreServlet.java       # /manager/genres — CRUD thể loại + delete + toggle status
 ├── ManageCinemaRoomServlet.java  # /manager/rooms, /manager/rooms/detail, /update, /save-layout
+├── ManageShowtimeServlet.java    # /manager/showtimes — CRUD suất chiếu + kiểm tra trùng lịch
 ├── ManageSeatTypeServlet.java    # /manager/seat-types — CRUD loại ghế
 └── package-info.java
 ```
@@ -68,6 +71,7 @@ src/main/webapp/WEB-INF/views/manager/
 ├── genre-list.jsp          # Form + bảng danh sách thể loại + delete + toggle
 ├── cinema-room-list.jsp    # Grid phòng chiếu + panel preview + tạo phòng
 ├── cinema-room-detail.jsp  # Chi tiết phòng + editor layout ghế (lưu DB)
+├── showtime-list.jsp       # Form + bảng suất chiếu + filter client-side
 ├── seat-type-list.jsp      # Form + bảng danh sách loại ghế + usage count
 └── .gitkeep
 ```
@@ -77,7 +81,8 @@ src/main/webapp/WEB-INF/views/manager/
 ```
 Screen Design/
 ├── Cinema Auditoriums/     # code.html, DESIGN.md, screen.png
-└── Seat Layout/            # code.html, DESIGN.md, screen.png
+├── Seat Layout/            # code.html, DESIGN.md, screen.png
+└── Showtime Management/    # code.html, DESIGN.md, screen.png
 ```
 
 ### 2.3 CSS & JS
@@ -89,8 +94,10 @@ Screen Design/
 | `css/manager-genres.css` | UI quản lý thể loại — dark cinematic red theme (~616 dòng) |
 | `css/manager-auditoriums.css` | UI phòng chiếu — `.aud-*`, glass panel, Material Symbols |
 | `css/manager-seat-layout.css` | Editor layout ghế — `.slt-*` |
+| `css/manager-showtimes.css` | UI suất chiếu — `.st-*`, form 2 cột, status badges, filter bar |
 | `js/manager-auditoriums.js` | Lọc trạng thái, chọn card, sync panel preview |
 | `js/manager-seat-layout.js` | Editor ghế client-side; đọc `window.SLT_CONFIG` (layout JSON + i18n); POST save-layout |
+| `js/manager-showtimes.js` | Lọc bảng suất (phim/phòng/trạng thái); xác nhận xóa |
 | `js/seat-type-colors.js` | Preset + dynamic HSL color cho loại ghế (IIFE `window.SeatTypeColors`) |
 
 Trang list/detail load CSS qua `extraCss` / `extraCss2` trong `header.jsp`.
@@ -99,14 +106,16 @@ Trang list/detail load CSS qua `extraCss` / `extraCss2` trong `header.jsp`.
 
 | File | Vai trò |
 |------|---------|
-| `dal/MovieDAO.java` | CRUD phim (create/update/soft delete), danh sách manager, kiểm tra trùng title/slug, gán thể loại, `hasActiveShowtimes()` |
+| `dal/MovieDAO.java` | CRUD phim; `getSchedulableMovies()` (NOW_SHOWING/COMING_SOON); `hasActiveShowtimes()` |
 | `dal/GenreDAO.java` | Full CRUD: getAll, getAllActive, getById, create, update, delete, updateStatus; isDuplicate*; hasLinkedMovies, hasActiveOrUpcomingMovies; getMovieCountPerGenre, getGenreIdsInUse, getGenreIdsWithActiveMovies |
-| `dal/CinemaRoomDAO.java` | Full: getAll, getById, create, updateName, updateStatus; existsByName*; countUpcomingShowtimes (guard), countActiveSeats, countAccessibleSeats |
+| `dal/CinemaRoomDAO.java` | Full: getAll, getById, getActiveRooms, create, updateName, updateStatus; existsByName*; countUpcomingShowtimes (guard), countActiveSeats, countAccessibleSeats |
+| `dal/ShowtimeDAO.java` | Manager CRUD: getAllForManager, create, update, delete; isOverlapping; countBookingsByShowtimeId; getShowtimeById |
 | `dal/SeatTypeDAO.java` | Full CRUD: getAll, getById, create, update, delete; isDuplicate*; getTypeKeyToIdMap, countUsedIn (guard) |
 | `dal/SeatDAO.java` | Ghế theo suất + availability; `saveLayout()` cho editor |
 | `model/entity/Movie.java` | Entity phim |
 | `model/entity/Genre.java` | Entity thể loại |
 | `model/entity/CinemaRoom.java` | Entity phòng chiếu |
+| `model/entity/Showtime.java` | Entity suất chiếu (denormalized movie/room cho UI) |
 | `model/entity/SeatType.java` | Entity loại ghế |
 | `utils/MovieImageUpload.java` | Lưu file upload poster/backdrop (JPG/PNG/WEBP, max 5MB) |
 | `utils/SeatLayoutJsonUtil.java` | Serialize/deserialize layout ghế JSON ↔ Seat entities (`buildLayoutJson`, `parseSeats`) |
@@ -127,7 +136,7 @@ Trang list/detail load CSS qua `extraCss` / `extraCss2` trong `header.jsp`.
 
 | File | Vai trò |
 |------|---------|
-| `WEB-INF/views/common/header.jsp` | Menu dropdown MANAGER: Quản lý phim, Quản lý thể loại, **Quản lý phòng chiếu**, **Quản lý loại ghế** |
+| `WEB-INF/views/common/header.jsp` | Menu dropdown MANAGER: Quản lý phim, thể loại, **suất chiếu**, phòng chiếu, loại ghế |
 
 > ADMIN cũng thấy link phim/thể loại (dùng chung `/manager/movies` và `/manager/genres`) nhưng **không thấy** link phòng chiếu và loại ghế. ADMIN bị 403 khi vào `/manager/*` do `RoleFilter`.
 
@@ -218,6 +227,11 @@ private boolean isAuthorized(HttpServletRequest req) {
 | `/manager/rooms/update` | `ManageCinemaRoomServlet` | POST `action=rename` | Đổi tên phòng |
 | `/manager/rooms/update` | `ManageCinemaRoomServlet` | POST `action=toggle` | Toggle ACTIVE ↔ MAINTENANCE (guard countUpcomingShowtimes) |
 | `/manager/rooms/save-layout` | `ManageCinemaRoomServlet` | POST | Lưu layout ghế JSON → DB (`SeatLayoutJsonUtil.parseSeats`) |
+| `/manager/showtimes` | `ManageShowtimeServlet` | GET | `showtime-list.jsp` — danh sách + form tạo |
+| `/manager/showtimes?action=edit&id={uuid}` | `ManageShowtimeServlet` | GET | `showtime-list.jsp` — chế độ sửa |
+| `/manager/showtimes` | `ManageShowtimeServlet` | POST (default) | Tạo suất → redirect `?success=created` hoặc re-render (lỗi) |
+| `/manager/showtimes` | `ManageShowtimeServlet` | POST `action=update` | Cập nhật → redirect `?success=updated` hoặc re-render (lỗi) |
+| `/manager/showtimes` | `ManageShowtimeServlet` | POST `action=delete` | Xóa (guard booking) → redirect `?success=deleted` hoặc `?error=has_bookings` |
 | `/manager/seat-types` | `ManageSeatTypeServlet` | GET | `manager/seat-type-list.jsp` — danh sách + form tạo |
 | `/manager/seat-types?action=edit&id={uuid}` | `ManageSeatTypeServlet` | GET | `seat-type-list.jsp` — chế độ sửa |
 | `/manager/seat-types` | `ManageSeatTypeServlet` | POST `action=create` | Redirect `?success=created` |
@@ -550,7 +564,102 @@ isAuthorized()
 
 ---
 
-### 5.4 Quản lý loại ghế — `ManageSeatTypeServlet`
+### 5.4 Quản lý suất chiếu — `ManageShowtimeServlet`
+
+**URL:** `/manager/showtimes`  
+**View:** `showtime-list.jsp`  
+**Design:** `Screen Design/Showtime Management/`
+
+#### GET — Hiển thị danh sách / form sửa
+
+```
+isAuthorized()
+    → action=edit & id → ShowtimeDAO.getShowtimeById(id) → editShowtime
+                       → ShowtimeDAO.countBookingsByShowtimeId(id) → editBookingCount
+    → ShowtimeDAO.getAllForManager() → showtimeList
+    → MovieDAO.getSchedulableMovies() → movieList (NOW_SHOWING, COMING_SOON)
+    → CinemaRoomDAO.getActiveRooms() → roomList (status ACTIVE)
+    → forward showtime-list.jsp
+```
+
+#### POST — Tạo suất chiếu (không có `action` hoặc action khác update/delete)
+
+**Form fields:**
+
+| Field | Bắt buộc | Mô tả |
+|-------|----------|-------|
+| `movieId` | ✅ | UUID phim (NOW_SHOWING hoặc COMING_SOON) |
+| `roomId` | ✅ | UUID phòng (status ACTIVE) |
+| `startTime` | ✅ | `datetime-local` — `yyyy-MM-dd'T'HH:mm` |
+| `basePrice` | ✅ | Giá vé cơ bản (VNĐ), > 0; form HTML `min="1000" step="1000"` |
+
+**Luồng thành công:**
+
+```
+parseAndValidate → end_time = start + movie.durationMinutes
+    → ShowtimeDAO.isOverlapping(roomId, start, end, null) → nếu trùng → error
+    → ShowtimeDAO.create(showtime, createdBy)
+    → redirect /manager/showtimes?success=created
+```
+
+**Validation (`parseAndValidate()`):**
+
+| Rule | Thông báo lỗi |
+|------|---------------|
+| Thiếu phim/phòng/giờ/giá | "Vui lòng chọn phim/phòng/giờ/giá..." |
+| Phim không schedulable | "Phim không hợp lệ hoặc không thể xếp lịch." |
+| Phòng không ACTIVE | "Phòng chiếu không hợp lệ hoặc không đang hoạt động." |
+| Giờ bắt đầu trong quá khứ (tạo mới) | "Giờ bắt đầu phải ở tương lai." |
+| Giá ≤ 0 hoặc không parse được | "Giá vé cơ bản phải lớn hơn 0." / "Giá vé không hợp lệ." |
+| Trùng lịch cùng phòng | "Trùng lịch với suất chiếu khác trong cùng phòng chiếu." |
+
+**Overlap rule (`ShowtimeDAO.isOverlapping`):** cùng `room_id`, status ≠ `CANCELLED`, `start < newEnd AND end > newStart`.
+
+#### POST — Sửa suất chiếu (`action=update`)
+
+| Field | Mô tả |
+|-------|-------|
+| `id` | UUID suất chiếu |
+| `movieId`, `roomId`, `startTime` | Khóa khi `countBookingsByShowtimeId > 0` |
+| `basePrice` | Luôn sửa được |
+| `status` | `SCHEDULED` · `OPEN` · `SOLD_OUT` · `CANCELLED` · `FINISHED` |
+
+```
+countBookingsByShowtimeId(id) > 0 → giữ movie/room/start từ DB; reject nếu form gửi giá trị khác
+parseAndValidate (skipFutureCheck=true) → ShowtimeDAO.update
+    → redirect ?success=updated
+```
+
+#### POST — Xóa suất chiếu (`action=delete`)
+
+```
+countBookingsByShowtimeId(id) > 0 → redirect ?error=has_bookings
+ShowtimeDAO.delete(id) → redirect ?success=deleted
+```
+
+> Suất đã có booking: không xóa hard — manager chuyển status sang **CANCELLED**.
+
+#### Request attributes (`showtime-list.jsp`)
+
+| Attribute | Mô tả |
+|-----------|-------|
+| `showtimeList` | `List<Showtime>` — JOIN movie/room name |
+| `movieList` | Phim schedulable cho dropdown |
+| `roomList` | Phòng ACTIVE |
+| `editShowtime` | Suất đang sửa |
+| `editBookingCount` | Số booking — hiển thị lock note |
+| `error`, `inputMovieId`, … | Giữ form khi validation fail |
+
+#### Giao diện (`showtime-list.jsp` + `manager-showtimes.css/js`)
+
+- Layout 2 cột: form trái + bảng phải (theo Screen Design)
+- Filter client-side: phim, phòng, trạng thái
+- Status badges: SCHEDULED, OPEN, SOLD_OUT, CANCELLED, FINISHED
+- Select dropdown: `color-scheme: dark` (đọc được trên nền tối)
+
+---
+
+### 5.5 Quản lý loại ghế — `ManageSeatTypeServlet`
 
 **URL:** `/manager/seat-types`  
 **View:** `seat-type-list.jsp`
@@ -641,6 +750,7 @@ SeatTypeDAO.delete(id)
 | `create(movie, genreIds)` | INSERT Movies + INSERT MovieGenres (transaction) | POST create |
 | `update(movie, genreIds)` | UPDATE Movies + DELETE/INSERT MovieGenres (transaction) | POST update |
 | `hasActiveShowtimes(id)` | COUNT Showtimes đang active cho phim | Guard trước soft delete |
+| `getSchedulableMovies()` | `WHERE status IN ('NOW_SHOWING','COMING_SOON') ORDER BY title` | Dropdown form suất chiếu |
 | `getAllGenres()` | Delegate → `GenreDAO.getAllActive()` | Header dropdown |
 
 **Transaction trong `create` / `update`:**
@@ -680,7 +790,8 @@ SeatTypeDAO.delete(id)
 | Method | SQL / Logic | Dùng bởi |
 |--------|-------------|----------|
 | `getAll()` | `SELECT ... FROM CinemaRooms ORDER BY room_name` | GET list |
-| `getById(id)` | `SELECT ... WHERE id = ?` | GET detail |
+| `getById(id)` | `SELECT ... WHERE id = ?` | GET detail, validate suất chiếu |
+| `getActiveRooms()` | `WHERE status = 'ACTIVE' ORDER BY room_name` | Dropdown form suất chiếu |
 | `create(roomName)` | `INSERT ... OUTPUT INSERTED.id` — returns UUID | POST create |
 | `updateName(id, roomName)` | `UPDATE CinemaRooms SET room_name = ?` | POST rename |
 | `updateStatus(id, status)` | `UPDATE CinemaRooms SET status = ?` | POST toggle |
@@ -716,6 +827,22 @@ Seed: REGULAR (×1.0), VIP (×1.5), COUPLE (×2.0), SWEETBOX (×2.5).
 |--------|-------|----------|
 | `getSeatsByRoom(roomId)` | Ghế phòng (status ≠ BROKEN), JOIN `SeatTypes`, ORDER BY row/column | Build `layoutJson` cho editor |
 | `saveLayout(roomId, seats)` | Transaction: DELETE ghế non-BROKEN → upsert ghế mới → sync `CinemaRooms.capacity` | POST save-layout |
+
+---
+
+## 6e. `ShowtimeDAO` — CRUD suất chiếu (FR-25)
+
+| Method | Logic | Dùng bởi |
+|--------|-------|----------|
+| `getAllForManager()` | JOIN Movies + CinemaRooms; ORDER BY start_time DESC | GET showtimes |
+| `getShowtimeById(id)` | JOIN movie/room cho UI | Edit mode |
+| `create(showtime, createdBy)` | INSERT Showtimes (status mặc định SCHEDULED khi tạo) | POST create |
+| `update(showtime)` | UPDATE movie/room/start/end/base_price/status | POST update |
+| `delete(id)` | DELETE hard (chỉ khi không có booking) | POST delete |
+| `isOverlapping(roomId, start, end, excludeId)` | COUNT overlap; bỏ qua status CANCELLED | Validate create/update |
+| `countBookingsByShowtimeId(id)` | COUNT Bookings | Lock edit + guard delete |
+
+**Các method khác** (`getShowtimesByMovieId`, `getMoviesWithActiveShowtimes`, …) phục vụ counter staff và trang public.
 
 ---
 
@@ -805,6 +932,18 @@ Return đường dẫn tương đối: images/movies/posters/uuid.jpg
 | `priceMultiplier` | BigDecimal | Form create/update (hệ số × giá) |
 | `description` | String | Form create/update |
 
+### 9.5 `Showtime`
+
+| Field | Type | Manager form |
+|-------|------|--------------|
+| `movieId` | String (UUID) | ✅ dropdown (schedulable movies) |
+| `roomId` | String (UUID) | ✅ dropdown (ACTIVE rooms) |
+| `startTime` | Timestamp | ✅ `datetime-local` |
+| `endTime` | Timestamp | ❌ Tự tính = start + `durationMinutes` |
+| `basePrice` | BigDecimal | ✅ |
+| `status` | String | ✅ khi sửa (5 giá trị hợp lệ) |
+| `movieTitle`, `roomName` | String | Chỉ đọc — JOIN cho bảng |
+
 ---
 
 ## 10. Schema database liên quan
@@ -892,6 +1031,24 @@ CREATE TABLE SeatTypes (
 
 **Seed:** REGULAR (×1.0), VIP (×1.5), COUPLE (×2.0), SWEETBOX (×2.5).
 
+### 10.6 Bảng `Showtimes` (FR-25)
+
+```sql
+CREATE TABLE Showtimes (
+    id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    movie_id    UNIQUEIDENTIFIER NOT NULL,
+    room_id     UNIQUEIDENTIFIER NOT NULL,
+    start_time  DATETIME2        NOT NULL,
+    end_time    DATETIME2        NOT NULL,
+    base_price  DECIMAL(18,0)    NOT NULL,
+    status      NVARCHAR(20)     NOT NULL,  -- SCHEDULED | OPEN | SOLD_OUT | CANCELLED | FINISHED
+    created_by  UNIQUEIDENTIFIER NULL,
+    created_at  DATETIME2        NOT NULL DEFAULT GETDATE()
+);
+```
+
+**FK:** `movie_id → Movies`, `room_id → CinemaRooms`. Overlap kiểm tra ở app layer (`ShowtimeDAO.isOverlapping`).
+
 ---
 
 ## 11. Quy tắc nghiệp vụ (Business Rules)
@@ -910,8 +1067,12 @@ CREATE TABLE SeatTypes (
 | 10 | Xóa thể loại: **hard delete**, guard `hasLinkedMovies` | `GenreDAO` |
 | 11 | Xóa loại ghế: guard `countUsedIn` (đang dùng → block) | `SeatTypeDAO` |
 | 12 | Toggle status phòng: guard `countUpcomingShowtimes` | `CinemaRoomDAO` |
-| 13 | `average_rating` không chỉnh từ manager | Chỉ cập nhật qua review (chưa triển khai đầy đủ) |
-| 14 | `type_name` loại ghế lưu **UPPERCASE** | `SeatTypeDAO.create()` |
+| 13 | `end_time` = `start_time` + `Movies.duration_minutes` | `ManageShowtimeServlet` |
+| 14 | Trùng lịch: cùng phòng, status ≠ CANCELLED, overlap interval | `ShowtimeDAO.isOverlapping` |
+| 15 | Suất có booking: khóa đổi phim/phòng/giờ; chỉ sửa giá/status | `ManageShowtimeServlet` |
+| 16 | Xóa suất: hard delete chỉ khi `countBookingsByShowtimeId = 0` | `ManageShowtimeServlet` |
+| 17 | `average_rating` không chỉnh từ manager | Chỉ cập nhật qua review (chưa triển khai đầy đủ) |
+| 18 | `type_name` loại ghế lưu **UPPERCASE** | `SeatTypeDAO.create()` |
 
 ---
 
@@ -950,6 +1111,15 @@ CREATE TABLE SeatTypes (
 **Loại ghế:**
 - `seat-type-colors.js` — preset colors (regular=#ccc, vip=#ffd700, couple=#e50914, sweetbox=#0072d7) + dynamic HSL cho loại mới
 
+**Suất chiếu (`.st-*` trong `manager-showtimes.css`):**
+
+| Nhóm | Mục đích |
+|------|----------|
+| `.st-page`, `.st-title`, `.st-page-header` | Layout trang |
+| `.st-filter-bar`, `.st-filter-select` | Lọc bảng (client-side) |
+| `.st-status--scheduled/open/sold-out/cancelled/finished` | Badge trạng thái |
+| `.st-lock-note` | Cảnh báo suất đã có booking |
+
 ### 12.2 Responsive
 
 - List: panel phải sticky trên desktop; 1 cột trên mobile
@@ -963,10 +1133,11 @@ Khi `sessionScope.userRole == 'MANAGER'`:
 |------|-----|
 | Quản lý phim | `/manager/movies` |
 | Quản lý thể loại | `/manager/genres` |
+| Quản lý suất chiếu | `/manager/showtimes` |
 | Quản lý phòng chiếu | `/manager/rooms` |
 | Quản lý loại ghế | `/manager/seat-types` |
 
-> ADMIN thấy link phim/thể loại nhưng **không thấy** phòng chiếu và loại ghế.
+> ADMIN thấy link phim/thể loại nhưng **không thấy** suất chiếu, phòng chiếu và loại ghế.
 
 ---
 
@@ -990,8 +1161,8 @@ Manager truy cập module qua menu dropdown hoặc URL trực tiếp `/manager/m
 
 | Cách vào | URL |
 |----------|-----|
-| Menu user dropdown | Quản lý phim / thể loại / **phòng chiếu** / **loại ghế** |
-| Trực tiếp | `/manager/movies`, `/manager/genres`, `/manager/rooms`, `/manager/rooms/detail?id=...`, `/manager/seat-types` |
+| Menu user dropdown | Quản lý phim / thể loại / **suất chiếu** / phòng chiếu / loại ghế |
+| Trực tiếp | `/manager/movies`, `/manager/genres`, `/manager/showtimes`, `/manager/rooms`, `/manager/rooms/detail?id=...`, `/manager/seat-types` |
 
 Nếu có `?redirect=` hợp lệ (qua `AuthRedirectUtil.isSafeRedirect`), login sẽ ưu tiên redirect đó.
 
@@ -1009,7 +1180,7 @@ Nếu có `?redirect=` hợp lệ (qua `AuthRedirectUtil.isSafeRedirect`), login
 | 6 | Login không redirect về manager | `AuthRedirectUtil` luôn về `/home` |
 | 7 | ~~Session timeout 1 phút~~ | ✅ Đã sửa: `web.xml` → **1440 phút** (24h idle) |
 | 8 | Không connection pool | Mỗi DAO gọi `DBContext.getConnection()` trực tiếp |
-| 9 | Phạm vi manager còn lớn chưa làm | Suất chiếu, xóa phòng, báo cáo, khuyến mãi… |
+| 9 | Phạm vi manager còn lớn chưa làm | Xóa phòng, báo cáo, khuyến mãi, dashboard… (FR-25 suất chiếu ✅) |
 | 10 | FR-26 metadata giả trên list | Chip IMAX, projection derive từ tên phòng — không phải DB |
 
 ---
@@ -1021,7 +1192,7 @@ Dựa trên `project_summary_final.md` (Nhóm Manager):
 | FR | Tên | Bảng chính | Trạng thái |
 |----|-----|------------|------------|
 | FR-21 | Promotion Management | `Promotions` | ❌ Chưa có |
-| FR-25 | Showtime Management | `Showtimes` | ❌ CRUD suất, kiểm tra trùng giờ/phòng |
+| FR-25 | Showtime Management | `Showtimes` | ✅ CRUD suất, overlap check, booking lock |
 | FR-26 | Cinema Room Management | `CinemaRooms`, `Seats` | 🟡 Tạo/rename/toggle ✅; save layout ✅; xóa phòng ❌ |
 | FR-27 | Seat Type & Pricing | `SeatTypes` | ✅ Hoàn thành (CRUD + delete guard) |
 | FR-30 | Dashboard Statistics | aggregate | ❌ Chưa có |
@@ -1101,6 +1272,22 @@ Dựa trên `project_summary_final.md` (Nhóm Manager):
 - [ ] Xóa loại ghế — guard countUsedIn → `?success=deleted`
 - [ ] Usage count hiển thị đúng
 
+### Suất chiếu (`/manager/showtimes`)
+
+- [ ] Menu MANAGER có「Quản lý suất chiếu」; ADMIN **không** thấy link này
+- [ ] `/manager/showtimes` — hiển thị bảng suất + form tạo
+- [ ] Dropdown phim chỉ NOW_SHOWING / COMING_SOON; phòng chỉ ACTIVE
+- [ ] Tạo suất → `end_time` = start + duration; `?success=created`
+- [ ] Validate: trùng lịch cùng phòng → lỗi
+- [ ] Validate: giờ bắt đầu quá khứ (tạo mới) → lỗi
+- [ ] Giá vé 90000 (step 1000) — không lỗi HTML5 constraint
+- [ ] Sửa suất chưa có booking — đổi phim/phòng/giờ/giá/status → `?success=updated`
+- [ ] Sửa suất **đã có booking** — khóa phim/phòng/giờ; chỉ sửa giá/status
+- [ ] Xóa suất không booking → `?success=deleted`
+- [ ] Xóa suất có booking → `?error=has_bookings`; gợi ý CANCELLED
+- [ ] Filter client-side (phim, phòng, trạng thái) hoạt động
+- [ ] Select dropdown đọc được trên nền tối
+
 ### Bảo mật
 
 - [ ] Chưa login → `/manager/movies` → redirect login
@@ -1149,11 +1336,11 @@ sequenceDiagram
 | Module | Quan hệ với Manager |
 |--------|---------------------|
 | **Public** (`/movies`, `/home`) | Hiển thị phim/thể loại do manager tạo |
-| **Staff** (`/staff/counter`) | Sơ đồ ghế theo `Seats` + `seatColumn` (có khoảng lối đi); đặt vé tại quầy |
+| **Staff** (`/staff/counter`) | Suất chiếu do manager tạo; sơ đồ ghế theo `Seats` + `seatColumn` (có khoảng lối đi) |
 | **Admin** | Tạo tài khoản MANAGER qua `/admin/users/create` |
 | **Admin VAT** | VAT rate áp dụng cho booking — quản lý qua `/admin/vat` |
 | **Customer** | Xem phim public — chưa có flow đặt vé online |
 
 ---
 
-*Tài liệu chi tiết module Manager — cập nhật 14/06/2026 (FR-23 soft delete, FR-24 delete + toggle, FR-26 CRUD phòng + persist layout + lối đi qua `seat_column`, FR-27 CRUD loại ghế; session 24h; editor layout — xóa chỉ ở tool Xóa).*
+*Tài liệu chi tiết module Manager — cập nhật 14/06/2026 (FR-23 soft delete, FR-24 delete + toggle, FR-25 CRUD suất chiếu, FR-26 CRUD phòng + persist layout + lối đi qua `seat_column`, FR-27 CRUD loại ghế; session 24h; editor layout — xóa chỉ ở tool Xóa).*
