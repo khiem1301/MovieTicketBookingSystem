@@ -58,9 +58,11 @@
           <c:choose>
             <c:when test="${not empty genreList}">
               <c:forEach var="genre" items="${genreList}">
-                <a href="${pageContext.request.contextPath}/movies?genre=${genre.id}">
-                  <c:out value="${genre.genreName}"/>
-                </a>
+                <c:if test="${genre.active}">
+                  <a href="${pageContext.request.contextPath}/movies?genre=${genre.id}">
+                    <c:out value="${genre.genreName}"/>
+                  </a>
+                </c:if>
               </c:forEach>
             </c:when>
             <c:otherwise>

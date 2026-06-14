@@ -6,9 +6,9 @@
 -- Khong can chay them migration_*.sql
 --
 -- Bao gom:
---   - 26 bang (PascalCase)
+--   - 27 bang (PascalCase)
 --   - Seed: Roles, Users, Config, Cinema, Chatbot
---   - Seed homepage: Genres, CinemaRooms, 8 Movies (backdrop_url), MovieGenres
+--   - Seed homepage: Genres (is_active, description), CinemaRooms, 8 Movies, MovieGenres
 --
 -- Luu y:
 --   - UUID     -> UNIQUEIDENTIFIER + DEFAULT NEWID()
@@ -289,7 +289,7 @@ CREATE TABLE Movies (
     CONSTRAINT PK_Movies          PRIMARY KEY (id),
     CONSTRAINT UK_Movies_Slug     UNIQUE (slug),
     CONSTRAINT CK_Movies_Duration CHECK  (duration_minutes > 0),
-    CONSTRAINT CK_Movies_Status   CHECK  (status IN ('COMING_SOON','NOW_SHOWING','ENDED')),
+    CONSTRAINT CK_Movies_Status   CHECK  (status IN ('COMING_SOON','NOW_SHOWING','EARLY_SHOWING','ENDED')),
     CONSTRAINT CK_Movies_Age      CHECK  (age_rating IN ('P','K','T13','T16','T18','C') OR age_rating IS NULL),
     CONSTRAINT CK_Movies_Rating   CHECK  (average_rating BETWEEN 0.00 AND 5.00 OR average_rating IS NULL)
 );
@@ -299,9 +299,11 @@ GO
 -- 11. Genres
 -- ------------------------------------------------------------
 CREATE TABLE Genres (
-    id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
-    genre_name NVARCHAR(100)    NOT NULL,
-    created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
+    id          UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    genre_name  NVARCHAR(100)    NOT NULL,
+    description NVARCHAR(500)    NULL,
+    is_active   BIT              NOT NULL DEFAULT 1,
+    created_at  DATETIME2        NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT PK_Genres      PRIMARY KEY (id),
     CONSTRAINT UK_Genres_Name UNIQUE (genre_name)
@@ -1007,7 +1009,7 @@ GROUP BY m.id, m.title, m.status, m.average_rating, m.backdrop_url
 ORDER BY m.average_rating DESC;
 GO
 
-PRINT N'=== Hoan tat: 26 bang + day du seed data ===';
+PRINT N'=== Hoan tat: 27 bang + day du seed data ===';
 PRINT N'=== Tai khoan seed: mat khau mac dinh Password@123 (BCrypt) ===';
 PRINT N'=== Phim mau: 4 dang chieu + 4 sap chieu ===';
 GO
