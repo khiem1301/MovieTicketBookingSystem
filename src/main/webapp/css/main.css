@@ -935,6 +935,11 @@ ul { list-style: none; }
   transition: border-color var(--transition);
   width: 100%;
   font-family: inherit;
+  color-scheme: dark;
+}
+.mgr-form-group select option {
+  background-color: #1a1a1a;
+  color: #f0f0f0;
 }
 .mgr-form-group textarea { resize: vertical; min-height: 72px; }
 .mgr-form-group textarea:focus,
