@@ -497,7 +497,7 @@ CREATE TABLE Payments (
 
     CONSTRAINT PK_Payments         PRIMARY KEY (id),
     CONSTRAINT FK_Payments_Booking FOREIGN KEY (booking_id) REFERENCES Bookings(id),
-    CONSTRAINT CK_Payments_Method  CHECK (payment_method IN ('VNPAY','MOMO','CASH')),
+    CONSTRAINT CK_Payments_Method  CHECK (payment_method IN ('VNPAY','MOMO','CASH','VIETQR')),
     CONSTRAINT CK_Payments_Source  CHECK (payment_source IN ('ONLINE','OFFLINE')),
     CONSTRAINT CK_Payments_Status  CHECK (payment_status IN ('PENDING','SUCCESS','FAILED')),
     CONSTRAINT CK_Payments_Amount  CHECK (amount > 0),

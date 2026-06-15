@@ -401,6 +401,104 @@ public class BookingDAO {
     }
 
     /**
+     * FR-16/17 — Hoàn tất thanh toán online (VietQR): cập nhật Payment + Booking + phát hành Tickets.
+     * Idempotent — nếu đơn đã PAID thì trả true.
+     */
+    public boolean completeOnlinePayment(String bookingId, String paymentId, String externalTransId) {
+        Connection conn = null;
+        try {
+            conn = DBContext.getConnection();
+            conn.setAutoCommit(false);
+
+            String statusSql = """
+                    SELECT booking_code, booking_status, payment_status, user_id, showtime_id
+                    FROM Bookings WHERE id = ?
+                    """;
+            String bookingCode;
+            String bookingStatus;
+            String paymentStatus;
+            String userId;
+            String showtimeId;
+            try (PreparedStatement ps = conn.prepareStatement(statusSql)) {
+                ps.setString(1, bookingId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        conn.rollback();
+                        return false;
+                    }
+                    bookingCode = rs.getString("booking_code");
+                    bookingStatus = rs.getString("booking_status");
+                    paymentStatus = rs.getString("payment_status");
+                    userId = rs.getString("user_id");
+                    showtimeId = rs.getString("showtime_id");
+                }
+            }
+
+            if ("PAID".equals(paymentStatus) && "CONFIRMED".equals(bookingStatus)) {
+                conn.commit();
+                return true;
+            }
+            if (!"PENDING".equals(bookingStatus) || !"UNPAID".equals(paymentStatus)) {
+                conn.rollback();
+                return false;
+            }
+
+            PaymentDAO paymentDAO = new PaymentDAO();
+            paymentDAO.markSuccess(conn, paymentId, externalTransId);
+
+            String updateBookingSql = """
+                    UPDATE Bookings
+                    SET booking_status = 'CONFIRMED', payment_status = 'PAID'
+                    WHERE id = ? AND booking_status = 'PENDING' AND payment_status = 'UNPAID'
+                    """;
+            try (PreparedStatement ps = conn.prepareStatement(updateBookingSql)) {
+                ps.setString(1, bookingId);
+                if (ps.executeUpdate() == 0) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
+            new TicketDAO().issueTicketsForBooking(conn, bookingId, bookingCode);
+
+            if (showtimeId != null && userId != null) {
+                String deleteHoldsSql = """
+                        DELETE FROM SeatHolds WHERE showtime_id = ? AND user_id = ?
+                        """;
+                try (PreparedStatement ps = conn.prepareStatement(deleteHoldsSql)) {
+                    ps.setString(1, showtimeId);
+                    ps.setString(2, userId);
+                    ps.executeUpdate();
+                }
+            }
+
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) { }
+            }
+            throw new RuntimeException("completeOnlinePayment failed", e);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) { }
+            }
+        }
+    }
+
+    /** Đánh dấu payment online thất bại (không đụng booking PENDING). */
+    public void failOnlinePayment(String paymentId) {
+        try (Connection conn = DBContext.getConnection()) {
+            new PaymentDAO().markFailed(conn, paymentId);
+        } catch (SQLException e) {
+            throw new RuntimeException("failOnlinePayment failed", e);
+        }
+    }
+
+    /**
      * FR-22 — Áp mã voucher vào đơn ONLINE PENDING (thay mã cũ nếu có).
      */
     public void applyPromotionToBooking(String bookingId, String userId, String promotionId,
