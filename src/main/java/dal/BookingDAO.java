@@ -1,23 +1,35 @@
 package dal;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Types;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 import model.dto.BookingDetailDTO;
 import model.entity.Booking;
+import model.entity.PricingRule;
+import model.entity.Seat;
+import model.entity.Showtime;
+import utils.PricingCalculator;
+import utils.SeatHoldException;
 
 /**
  * FR-39 — Booking Source Management
  * DAO xử lý tạo và truy vấn booking, gắn flag ONLINE/OFFLINE vào mỗi đơn.
  */
 public class BookingDAO {
+
+    public static final int ONLINE_EXPIRE_MINUTES = 10;
 
     /**
      * FR-35 / FR-38 — Tạo booking tại quầy (OFFLINE).
@@ -35,13 +47,13 @@ public class BookingDAO {
     public String createOfflineBooking(String showtimeId, String staffId,
                                        String userId, String customerName, String customerPhone,
                                        List<String> seatIds, List<BigDecimal> seatPrices) {
-        BigDecimal vatRate = getCurrentVatRate();
-        BigDecimal totalAmount = seatPrices.stream()
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal finalAmount = totalAmount.multiply(
-                BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100"))));
+        BigDecimal vatRate = scaleMoney(getCurrentVatRate());
+        BigDecimal totalAmount = scaleMoney(seatPrices.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        BigDecimal finalAmount = scaleMoney(totalAmount.multiply(
+                BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100")))));
 
-        String bookingCode = generateBookingCode();
+        String bookingCode = generateOfflineBookingCode();
 
         String insertBooking = """
                 INSERT INTO Bookings
@@ -49,6 +61,7 @@ public class BookingDAO {
                      created_by_staff_id, customer_name, customer_phone,
                      vat_rate_snapshot, total_amount, discount_amount, final_amount,
                      booking_status, payment_status)
+                OUTPUT INSERTED.id
                 VALUES (?, ?, ?, 'OFFLINE', ?, ?, ?, ?, ?, 0, ?, 'PENDING', 'UNPAID')
                 """;
 
@@ -61,8 +74,7 @@ public class BookingDAO {
             conn.setAutoCommit(false);
             String bookingId;
 
-            try (PreparedStatement ps = conn.prepareStatement(
-                    insertBooking, Statement.RETURN_GENERATED_KEYS)) {
+            try (PreparedStatement ps = conn.prepareStatement(insertBooking)) {
                 ps.setString(1, bookingCode);
                 if (userId != null) ps.setString(2, userId);
                 else ps.setNull(2, Types.VARCHAR);
@@ -73,10 +85,7 @@ public class BookingDAO {
                 ps.setBigDecimal(7, vatRate);
                 ps.setBigDecimal(8, totalAmount);
                 ps.setBigDecimal(9, finalAmount);
-                ps.executeUpdate();
-
-                // SQL Server: lấy ID vừa insert qua SELECT SCOPE_IDENTITY()
-                try (ResultSet rs = ps.getGeneratedKeys()) {
+                try (ResultSet rs = ps.executeQuery()) {
                     if (!rs.next()) throw new SQLException("Không lấy được booking ID");
                     bookingId = rs.getString(1);
                 }
@@ -98,6 +107,172 @@ public class BookingDAO {
         } catch (SQLException e) {
             throw new RuntimeException("createOfflineBooking failed", e);
         }
+    }
+
+    /**
+     * FR-14 — Tạo đơn đặt vé online: validate ghế, tính giá server-side, INSERT Bookings + BookingSeats.
+     * Idempotent khi user đã có booking PENDING/UNPAID cùng suất và chưa hết hạn.
+     */
+    public String createOnlineBooking(String showtimeId, String userId, List<String> seatIds) {
+        if (seatIds == null || seatIds.isEmpty()) {
+            throw new IllegalArgumentException("seatIds must not be empty");
+        }
+
+        List<String> distinctSeatIds = SeatHoldDAO.distinctSeatIds(seatIds);
+
+        String existingId = findActiveOnlinePendingBookingId(showtimeId, userId);
+        if (existingId != null) {
+            return existingId;
+        }
+
+        SeatHoldDAO holdDAO = new SeatHoldDAO();
+        List<String> blocked = holdDAO.findBlockingSeatCodes(showtimeId, distinctSeatIds, userId);
+        if (!blocked.isEmpty()) {
+            throw new SeatHoldException("Ghế không còn trống: " + String.join(", ", blocked));
+        }
+        if (holdDAO.countValidSeatsForShowtime(showtimeId, distinctSeatIds) != distinctSeatIds.size()) {
+            throw new SeatHoldException("Danh sách ghế không hợp lệ cho suất chiếu này.");
+        }
+
+        Showtime showtime = new ShowtimeDAO().getShowtimeById(showtimeId);
+        if (showtime == null) {
+            throw new SeatHoldException("Suất chiếu không tồn tại.");
+        }
+
+        List<PricingRule> pricingRules = new PricingRuleDAO().getActiveRules();
+        BigDecimal effectivePrice = PricingCalculator.calculateEffectivePrice(showtime, pricingRules);
+        List<BigDecimal> seatPrices = computeSeatPrices(showtimeId, distinctSeatIds, effectivePrice);
+
+        BigDecimal vatRate = scaleMoney(getCurrentVatRate());
+        BigDecimal totalAmount = scaleMoney(seatPrices.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+        BigDecimal finalAmount = scaleMoney(totalAmount.multiply(
+                BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100")))));
+
+        String bookingCode = generateOnlineBookingCode();
+
+        String insertBooking = """
+                INSERT INTO Bookings
+                    (booking_code, user_id, showtime_id, booking_source,
+                     created_by_staff_id, customer_name, customer_phone,
+                     vat_rate_snapshot, total_amount, discount_amount, final_amount,
+                     booking_status, payment_status, expired_at)
+                OUTPUT INSERTED.id
+                VALUES (?, ?, ?, 'ONLINE', NULL, NULL, NULL,
+                        ?, ?, 0, ?, 'PENDING', 'UNPAID',
+                        DATEADD(MINUTE, ?, GETDATE()))
+                """;
+
+        String insertSeat = """
+                INSERT INTO BookingSeats (booking_id, seat_id, ticket_price)
+                VALUES (?, ?, ?)
+                """;
+
+        Connection conn = null;
+        try {
+            conn = DBContext.getConnection();
+            conn.setAutoCommit(false);
+            holdDAO.deleteExpiredHolds();
+
+            String bookingId;
+            try (PreparedStatement ps = conn.prepareStatement(insertBooking)) {
+                ps.setString(1, bookingCode);
+                ps.setString(2, userId);
+                ps.setString(3, showtimeId);
+                ps.setBigDecimal(4, vatRate);
+                ps.setBigDecimal(5, totalAmount);
+                ps.setBigDecimal(6, finalAmount);
+                ps.setInt(7, ONLINE_EXPIRE_MINUTES);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) throw new SQLException("Không lấy được booking ID");
+                    bookingId = rs.getString(1);
+                }
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(insertSeat)) {
+                for (int i = 0; i < distinctSeatIds.size(); i++) {
+                    ps.setString(1, bookingId);
+                    ps.setString(2, distinctSeatIds.get(i));
+                    ps.setBigDecimal(3, seatPrices.get(i));
+                    ps.addBatch();
+                }
+                ps.executeBatch();
+            }
+
+            conn.commit();
+            new SeatHoldDAO().releaseHolds(showtimeId, userId);
+            return bookingId;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) { }
+            }
+            if (isUniqueViolation(e)) {
+                String retryId = findActiveOnlinePendingBookingId(showtimeId, userId);
+                if (retryId != null) return retryId;
+                throw new SeatHoldException(
+                        "Một hoặc nhiều ghế vừa bị người khác chọn. Vui lòng chọn lại.");
+            }
+            throw new RuntimeException("createOnlineBooking failed", e);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) { }
+            }
+        }
+    }
+
+    /** Booking ONLINE PENDING/UNPAID còn hiệu lực của user trên suất (idempotency FR-14). */
+    public String findActiveOnlinePendingBookingId(String showtimeId, String userId) {
+        String sql = """
+                SELECT TOP 1 id
+                FROM Bookings
+                WHERE user_id = ?
+                  AND showtime_id = ?
+                  AND booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND expired_at > GETDATE()
+                ORDER BY booked_at DESC
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            ps.setString(2, showtimeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getString("id");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findActiveOnlinePendingBookingId failed", e);
+        }
+        return null;
+    }
+
+    private List<BigDecimal> computeSeatPrices(String showtimeId, List<String> seatIds,
+                                               BigDecimal effectivePrice) {
+        if (effectivePrice == null) {
+            throw new SeatHoldException("Không tính được giá vé cho suất chiếu.");
+        }
+
+        List<Seat> seats = new SeatDAO().getSeatsForShowtime(showtimeId);
+        Map<String, Seat> seatById = new HashMap<>();
+        for (Seat seat : seats) {
+            seatById.put(seat.getId(), seat);
+        }
+
+        List<BigDecimal> prices = new ArrayList<>(seatIds.size());
+        for (String seatId : seatIds) {
+            Seat seat = seatById.get(seatId);
+            if (seat == null) {
+                throw new SeatHoldException("Danh sách ghế không hợp lệ cho suất chiếu này.");
+            }
+            BigDecimal multiplier = seat.getPriceMultiplier() != null
+                    ? seat.getPriceMultiplier() : BigDecimal.ONE;
+            prices.add(scaleMoney(effectivePrice.multiply(multiplier).setScale(0, RoundingMode.HALF_UP)));
+        }
+        return prices;
     }
 
     public Booking getById(String bookingId) {
@@ -125,9 +300,11 @@ public class BookingDAO {
      */
     public BookingDetailDTO getDetailById(String bookingId) {
         String sql = """
-                SELECT b.id, b.booking_code, b.customer_name, b.customer_phone,
+                SELECT b.id, b.booking_code, b.user_id, b.showtime_id, b.booking_source,
+                       b.customer_name, b.customer_phone,
                        b.booking_status, b.payment_status,
                        b.total_amount, b.final_amount, b.vat_rate_snapshot,
+                       b.expired_at,
                        m.title AS movie_title, m.poster_url AS movie_poster_url,
                        cr.room_name, s.start_time
                 FROM Bookings b
@@ -153,6 +330,10 @@ public class BookingDAO {
                         dto = new BookingDetailDTO();
                         dto.setBookingId(rs.getString("id"));
                         dto.setBookingCode(rs.getString("booking_code"));
+                        dto.setUserId(rs.getString("user_id"));
+                        dto.setShowtimeId(rs.getString("showtime_id"));
+                        dto.setBookingSource(rs.getString("booking_source"));
+                        dto.setExpiredAt(rs.getTimestamp("expired_at"));
                         dto.setCustomerName(rs.getString("customer_name"));
                         dto.setCustomerPhone(rs.getString("customer_phone"));
                         dto.setBookingStatus(rs.getString("booking_status"));
@@ -206,13 +387,113 @@ public class BookingDAO {
         }
     }
 
+    /**
+     * Hủy đơn ONLINE đang chờ thanh toán — giải phóng ghế ngay (booking_status → CANCELLED).
+     * Đồng thời xóa SeatHolds còn sót của user trên suất đó.
+     *
+     * @return true nếu hủy thành công
+     */
+    public boolean cancelOnlinePendingBooking(String bookingId, String userId) {
+        String selectSql = """
+                SELECT showtime_id
+                FROM Bookings
+                WHERE id = ?
+                  AND user_id = ?
+                  AND booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                """;
+        String updateSql = """
+                UPDATE Bookings
+                SET booking_status = 'CANCELLED'
+                WHERE id = ?
+                  AND user_id = ?
+                  AND booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                """;
+        String deleteHoldsSql = """
+                DELETE FROM SeatHolds
+                WHERE showtime_id = ?
+                  AND user_id = ?
+                """;
+
+        Connection conn = null;
+        try {
+            conn = DBContext.getConnection();
+            conn.setAutoCommit(false);
+
+            String showtimeId;
+            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+                ps.setString(1, bookingId);
+                ps.setString(2, userId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        conn.rollback();
+                        return false;
+                    }
+                    showtimeId = rs.getString("showtime_id");
+                }
+            }
+
+            int updated;
+            try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                ps.setString(1, bookingId);
+                ps.setString(2, userId);
+                updated = ps.executeUpdate();
+            }
+            if (updated == 0) {
+                conn.rollback();
+                return false;
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(deleteHoldsSql)) {
+                ps.setString(1, showtimeId);
+                ps.setString(2, userId);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) { }
+            }
+            throw new RuntimeException("cancelOnlinePendingBooking failed", e);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) { }
+            }
+        }
+    }
+
     /** Lấy VAT rate hiện hành từ VatRules; fallback 8% nếu chưa cấu hình. */
     public BigDecimal getCurrentVatRate() {
         return new VatRuleDAO().findCurrentActiveRate();
     }
 
-    private String generateBookingCode() {
+    private BigDecimal scaleMoney(BigDecimal value) {
+        if (value == null) return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        return value.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private String generateOfflineBookingCode() {
         return "CTR" + System.currentTimeMillis();
+    }
+
+    private String generateOnlineBookingCode() {
+        String date = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
+        int suffix = ThreadLocalRandom.current().nextInt(1000, 10000);
+        return "BK-" + date + "-" + suffix;
+    }
+
+    private boolean isUniqueViolation(SQLException e) {
+        int code = e.getErrorCode();
+        return code == 2627 || code == 2601;
     }
 
     private Booking mapRow(ResultSet rs) throws SQLException {

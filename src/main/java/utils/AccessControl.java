@@ -37,7 +37,8 @@ public final class AccessControl {
             "/booking-history",
             "/loyalty",
             "/reviews/mine",
-            "/checkout"
+            "/checkout",
+            "/payment"
     );
 
     private static final Map<String, Set<String>> ROLE_PREFIXES = Map.of(
