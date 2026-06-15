@@ -21,6 +21,7 @@ import model.entity.PricingRule;
 import model.entity.Seat;
 import model.entity.Showtime;
 import utils.PricingCalculator;
+import utils.PromotionCalculator;
 import utils.SeatHoldException;
 
 /**
@@ -303,7 +304,7 @@ public class BookingDAO {
                 SELECT b.id, b.booking_code, b.user_id, b.showtime_id, b.booking_source,
                        b.customer_name, b.customer_phone,
                        b.booking_status, b.payment_status,
-                       b.total_amount, b.final_amount, b.vat_rate_snapshot,
+                       b.total_amount, b.discount_amount, b.final_amount, b.vat_rate_snapshot,
                        b.expired_at,
                        m.title AS movie_title, m.poster_url AS movie_poster_url,
                        cr.room_name, s.start_time
@@ -339,6 +340,7 @@ public class BookingDAO {
                         dto.setBookingStatus(rs.getString("booking_status"));
                         dto.setPaymentStatus(rs.getString("payment_status"));
                         dto.setTotalAmount(rs.getBigDecimal("total_amount"));
+                        dto.setDiscountAmount(rs.getBigDecimal("discount_amount"));
                         dto.setFinalAmount(rs.getBigDecimal("final_amount"));
                         dto.setVatRate(rs.getBigDecimal("vat_rate_snapshot"));
                         dto.setMovieTitle(rs.getString("movie_title"));
@@ -363,6 +365,17 @@ public class BookingDAO {
                 }
             }
             dto.setSeats(seats);
+            enrichAmounts(dto);
+            var appliedPromo = new BookingPromotionDAO().findByBookingId(bookingId);
+            if (appliedPromo.isPresent()) {
+                var ap = appliedPromo.get();
+                dto.setAppliedPromoCode(ap.code());
+                dto.setAppliedPromoTitle(ap.title());
+                if (dto.getDiscountAmount() == null || dto.getDiscountAmount().compareTo(BigDecimal.ZERO) == 0) {
+                    dto.setDiscountAmount(ap.discountApplied());
+                    enrichAmounts(dto);
+                }
+            }
             return dto;
         } catch (SQLException e) {
             throw new RuntimeException("getDetailById failed", e);
@@ -388,8 +401,191 @@ public class BookingDAO {
     }
 
     /**
+     * FR-22 — Áp mã voucher vào đơn ONLINE PENDING (thay mã cũ nếu có).
+     */
+    public void applyPromotionToBooking(String bookingId, String userId, String promotionId,
+                                        BigDecimal discountAmount, BigDecimal finalAmount) {
+        BookingPromotionDAO bpDao = new BookingPromotionDAO();
+        PromotionDAO promoDao = new PromotionDAO();
+
+        String updateBookingSql = """
+                UPDATE Bookings
+                SET discount_amount = ?, final_amount = ?
+                WHERE id = ?
+                  AND user_id = ?
+                  AND booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND expired_at > GETDATE()
+                """;
+
+        Connection conn = null;
+        try {
+            conn = DBContext.getConnection();
+            conn.setAutoCommit(false);
+
+            if (!existsPendingOnlineBooking(conn, bookingId, userId)) {
+                conn.rollback();
+                throw new IllegalStateException("Đơn đặt vé không còn ở trạng thái chờ thanh toán.");
+            }
+
+            var existing = bpDao.findByBookingId(conn, bookingId);
+            if (existing.isPresent()) {
+                if (existing.get().promotionId().equals(promotionId)) {
+                    conn.commit();
+                    return;
+                }
+                promoDao.decrementUsedCount(conn, existing.get().promotionId());
+                bpDao.deleteByBookingId(conn, bookingId);
+            }
+
+            if (!promoDao.incrementUsedCountIfAvailable(conn, promotionId)) {
+                conn.rollback();
+                throw new IllegalStateException("Mã voucher đã hết lượt sử dụng hoặc không còn hiệu lực.");
+            }
+
+            bpDao.insert(conn, bookingId, promotionId, discountAmount);
+
+            try (PreparedStatement ps = conn.prepareStatement(updateBookingSql)) {
+                ps.setBigDecimal(1, discountAmount);
+                ps.setBigDecimal(2, finalAmount);
+                ps.setString(3, bookingId);
+                ps.setString(4, userId);
+                if (ps.executeUpdate() == 0) {
+                    conn.rollback();
+                    throw new IllegalStateException("Không thể cập nhật đơn đặt vé.");
+                }
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) { }
+            }
+            throw new RuntimeException("applyPromotionToBooking failed", e);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) { }
+            }
+        }
+    }
+
+    /**
+     * FR-22 — Gỡ mã voucher khỏi đơn PENDING và hoàn lượt sử dụng.
+     */
+    public void removePromotionFromBooking(String bookingId, String userId) {
+        BookingPromotionDAO bpDao = new BookingPromotionDAO();
+        PromotionDAO promoDao = new PromotionDAO();
+
+        String selectAmountsSql = """
+                SELECT total_amount, vat_rate_snapshot
+                FROM Bookings
+                WHERE id = ?
+                  AND user_id = ?
+                  AND booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND expired_at > GETDATE()
+                """;
+        String updateBookingSql = """
+                UPDATE Bookings
+                SET discount_amount = 0, final_amount = ?
+                WHERE id = ?
+                  AND user_id = ?
+                  AND booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND expired_at > GETDATE()
+                """;
+
+        Connection conn = null;
+        try {
+            conn = DBContext.getConnection();
+            conn.setAutoCommit(false);
+
+            var existing = bpDao.findByBookingId(conn, bookingId);
+            if (existing.isEmpty()) {
+                conn.rollback();
+                return;
+            }
+
+            BigDecimal totalAmount;
+            BigDecimal vatRate;
+            try (PreparedStatement ps = conn.prepareStatement(selectAmountsSql)) {
+                ps.setString(1, bookingId);
+                ps.setString(2, userId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        conn.rollback();
+                        throw new IllegalStateException("Đơn đặt vé không còn ở trạng thái chờ thanh toán.");
+                    }
+                    totalAmount = rs.getBigDecimal("total_amount");
+                    vatRate = rs.getBigDecimal("vat_rate_snapshot");
+                }
+            }
+
+            promoDao.decrementUsedCount(conn, existing.get().promotionId());
+            bpDao.deleteByBookingId(conn, bookingId);
+
+            BigDecimal finalAmount = PromotionCalculator.recalculateFinalAmount(
+                    totalAmount, BigDecimal.ZERO, vatRate);
+
+            try (PreparedStatement ps = conn.prepareStatement(updateBookingSql)) {
+                ps.setBigDecimal(1, finalAmount);
+                ps.setString(2, bookingId);
+                ps.setString(3, userId);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) { }
+            }
+            throw new RuntimeException("removePromotionFromBooking failed", e);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) { }
+            }
+        }
+    }
+
+    private void enrichAmounts(BookingDetailDTO dto) {
+        BigDecimal total = dto.getTotalAmount() != null ? dto.getTotalAmount() : BigDecimal.ZERO;
+        BigDecimal discount = dto.getDiscountAmount() != null ? dto.getDiscountAmount() : BigDecimal.ZERO;
+        dto.setDiscountAmount(discount);
+        dto.setVatAmount(PromotionCalculator.calculateVatAmount(total, discount, dto.getVatRate()));
+    }
+
+    private boolean existsPendingOnlineBooking(Connection conn, String bookingId, String userId)
+            throws SQLException {
+        String sql = """
+                SELECT 1 FROM Bookings
+                WHERE id = ?
+                  AND user_id = ?
+                  AND booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND expired_at > GETDATE()
+                """;
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, bookingId);
+            ps.setString(2, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    /**
      * Hủy đơn ONLINE đang chờ thanh toán — giải phóng ghế ngay (booking_status → CANCELLED).
-     * Đồng thời xóa SeatHolds còn sót của user trên suất đó.
+     * Đồng thời xóa SeatHolds còn sót và hoàn lượt voucher nếu có (FR-22).
      *
      * @return true nếu hủy thành công
      */
@@ -445,6 +641,14 @@ public class BookingDAO {
             if (updated == 0) {
                 conn.rollback();
                 return false;
+            }
+
+            BookingPromotionDAO bpDao = new BookingPromotionDAO();
+            PromotionDAO promoDao = new PromotionDAO();
+            var appliedPromo = bpDao.findByBookingId(conn, bookingId);
+            if (appliedPromo.isPresent()) {
+                bpDao.deleteByBookingId(conn, bookingId);
+                promoDao.decrementUsedCount(conn, appliedPromo.get().promotionId());
             }
 
             try (PreparedStatement ps = conn.prepareStatement(deleteHoldsSql)) {

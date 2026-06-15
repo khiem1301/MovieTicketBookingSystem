@@ -1,11 +1,13 @@
 package controller.customer;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 
 import dal.BookingDAO;
+import dal.PromotionDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -14,12 +16,16 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.dto.BookingDetailDTO;
 import model.dto.SessionUser;
+import model.entity.Promotion;
+import utils.PromotionCalculator;
 import utils.SessionUtil;
 
 /**
- * FR-14 / FR-16 stub — Trang thanh toán online tại /payment?bookingId=
+ * FR-14 / FR-16 stub / FR-22 — Trang thanh toán online tại /payment?bookingId=
  * GET  → tóm tắt đơn + countdown hết hạn
  * POST action=cancel → hủy đơn PENDING, giải phóng ghế
+ * POST action=applyPromo → áp mã voucher (FR-22)
+ * POST action=removePromo → gỡ mã voucher (FR-22)
  * POST (khác) → stub VNPay/MoMo (FR-16–18)
  */
 @WebServlet("/payment")
@@ -43,16 +49,7 @@ public class PaymentServlet extends HttpServlet {
             return;
         }
 
-        BookingDAO bookingDAO = new BookingDAO();
-        BookingDetailDTO detail = bookingDAO.getDetailById(bookingId);
-        String guardError = validateAccess(detail, sessionUser.getId());
-        if (guardError != null) {
-            handleGuardFailure(req, resp, detail, guardError);
-            return;
-        }
-
-        req.setAttribute("detail", detail);
-        req.getRequestDispatcher(VIEW).forward(req, resp);
+        forwardPayment(req, resp, bookingId, sessionUser.getId(), null, null);
     }
 
     @Override
@@ -88,8 +85,96 @@ public class PaymentServlet extends HttpServlet {
             return;
         }
 
+        if ("applyPromo".equals(action)) {
+            handleApplyPromo(req, resp, bookingDAO, detail, bookingId, sessionUser.getId());
+            return;
+        }
+
+        if ("removePromo".equals(action)) {
+            handleRemovePromo(req, resp, bookingDAO, bookingId, sessionUser.getId());
+            return;
+        }
+
+        forwardPayment(req, resp, bookingId, sessionUser.getId(),
+                null, "Thanh toán VNPay / MoMo sẽ có trong phiên bản tiếp theo (FR-16).");
+    }
+
+    private void handleApplyPromo(HttpServletRequest req, HttpServletResponse resp,
+                                BookingDAO bookingDAO, BookingDetailDTO detail,
+                                String bookingId, String userId)
+            throws IOException, ServletException {
+        String promoCode = trim(req.getParameter("promoCode"));
+        if (isBlank(promoCode)) {
+            forwardPayment(req, resp, bookingId, userId, "Vui lòng nhập mã voucher.", null);
+            return;
+        }
+
+        Promotion promotion = new PromotionDAO().findByCode(promoCode).orElse(null);
+        if (promotion == null) {
+            forwardPayment(req, resp, bookingId, userId,
+                    "Không tìm thấy mã voucher \"" + promoCode.toUpperCase() + "\".", null);
+            return;
+        }
+        String applyError = new PromotionDAO().validateForApply(promotion);
+        if (applyError != null) {
+            forwardPayment(req, resp, bookingId, userId, applyError, null);
+            return;
+        }
+
+        BigDecimal subtotal = detail.getTotalAmount();
+        String minOrderError = PromotionCalculator.validateMinOrder(promotion, subtotal);
+        if (minOrderError != null) {
+            forwardPayment(req, resp, bookingId, userId, minOrderError, null);
+            return;
+        }
+
+        BigDecimal discount = PromotionCalculator.calculateDiscount(promotion, subtotal);
+        if (discount.compareTo(BigDecimal.ZERO) <= 0) {
+            forwardPayment(req, resp, bookingId, userId, "Mã voucher không áp dụng được cho đơn này.", null);
+            return;
+        }
+
+        BigDecimal finalAmount = PromotionCalculator.recalculateFinalAmount(
+                subtotal, discount, detail.getVatRate());
+
+        try {
+            bookingDAO.applyPromotionToBooking(
+                    bookingId, userId, promotion.getId(), discount, finalAmount);
+            forwardPayment(req, resp, bookingId, userId, null,
+                    "Đã áp dụng mã " + promotion.getCode() + ".");
+        } catch (IllegalStateException ex) {
+            forwardPayment(req, resp, bookingId, userId, ex.getMessage(), null);
+        }
+    }
+
+    private void handleRemovePromo(HttpServletRequest req, HttpServletResponse resp,
+                                   BookingDAO bookingDAO, String bookingId, String userId)
+            throws IOException, ServletException {
+        try {
+            bookingDAO.removePromotionFromBooking(bookingId, userId);
+            forwardPayment(req, resp, bookingId, userId, null, "Đã gỡ mã giảm giá.");
+        } catch (IllegalStateException ex) {
+            forwardPayment(req, resp, bookingId, userId, ex.getMessage(), null);
+        }
+    }
+
+    private void forwardPayment(HttpServletRequest req, HttpServletResponse resp,
+                                String bookingId, String userId,
+                                String errorMessage, String infoMessage)
+            throws ServletException, IOException {
+        BookingDetailDTO detail = new BookingDAO().getDetailById(bookingId);
+        String guardError = validateAccess(detail, userId);
+        if (guardError != null) {
+            handleGuardFailure(req, resp, detail, guardError);
+            return;
+        }
         req.setAttribute("detail", detail);
-        req.setAttribute("infoMessage", "Thanh toán VNPay / MoMo sẽ có trong phiên bản tiếp theo (FR-16).");
+        if (errorMessage != null) {
+            req.setAttribute("errorMessage", errorMessage);
+        }
+        if (infoMessage != null) {
+            req.setAttribute("infoMessage", infoMessage);
+        }
         req.getRequestDispatcher(VIEW).forward(req, resp);
     }
 
