@@ -1,0 +1,24 @@
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%-- Yêu cầu: pgPath, pgCurrent, pgTotal; tuỳ chọn: pgPageParam (mặc định page), pgQueryExtra, pgTotalItems --%>
+<c:if test="${empty pgPageParam}"><c:set var="pgPageParam" value="page"/></c:if>
+<c:if test="${empty pgQueryExtra}"><c:set var="pgQueryExtra" value=""/></c:if>
+<c:if test="${pgTotal > 1}">
+  <div class="admin-pagination">
+    <span>
+      Trang <c:out value="${pgCurrent}"/> / <c:out value="${pgTotal}"/>
+      <c:if test="${not empty pgTotalItems}">
+        — Tổng <strong><c:out value="${pgTotalItems}"/></strong>
+      </c:if>
+    </span>
+    <div class="admin-btn-group">
+      <c:if test="${pgCurrent > 1}">
+        <a class="admin-btn admin-btn--ghost admin-btn--sm"
+           href="${pgPath}?${pgPageParam}=${pgCurrent - 1}${pgQueryExtra}">← Trước</a>
+      </c:if>
+      <c:if test="${pgCurrent < pgTotal}">
+        <a class="admin-btn admin-btn--ghost admin-btn--sm"
+           href="${pgPath}?${pgPageParam}=${pgCurrent + 1}${pgQueryExtra}">Sau →</a>
+      </c:if>
+    </div>
+  </div>
+</c:if>
