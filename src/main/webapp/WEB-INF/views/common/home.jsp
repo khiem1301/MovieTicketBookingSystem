@@ -214,7 +214,10 @@
               <c:set var="cardPoster" value="${pageContext.request.contextPath}/${cardPoster}"/>
             </c:if>
             <div class="movie-card">
-              <div class="card-poster">
+              <div class="card-poster"
+                   data-trailer="<c:out value='${movie.trailerUrl}'/>"
+                   data-title="<c:out value='${movie.title}'/>"
+                   onclick="openTrailer(this)">
                 <c:choose>
                   <c:when test="${not empty movie.posterUrl}">
                     <img src="<c:out value='${cardPoster}'/>"
@@ -224,28 +227,37 @@
                     <div class="poster-placeholder">🎬</div>
                   </c:otherwise>
                 </c:choose>
-                <div class="card-overlay">
-                  <a href="${pageContext.request.contextPath}/movies/${movie.slug}"
-                     class="btn-book">Chi tiết</a>
+                <div class="play-overlay">
+                  <div class="play-circle">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  </div>
                 </div>
                 <c:if test="${not empty movie.ageRating}">
                   <span class="age-badge"><c:out value="${movie.ageRating}"/></span>
                 </c:if>
+                <span class="status-badge status-coming">SẮP CHIẾU</span>
               </div>
               <div class="card-info">
                 <h3 class="card-title"><c:out value="${movie.title}"/></h3>
-                <div class="card-meta">
-                  <span><c:out value="${movie.durationMinutes}"/> phút</span>
-                  <span class="rating">
-                    <span class="star">★</span>
-                    <fmt:formatNumber value="${movie.averageRating}" maxFractionDigits="1"/>
+                <div class="card-detail-row">
+                  <span class="detail-label">Thể loại:</span>
+                  <span class="detail-value">
+                    <c:forEach var="genre" items="${movie.genres}" varStatus="gs" end="1">
+                      <c:if test="${!gs.first}">, </c:if><c:out value="${genre}"/>
+                    </c:forEach>
                   </span>
                 </div>
-                <div class="card-genres">
-                  <c:forEach var="genre" items="${movie.genres}" end="1">
-                    <span class="genre-tag"><c:out value="${genre}"/></span>
-                  </c:forEach>
+                <div class="card-detail-row">
+                  <span class="detail-label">Thời lượng:</span>
+                  <span class="detail-value"><c:out value="${movie.durationMinutes}"/> phút</span>
                 </div>
+              </div>
+              <div class="card-footer">
+                <a href="${pageContext.request.contextPath}/movies/${movie.slug}"
+                   class="btn-buy-ticket" onclick="event.stopPropagation()">
+                  <svg viewBox="0 0 24 24"><path d="M22 10V6c0-1.11-.9-2-2-2H4c-1.11 0-2 .89-2 2v4c1.11 0 2 .89 2 2s-.89 2-2 2v4c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2v-4c-1.11 0-2-.89-2-2s.89-2 2-2z"/></svg>
+                  MUA VÉ
+                </a>
               </div>
             </div>
           </c:forEach>
@@ -279,7 +291,10 @@
               <c:set var="cardPoster" value="${pageContext.request.contextPath}/${cardPoster}"/>
             </c:if>
             <div class="movie-card">
-              <div class="card-poster">
+              <div class="card-poster"
+                   data-trailer="<c:out value='${movie.trailerUrl}'/>"
+                   data-title="<c:out value='${movie.title}'/>"
+                   onclick="openTrailer(this)">
                 <c:choose>
                   <c:when test="${not empty movie.posterUrl}">
                     <img src="<c:out value='${cardPoster}'/>"
@@ -289,31 +304,37 @@
                     <div class="poster-placeholder">🎬</div>
                   </c:otherwise>
                 </c:choose>
-
-                <div class="card-overlay">
-                  <a href="${pageContext.request.contextPath}/showtimes?movieId=${movie.id}"
-                     class="btn-book">Đặt vé</a>
+                <div class="play-overlay">
+                  <div class="play-circle">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  </div>
                 </div>
-
                 <c:if test="${not empty movie.ageRating}">
                   <span class="age-badge"><c:out value="${movie.ageRating}"/></span>
                 </c:if>
+                <span class="status-badge status-hot">HOT</span>
               </div>
-
               <div class="card-info">
                 <h3 class="card-title"><c:out value="${movie.title}"/></h3>
-                <div class="card-meta">
-                  <span><c:out value="${movie.durationMinutes}"/> phút</span>
-                  <span class="rating">
-                    <span class="star">★</span>
-                    <fmt:formatNumber value="${movie.averageRating}" maxFractionDigits="1"/>
+                <div class="card-detail-row">
+                  <span class="detail-label">Thể loại:</span>
+                  <span class="detail-value">
+                    <c:forEach var="genre" items="${movie.genres}" varStatus="gs" end="1">
+                      <c:if test="${!gs.first}">, </c:if><c:out value="${genre}"/>
+                    </c:forEach>
                   </span>
                 </div>
-                <div class="card-genres">
-                  <c:forEach var="genre" items="${movie.genres}" end="1">
-                    <span class="genre-tag"><c:out value="${genre}"/></span>
-                  </c:forEach>
+                <div class="card-detail-row">
+                  <span class="detail-label">Thời lượng:</span>
+                  <span class="detail-value"><c:out value="${movie.durationMinutes}"/> phút</span>
                 </div>
+              </div>
+              <div class="card-footer">
+                <a href="${pageContext.request.contextPath}/showtimes?movieId=${movie.id}"
+                   class="btn-buy-ticket" onclick="event.stopPropagation()">
+                  <svg viewBox="0 0 24 24"><path d="M22 10V6c0-1.11-.9-2-2-2H4c-1.11 0-2 .89-2 2v4c1.11 0 2 .89 2 2s-.89 2-2 2v4c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2v-4c-1.11 0-2-.89-2-2s.89-2 2-2z"/></svg>
+                  MUA VÉ
+                </a>
               </div>
             </div>
           </c:forEach>
@@ -346,7 +367,10 @@
               <c:set var="cardPoster" value="${pageContext.request.contextPath}/${cardPoster}"/>
             </c:if>
             <div class="movie-card">
-              <div class="card-poster">
+              <div class="card-poster"
+                   data-trailer="<c:out value='${movie.trailerUrl}'/>"
+                   data-title="<c:out value='${movie.title}'/>"
+                   onclick="openTrailer(this)">
                 <c:choose>
                   <c:when test="${not empty movie.posterUrl}">
                     <img src="<c:out value='${cardPoster}'/>"
@@ -356,27 +380,37 @@
                     <div class="poster-placeholder">🎬</div>
                   </c:otherwise>
                 </c:choose>
-                <div class="card-overlay">
-                  <a href="${pageContext.request.contextPath}/showtimes?movieId=${movie.id}"
-                     class="btn-book">Đặt vé sớm</a>
+                <div class="play-overlay">
+                  <div class="play-circle">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  </div>
                 </div>
                 <c:if test="${not empty movie.ageRating}">
                   <span class="age-badge"><c:out value="${movie.ageRating}"/></span>
                 </c:if>
+                <span class="status-badge status-early">SUẤT SỚM</span>
               </div>
               <div class="card-info">
                 <h3 class="card-title"><c:out value="${movie.title}"/></h3>
-                <div class="card-meta">
-                  <span><c:out value="${movie.durationMinutes}"/> phút</span>
-                  <c:if test="${not empty movie.releaseDate}">
-                    <span>CC: <fmt:formatDate value="${movie.releaseDate}" pattern="dd/MM/yyyy"/></span>
-                  </c:if>
+                <div class="card-detail-row">
+                  <span class="detail-label">Thể loại:</span>
+                  <span class="detail-value">
+                    <c:forEach var="genre" items="${movie.genres}" varStatus="gs" end="1">
+                      <c:if test="${!gs.first}">, </c:if><c:out value="${genre}"/>
+                    </c:forEach>
+                  </span>
                 </div>
-                <div class="card-genres">
-                  <c:forEach var="genre" items="${movie.genres}" end="1">
-                    <span class="genre-tag"><c:out value="${genre}"/></span>
-                  </c:forEach>
+                <div class="card-detail-row">
+                  <span class="detail-label">Thời lượng:</span>
+                  <span class="detail-value"><c:out value="${movie.durationMinutes}"/> phút</span>
                 </div>
+              </div>
+              <div class="card-footer">
+                <a href="${pageContext.request.contextPath}/showtimes?movieId=${movie.id}"
+                   class="btn-buy-ticket" onclick="event.stopPropagation()">
+                  <svg viewBox="0 0 24 24"><path d="M22 10V6c0-1.11-.9-2-2-2H4c-1.11 0-2 .89-2 2v4c1.11 0 2 .89 2 2s-.89 2-2 2v4c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2v-4c-1.11 0-2-.89-2-2s.89-2 2-2z"/></svg>
+                  MUA VÉ
+                </a>
               </div>
             </div>
           </c:forEach>
@@ -395,5 +429,44 @@
 
   </div><%-- /container --%>
 </section>
+
+<%-- ══════════════════════════════════════════════════
+     TRAILER MODAL
+     ══════════════════════════════════════════════════ --%>
+<div id="trailerModal" class="trailer-modal">
+  <div class="trailer-backdrop" onclick="closeTrailer()"></div>
+  <div class="trailer-wrapper">
+    <div class="trailer-header">
+      <span id="trailerTitle" class="trailer-movie-title"></span>
+      <button class="trailer-close" onclick="closeTrailer()" aria-label="Đóng">&#x2715;</button>
+    </div>
+    <div class="trailer-video-wrap">
+      <iframe id="trailerIframe" src="" frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+function openTrailer(el) {
+  var url   = el.getAttribute('data-trailer') || '';
+  var title = el.getAttribute('data-title')   || '';
+  if (!url.trim()) return;
+  var embedUrl = url;
+  var yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+  if (yt) embedUrl = 'https://www.youtube.com/embed/' + yt[1] + '?autoplay=1&rel=0';
+  document.getElementById('trailerTitle').textContent = title;
+  document.getElementById('trailerIframe').src = embedUrl;
+  document.getElementById('trailerModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeTrailer() {
+  document.getElementById('trailerIframe').src = '';
+  document.getElementById('trailerModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeTrailer(); });
+</script>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
