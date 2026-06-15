@@ -43,7 +43,7 @@ public class ManageMovieServlet extends HttpServlet {
         if ("edit".equals(req.getParameter("action"))) {
             String id = req.getParameter("id");
             Movie editing = (id != null) ? movieDAO.getById(id) : null;
-            if (editing == null || "NOW_SHOWING".equals(editing.getStatus())) {
+            if (editing == null) {
                 resp.sendRedirect(req.getContextPath() + "/manager/movies");
                 return;
             }
@@ -63,6 +63,8 @@ public class ManageMovieServlet extends HttpServlet {
 
         if ("update".equals(action)) {
             handleUpdate(req, resp);
+        } else if ("delete".equals(action)) {
+            handleDelete(req, resp);
         } else {
             handleCreate(req, resp);
         }
@@ -91,7 +93,7 @@ public class ManageMovieServlet extends HttpServlet {
             throws ServletException, IOException {
         String id = req.getParameter("id");
         Movie existing = (id != null) ? movieDAO.getById(id) : null;
-        if (existing == null || "NOW_SHOWING".equals(existing.getStatus())) {
+        if (existing == null) {
             resp.sendRedirect(req.getContextPath() + "/manager/movies");
             return;
         }
@@ -114,6 +116,18 @@ public class ManageMovieServlet extends HttpServlet {
             partial.setId(id);
             forwardWithError(req, resp, ex.getMessage(), partial, parseGenreIds(req), existing);
         }
+    }
+
+    private void handleDelete(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        String id = req.getParameter("id");
+        if (id == null || id.isBlank()) {
+            resp.sendRedirect(req.getContextPath() + "/manager/movies");
+            return;
+        }
+        boolean deleted = movieDAO.delete(id);
+        String param = deleted ? "?success=deleted" : "?error=has-showtimes";
+        resp.sendRedirect(req.getContextPath() + "/manager/movies" + param);
     }
 
     private String validate(Movie movie, String excludeId) {
@@ -249,6 +263,7 @@ public class ManageMovieServlet extends HttpServlet {
             throws ServletException, IOException {
         req.setAttribute("movieList", movieDAO.getAllForManager());
         req.setAttribute("genreList", genreDAO.getAllActive());
+        req.setAttribute("movieIdsWithShowtimes", movieDAO.getMovieIdsWithShowtimes());
         req.getRequestDispatcher("/WEB-INF/views/manager/movie-list.jsp").forward(req, resp);
     }
 }

@@ -341,3 +341,133 @@
     padding: 20px 16px;
   }
 }
+
+/* ── Similar Movies (Gợi ý phim) ── */
+.sr-section {
+  margin-top: 56px;
+  padding-top: 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.sr-heading {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 24px;
+  letter-spacing: -0.01em;
+}
+
+.sr-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+}
+
+.sr-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(18, 18, 18, 0.6);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sr-card:hover {
+  transform: translateY(-4px);
+  border-color: #e50914;
+  box-shadow: 0 12px 32px rgba(229, 9, 20, 0.15);
+}
+
+.sr-poster-wrap {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  background: #1a1a1a;
+}
+
+.sr-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.sr-card:hover .sr-poster {
+  transform: scale(1.05);
+}
+
+.sr-poster--blank {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.sr-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.sr-badge--now  { background: #16a34a; color: #fff; }
+.sr-badge--early { background: #d97706; color: #fff; }
+.sr-badge--soon { background: #2563eb; color: #fff; }
+
+.sr-info {
+  padding: 10px 12px 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sr-title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sr-genres {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sr-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffd740;
+  margin-top: auto;
+}
+
+@media (max-width: 1200px) {
+  .sr-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .sr-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+}
+
+@media (max-width: 480px) {
+  .sr-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
