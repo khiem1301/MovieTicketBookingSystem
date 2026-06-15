@@ -397,6 +397,18 @@
   color: var(--text-muted);
 }
 
+.admin-stats-grid--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.admin-stat-value--money {
+  font-size: 22px;
+}
+
+.admin-table--top-movies td {
+  vertical-align: middle;
+}
+
 .admin-module-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -484,6 +496,9 @@
   }
   .admin-stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .admin-stats-grid--3 {
+    grid-template-columns: 1fr;
   }
   .admin-module-grid {
     grid-template-columns: 1fr;
