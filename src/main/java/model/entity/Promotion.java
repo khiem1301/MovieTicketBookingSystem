@@ -68,6 +68,13 @@ public class Promotion {
         return endDate != null && endDate.before(new java.util.Date());
     }
 
+    /** true nếu ACTIVE nhưng chưa đến start_date */
+    public boolean isScheduled() {
+        return "ACTIVE".equals(status)
+            && startDate != null
+            && startDate.getTime() > System.currentTimeMillis();
+    }
+
     /** true nếu đang trong khoảng hiệu lực và trạng thái ACTIVE */
     public boolean isCurrentlyValid() {
         long now = System.currentTimeMillis();

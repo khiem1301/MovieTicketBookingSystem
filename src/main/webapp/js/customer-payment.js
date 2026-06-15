@@ -12,6 +12,13 @@
   var timerId = null;
 
   document.addEventListener('DOMContentLoaded', function () {
+    var promoInput = document.getElementById('payPromoCode');
+    if (promoInput) {
+      promoInput.addEventListener('input', function () {
+        promoInput.value = promoInput.value.toUpperCase();
+      });
+    }
+
     if (!countdownEl || !expiresMs) return;
 
     function tick() {
