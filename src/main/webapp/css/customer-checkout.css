@@ -70,6 +70,50 @@
   opacity: 0.5;
 }
 
+.ck-price-line {
+  margin-top: 6px;
+  font-size: 0.875rem;
+  color: #e9bcb6;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ck-price-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(233, 195, 73, 0.15);
+  color: #e9c349;
+  border: 1px solid rgba(233, 195, 73, 0.3);
+}
+
+.ck-price-original {
+  text-decoration: line-through;
+  opacity: 0.55;
+  font-weight: 500;
+}
+
+.ck-price-note {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.ck-dynamic-price-note {
+  font-size: 0.75rem;
+  color: rgba(233, 195, 73, 0.9);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .ck-age-badge {
   flex-shrink: 0;
   padding: 4px 10px;
@@ -827,6 +871,90 @@
   color: #e5e2e1;
   padding-bottom: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pay-promo-block {
+  margin-bottom: 16px;
+}
+
+.pay-promo-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e9bcb6;
+  margin-bottom: 8px;
+}
+
+.pay-promo-form {
+  margin: 0;
+}
+
+.pay-promo-row {
+  display: flex;
+  gap: 8px;
+}
+
+.pay-promo-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e5e2e1;
+  font-size: 14px;
+}
+
+.pay-promo-input:focus {
+  outline: none;
+  border-color: rgba(255, 180, 170, 0.5);
+}
+
+.pay-promo-apply-btn,
+.pay-promo-remove-btn {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e5e2e1;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.pay-promo-apply-btn:hover,
+.pay-promo-remove-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.pay-promo-applied {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(233, 195, 73, 0.08);
+  border: 1px solid rgba(233, 195, 73, 0.25);
+}
+
+.pay-promo-applied-code {
+  font-weight: 700;
+  color: #e9c349;
+  font-size: 14px;
+}
+
+.pay-promo-applied-title {
+  font-size: 12px;
+  color: rgba(233, 188, 182, 0.85);
+}
+
+.pay-breakdown-row--discount {
+  color: #e9c349;
 }
 
 .pay-breakdown {

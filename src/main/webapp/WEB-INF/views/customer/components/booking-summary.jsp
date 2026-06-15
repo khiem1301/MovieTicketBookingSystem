@@ -44,6 +44,12 @@
         <span class="ck-total-value" id="ckTotal">0 ₫</span>
       </div>
       <p class="ck-total-note">Chưa bao gồm VAT và phí dịch vụ</p>
+      <c:if test="${showtime.effectivePrice != null and showtime.basePrice != null and showtime.effectivePrice ne showtime.basePrice}">
+        <p class="ck-dynamic-price-note">
+          <span class="ck-price-badge">Giá động</span>
+          Giá vé = giá suất sau điều chỉnh × hệ số loại ghế
+        </p>
+      </c:if>
 
       <div class="ck-hold-timer" id="ckHoldTimer"
            <c:if test="${empty holdExpiresAt}">hidden</c:if>

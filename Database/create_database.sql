@@ -981,6 +981,42 @@ INSERT INTO MovieGenres (movie_id, genre_id) VALUES
 GO
 
 -- ============================================================
+-- SEED FR-50: PricingRules (dynamic pricing demo)
+-- ============================================================
+INSERT INTO PricingRules (
+    id, rule_name, condition_type, day_of_week, time_from, time_to,
+    date_from, date_to, adjustment_type, adjustment_value, priority, status, created_by
+) VALUES
+    ('CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCC01',
+     N'Phụ thu cuối tuần', 'DAY_OF_WEEK', '6,7', NULL, NULL,
+     NULL, NULL, 'FIXED_AMOUNT', 10000, 10, 'ACTIVE',
+     '22222222-2222-2222-2222-222222222202'),
+    ('CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCC02',
+     N'Phụ thu khung tối', 'TIME_RANGE', NULL, '21:00:00', '23:00:00',
+     NULL, NULL, 'PERCENTAGE', 10, 5, 'ACTIVE',
+     '22222222-2222-2222-2222-222222222202');
+GO
+
+-- ============================================================
+-- SEED FR-22: Promotions (voucher demo — quản lý qua /admin/promotions)
+-- ============================================================
+INSERT INTO Promotions (
+    id, code, title, description, discount_type, discount_value,
+    max_discount_amount, min_order_amount, start_date, end_date, usage_limit, used_count, status
+) VALUES
+    ('DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDD01',
+     'WEEKEND10', N'Giảm 10% cuối tuần',
+     N'Giảm 10% tổng vé, tối đa 50.000đ. Đơn tối thiểu 100.000đ.',
+     'PERCENTAGE', 10, 50000, 100000,
+     DATEADD(DAY, -1, GETDATE()), DATEADD(DAY, 30, GETDATE()), 100, 0, 'ACTIVE'),
+    ('DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDD02',
+     'FLAT20K', N'Giảm cố định 20.000đ',
+     N'Giảm 20.000đ cho đơn từ 150.000đ trở lên.',
+     'FIXED_AMOUNT', 20000, NULL, 150000,
+     DATEADD(DAY, -1, GETDATE()), DATEADD(DAY, 30, GETDATE()), 50, 0, 'ACTIVE');
+GO
+
+-- ============================================================
 -- KIEM TRA KET QUA
 -- ============================================================
 PRINT N'';
