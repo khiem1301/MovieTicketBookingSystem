@@ -150,6 +150,8 @@
               </tbody>
             </table>
           </div>
+          <p class="admin-stats">Tổng: <strong><c:out value="${historyTotal}"/></strong> bản ghi</p>
+          <%@ include file="/WEB-INF/views/admin/pagination.jspf" %>
         </c:when>
         <c:otherwise>
           <c:choose>

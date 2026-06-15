@@ -146,6 +146,7 @@
                 <a href="${pageContext.request.contextPath}/admin/dashboard">Bảng điều khiển</a>
                 <a href="${pageContext.request.contextPath}/admin/users">Quản lý người dùng</a>
                 <a href="${pageContext.request.contextPath}/admin/config">Cấu hình hệ thống</a>
+                <a href="${pageContext.request.contextPath}/admin/reports">Báo cáo &amp; thống kê</a>
               </c:if>
               <a href="${pageContext.request.contextPath}/logout"
                  style="color:#ef5350 !important;">Đăng xuất</a>
