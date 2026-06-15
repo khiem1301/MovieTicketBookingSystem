@@ -18,6 +18,12 @@
   <c:if test="${param.success == 'updated'}">
     <div class="mm-alert mm-alert--success">Movie updated successfully.</div>
   </c:if>
+  <c:if test="${param.success == 'deleted'}">
+    <div class="mm-alert mm-alert--success">Movie deleted successfully.</div>
+  </c:if>
+  <c:if test="${param.error == 'has-showtimes'}">
+    <div class="mm-alert mm-alert--error">Cannot delete — this movie already has showtimes.</div>
+  </c:if>
 
   <div class="mm-header">
     <div>
@@ -161,24 +167,31 @@
                       <c:otherwise><span class="mm-status mm-status--ended">Ended</span></c:otherwise>
                     </c:choose>
                   </td>
-                  <td>
-                    <c:choose>
-                      <c:when test="${mv.status == 'NOW_SHOWING'}">
-                        <span class="mm-action-btn mm-action-btn--locked" title="Không thể sửa phim đang chiếu">
+                  <td class="mm-td-actions">
+                    <a href="${pageContext.request.contextPath}/manager/movies?action=edit&id=<c:out value='${mv.id}'/>"
+                       class="mm-action-btn mm-action-btn--edit" title="Edit">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                      </svg>
+                    </a>
+                    <c:if test="${not movieIdsWithShowtimes.contains(mv.id)}">
+                      <form method="post"
+                            action="${pageContext.request.contextPath}/manager/movies"
+                            style="display:inline"
+                            onsubmit="return confirmDelete(this)">
+                        <input type="hidden" name="action" value="delete"/>
+                        <input type="hidden" name="id"     value="<c:out value='${mv.id}'/>"/>
+                        <input type="hidden" name="title"  value="<c:out value='${mv.title}'/>"/>
+                        <button type="submit" class="mm-action-btn mm-action-btn--delete" title="Delete">
                           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                            <path d="M10 11v6"/><path d="M14 11v6"/>
+                            <path d="M9 6V4h6v2"/>
                           </svg>
-                        </span>
-                      </c:when>
-                      <c:otherwise>
-                        <a href="${pageContext.request.contextPath}/manager/movies?action=edit&id=<c:out value='${mv.id}'/>"
-                           class="mm-action-btn mm-action-btn--edit" title="Edit">
-                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                          </svg>
-                        </a>
-                      </c:otherwise>
-                    </c:choose>
+                        </button>
+                      </form>
+                    </c:if>
                   </td>
                 </tr>
               </c:forEach>
@@ -449,6 +462,11 @@
   var ctx = '${pageContext.request.contextPath}';
 
   /* ── View toggle ─────────────────────────────────────────── */
+  window.confirmDelete = function (form) {
+    var title = form.querySelector('[name="title"]').value;
+    return confirm('Delete "' + title + '"?\nThis cannot be undone.');
+  };
+
   window.showFormView = function () {
     document.getElementById('mmListView').style.display = 'none';
     document.getElementById('mmFormView').style.display = 'block';
