@@ -46,6 +46,14 @@ public final class AccessControl {
             "/staff/", Set.of("STAFF")
     );
 
+    // Paths dưới prefix /admin/ mà MANAGER cũng được phép truy cập
+    private static final Set<String> ADMIN_MANAGER_PATHS = Set.of(
+            "/admin/promotions",
+            "/admin/promotions/save",
+            "/admin/promotions/delete",
+            "/admin/promotions/toggle"
+    );
+
     private static final Set<String> AUTH_ANY_EXACT = Set.of("/profile");
 
     private AccessControl() {}
@@ -108,6 +116,10 @@ public final class AccessControl {
      * @return empty = any authenticated role; non-empty = role must be in the set
      */
     public static Optional<Set<String>> requiredRoles(String path) {
+        // Kiểm tra exception paths trước (ưu tiên cao hơn prefix rules)
+        if (ADMIN_MANAGER_PATHS.contains(path)) {
+            return Optional.of(Set.of("ADMIN", "MANAGER"));
+        }
         for (Map.Entry<String, Set<String>> entry : ROLE_PREFIXES.entrySet()) {
             String prefix = entry.getKey();
             String base = prefix.substring(0, prefix.length() - 1);
