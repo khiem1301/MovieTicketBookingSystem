@@ -7,6 +7,10 @@ import java.util.List;
 public class BookingDetailDTO {
     private String bookingId;
     private String bookingCode;
+    private String userId;
+    private String showtimeId;
+    private String bookingSource;
+    private Timestamp expiredAt;
     private String customerName;
     private String customerPhone;
     private String bookingStatus;
@@ -41,6 +45,18 @@ public class BookingDetailDTO {
 
     public String getBookingCode()   { return bookingCode; }
     public void setBookingCode(String v) { this.bookingCode = v; }
+
+    public String getUserId()        { return userId; }
+    public void setUserId(String v)  { this.userId = v; }
+
+    public String getShowtimeId()    { return showtimeId; }
+    public void setShowtimeId(String v) { this.showtimeId = v; }
+
+    public String getBookingSource() { return bookingSource; }
+    public void setBookingSource(String v) { this.bookingSource = v; }
+
+    public Timestamp getExpiredAt()  { return expiredAt; }
+    public void setExpiredAt(Timestamp v) { this.expiredAt = v; }
 
     public String getCustomerName()  { return customerName; }
     public void setCustomerName(String v){ this.customerName = v; }

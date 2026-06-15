@@ -573,3 +573,353 @@
   font-size: 12px;
   color: rgba(233, 188, 182, 0.5);
 }
+
+.ck-pending-pay-link {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e9c349;
+  margin-bottom: 4px;
+  transition: color 0.2s;
+}
+
+.ck-pending-pay-link:hover {
+  color: #ffe088;
+}
+
+.ck-pending-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ck-cancel-form {
+  margin: 0;
+}
+
+.ck-cancel-btn {
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: #e9bcb6;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.ck-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffb4ab;
+  border-color: rgba(255, 180, 171, 0.35);
+}
+
+/* ── FR-14 Payment page (.pay-*) ─────────────────────────────── */
+.pay-page {
+  padding-bottom: 64px;
+  min-height: calc(100vh - var(--header-h));
+}
+
+.pay-header {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 40;
+  background: rgba(19, 19, 19, 0.85);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pay-header-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pay-header-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.pay-title {
+  font-size: clamp(1.25rem, 2vw, 2rem);
+  font-weight: 700;
+  color: #e5e2e1;
+}
+
+.pay-subtitle {
+  font-size: 0.9375rem;
+  color: #e9bcb6;
+  margin-top: 4px;
+}
+
+.pay-secure-badge {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #e9bcb6;
+}
+
+@media (min-width: 768px) {
+  .pay-secure-badge { display: flex; }
+}
+
+.pay-expiry-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 24px;
+  margin-top: 16px;
+  background: rgba(229, 9, 20, 0.12);
+  border: 1px solid rgba(229, 9, 20, 0.25);
+  border-radius: 12px;
+  max-width: 480px;
+}
+
+.pay-expiry-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e9bcb6;
+}
+
+.pay-expiry-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #ffb4aa;
+}
+
+.pay-expiry-value--expired {
+  color: #ffb4ab;
+}
+
+.pay-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-top: 32px;
+  max-width: 1440px;
+}
+
+@media (min-width: 1024px) {
+  .pay-layout {
+    grid-template-columns: 1fr 400px;
+    gap: 32px;
+    align-items: start;
+  }
+}
+
+.pay-card {
+  background: rgba(32, 31, 31, 0.6);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 40px -10px rgba(229, 9, 20, 0.12);
+}
+
+.pay-card--summary {
+  position: sticky;
+  top: calc(var(--header-h) + 80px);
+}
+
+.pay-card-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgba(229, 9, 20, 0.2);
+  border: 1px solid rgba(229, 9, 20, 0.35);
+  color: #ffb4aa;
+  margin-bottom: 12px;
+}
+
+.pay-ref {
+  font-size: 14px;
+  color: #e9bcb6;
+  margin-bottom: 20px;
+}
+
+.pay-ref strong {
+  color: #e5e2e1;
+}
+
+.pay-movie-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.pay-movie-poster {
+  width: 100px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 2 / 3;
+  background: #201f1f;
+}
+
+.pay-movie-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pay-poster-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+
+.pay-movie-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #e5e2e1;
+  margin-bottom: 8px;
+}
+
+.pay-movie-meta {
+  font-size: 14px;
+  color: #e9bcb6;
+  margin-bottom: 4px;
+}
+
+.pay-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e9bcb6;
+  margin-bottom: 12px;
+}
+
+.pay-seat-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pay-seat-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #e5e2e1;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.pay-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 12px;
+}
+
+.pay-breakdown-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #e9bcb6;
+}
+
+.pay-breakdown-row--total {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e5e2e1;
+  padding-top: 8px;
+}
+
+.pay-final-amount {
+  color: #ffb4aa;
+  font-size: 1.25rem;
+}
+
+.pay-vat-note {
+  font-size: 12px;
+  color: rgba(233, 188, 182, 0.6);
+  margin-bottom: 24px;
+}
+
+.pay-methods form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.pay-method-btn {
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e9bcb6;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.pay-stub-note {
+  font-size: 12px;
+  color: rgba(233, 188, 182, 0.55);
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.pay-back-link {
+  display: block;
+  text-align: center;
+  font-size: 14px;
+  color: #e9bcb6;
+  transition: color 0.2s;
+}
+
+.pay-back-link:hover {
+  color: #e5e2e1;
+}
+
+.pay-cancel-form {
+  margin: 16px 0 12px;
+}
+
+.pay-cancel-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 180, 171, 0.35);
+  background: rgba(255, 180, 171, 0.08);
+  color: #ffb4ab;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.pay-cancel-btn:hover {
+  background: rgba(255, 180, 171, 0.15);
+  border-color: rgba(255, 180, 171, 0.55);
+}
