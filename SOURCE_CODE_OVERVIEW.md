@@ -45,18 +45,18 @@ Browser
 
 | Thống kê | Số lượng |
 |----------|----------|
-| File Java (`src/main/java`) | **~118** |
+| File Java (`src/main/java`) | **~120** |
 | Servlet đã triển khai | **39** |
-| DAO | **19** |
+| DAO | **21** |
 | Entity | **14** |
 | DTO | **~12** |
 | Filter | **3** |
-| Util | **~25** |
-| JSP view | **~38** (+ 4 `.gitkeep`) |
+| Util | **~27** |
+| JSP view | **~39** (+ 4 `.gitkeep`) |
 | CSS | **13** |
 | JS | **10** |
 | Script SQL | `create_database.sql` |
-| Screen Design (mockup HTML) | **5 màn** (Movie-detail, Seat selection, Cinema Auditoriums, Seat Layout, Showtime Management) |
+| Screen Design (mockup HTML) | **7 màn** (Movie-detail, Seat selection, Ticket booking, Online payment, Cinema Auditoriums, Seat Layout, Showtime Management) |
 
 ---
 
@@ -78,7 +78,9 @@ MovieTicketBookingSystem/
 ├── implementation_plan_fr-22_fr-50.md     # Kế hoạch FR-22 + FR-50 (customer)
 ├── SEAT_LAYOUT_DESIGN.md            # Thiết kế layout ghế
 ├── Database/
-│   └── create_database.sql          # Schema + seed data
+│   ├── create_database.sql          # Schema + seed data
+│   └── migrations/
+│       └── add_vietqr_payment_method.sql  # Thêm VIETQR vào CK_Payments_Method
 ├── scripts/                         # Setup & Git hooks
 │   ├── setup.bat / setup.ps1
 │   ├── install-git-hooks.bat
@@ -92,7 +94,7 @@ MovieTicketBookingSystem/
     │   ├── filter/                  # Servlet filters
     │   ├── model/                   # entity · dto · enums
     │   └── utils/                   # Auth, email, OAuth, image upload, validators...
-    ├── resources/                   # database/email/google properties
+    ├── resources/                   # database/email/google/vietqr properties
     └── webapp/
         ├── index.jsp
         ├── css/ · js/ · images/
@@ -150,6 +152,8 @@ MovieTicketBookingSystem/
 | `email.properties` | Gitignored | Config email thật |
 | `google.properties.example` | Committed | Template Google OAuth |
 | `google.properties` | Gitignored | Config OAuth thật |
+| `vietqr.properties.example` | Committed | Template STK ngân hàng VietQR (img.vietqr.io) |
+| `vietqr.properties` | Gitignored | STK nhận tiền thật (local) |
 
 `DBContext` đọc `database.properties` lúc khởi tạo static, ném `ExceptionInInitializerError` nếu thiếu file.
 
@@ -235,16 +239,19 @@ MovieTicketBookingSystem/
 | `/checkout?action=seats&showtimeId=` | `CheckoutServlet` | GET | ✅ CUSTOMER | JSON refresh trạng thái ghế (poll client 2s) |
 | `/checkout` | `CheckoutServlet` | POST `action=hold` | ✅ CUSTOMER | AJAX đồng bộ `SeatHolds` ngay khi chọn/bỏ ghế (FR-13) |
 | `/checkout` | `CheckoutServlet` | POST (form) | ✅ CUSTOMER | Validate tuổi + ghế → `createOnlineBooking` (FR-14) → redirect `/payment` |
-| `/payment?bookingId=` | `PaymentServlet` | GET | ✅ CUSTOMER | Tóm tắt đơn + voucher (FR-22) + countdown (stub FR-16) |
+| `/payment?bookingId=` | `PaymentServlet` | GET | ✅ CUSTOMER | Tóm tắt đơn + voucher (FR-22) + countdown + VietQR (FR-16) |
 | `/payment` | `PaymentServlet` | POST `action=applyPromo` | ✅ CUSTOMER | Áp mã voucher (FR-22) |
 | `/payment` | `PaymentServlet` | POST `action=removePromo` | ✅ CUSTOMER | Gỡ mã voucher, hoàn `used_count` |
 | `/payment` | `PaymentServlet` | POST `action=cancel` | ✅ CUSTOMER | Hủy đơn PENDING → `CANCELLED`, giải phóng ghế + hoàn voucher |
-| `/payment` | `PaymentServlet` | POST (khác) | ✅ CUSTOMER | Stub VNPay/MoMo (FR-16–18) |
+| `/payment` | `PaymentServlet` | POST `action=payVietQR` | ✅ CUSTOMER | Tạo QR VietQR + `Payments` PENDING (FR-16) |
+| `/payment` | `PaymentServlet` | POST `action=confirmVietQR` | ✅ CUSTOMER | Xác nhận chuyển khoản → phát vé (FR-17) |
+| `/payment/success?bookingId=` | `PaymentSuccessServlet` | GET | ✅ CUSTOMER | Trang xác nhận thanh toán thành công (FR-17) |
+| `/payment/status?bookingId=` | `PaymentStatusServlet` | GET | ✅ CUSTOMER | JSON poll trạng thái đơn (dự phòng webhook) |
 | `/booking-history` | — | — | ❌ Chưa có | Lịch sử đặt vé |
 | `/loyalty` | — | — | ❌ Chưa có | Điểm tích lũy |
 | `/reviews/mine` | — | — | ❌ Chưa có | Đánh giá của tôi |
 
-> `ShowtimesServlet` nằm package `controller` (public). Package `controller.customer` có `CheckoutServlet` (FR-12/13/14) và `PaymentServlet` (FR-14 / FR-22 / FR-16 stub).
+> `ShowtimesServlet` nằm package `controller` (public). Package `controller.customer` có `CheckoutServlet` (FR-12/13/14), `PaymentServlet` (FR-14 / FR-22 / FR-16 VietQR), `PaymentSuccessServlet` (FR-17), `PaymentStatusServlet` (poll JSON).
 > Chi tiết module Customer → [`CUSTOMER_MODULE_DETAIL.md`](CUSTOMER_MODULE_DETAIL.md)
 
 ### 4.6 Mọi role đã đăng nhập
@@ -365,14 +372,25 @@ MovieTicketBookingSystem/
 - **POST** (form, không `action`) — validate tuổi; `BookingDAO.createOnlineBooking()` (PENDING/UNPAID, `expired_at` 10 phút, mã `BK-`); xóa `SeatHolds` sau commit; session `checkoutDraft`; redirect `/payment?bookingId=`
 - View: `customer/checkout.jsp` + 3 component (`.ck-*`); CSS `customer-checkout.css`; JS `customer-checkout.js` (hold AJAX + poll 2s hai chiều)
 
-#### `PaymentServlet` — `/payment` (FR-14 / FR-22 / FR-16 stub)
+#### `PaymentServlet` — `/payment` (FR-14 / FR-22 / FR-16 VietQR)
 
-- **GET** `?bookingId=` — `BookingDAO.getDetailById()` (gồm `discountAmount`, `vatAmount`, mã voucher đã áp); guard ownership + ONLINE + PENDING + chưa hết `expired_at`
-- **POST** `action=applyPromo` — FR-22: `PromotionDAO.findByCode` + `validateForApply` (lỗi cụ thể: chưa đến ngày / hết hạn / hết lượt); `PromotionCalculator` + `BookingDAO.applyPromotionToBooking`
+- **GET** `?bookingId=` — `BookingDAO.getDetailById()` (gồm `discountAmount`, `vatAmount`, mã voucher đã áp); guard ownership + ONLINE + PENDING + chưa hết `expired_at`; khôi phục session QR nếu có
+- **POST** `action=applyPromo` — FR-22: `PromotionDAO.findByCode` + `validateForApply`; `PromotionCalculator` + `BookingDAO.applyPromotionToBooking`
 - **POST** `action=removePromo` — FR-22: `BookingDAO.removePromotionFromBooking` + `PromotionDAO.decrementUsedCount`
 - **POST** `action=cancel` — `BookingDAO.cancelOnlinePendingBooking()` (`CANCELLED` + xóa `SeatHolds` + hoàn voucher)
-- **POST** (khác) — stub thông báo VNPay/MoMo (FR-16)
-- View: `customer/payment.jsp` (`.pay-*`, `.pay-promo-*`); JS `customer-payment.js` (countdown + uppercase mã voucher)
+- **POST** `action=payVietQR` — `VietQRUtil.qrImageUrl()` (img.vietqr.io) + `PaymentDAO.insertPendingOnlineVietQR`
+- **POST** `action=confirmVietQR` — `BookingDAO.completeOnlinePayment()` + `TicketDAO.issueTicketsForBooking`
+- Cấu hình: `src/main/resources/vietqr.properties` (sao từ `vietqr.properties.example`) — BIN, STK, tên chủ TK; QR qua img.vietqr.io
+- View: `customer/payment.jsp`, `payment-success.jsp` (`.pay-*`, `.pay-vqr-*`); JS `customer-payment.js` (countdown + copy STK/nội dung CK)
+
+#### `PaymentSuccessServlet` — `/payment/success` (FR-17)
+
+- **GET** `?bookingId=` — guard ownership + ONLINE + `payment_status = PAID`; forward `payment-success.jsp`
+- Xóa session `checkoutDraft`, `vietqr*` sau thành công
+
+#### `PaymentStatusServlet` — `/payment/status` (JSON)
+
+- **GET** `?bookingId=` — trả `{ paid, pending, successUrl? }` cho poll client (hiện chưa dùng trên UI vì VietQR xác nhận thủ công)
 
 ---
 
@@ -391,7 +409,9 @@ MovieTicketBookingSystem/
 | `SeatHoldDAO` | `SeatHolds` | FR-13: `findBlockingSeatCodes`, `holdSeats`, **`syncHolds`**, **`releaseHolds`**, `getActiveHoldExpiry`, `getHeldSeatIds`, `deleteExpiredHolds` |
 | `SeatTypeDAO` | `SeatTypes` | getAll, getById, create, update, delete; isDuplicate*; getTypeKeyToIdMap; countUsedIn |
 | `CinemaRoomDAO` | `CinemaRooms` | getAll, getById, getActiveRooms, create, updateName, updateStatus; existsByName*; countUpcomingShowtimes, countActiveSeats, countAccessibleSeats |
-| `BookingDAO` | `Bookings`, `BookingSeats` | `createOfflineBooking`, **`createOnlineBooking`**, **`applyPromotionToBooking`**, **`removePromotionFromBooking`**, **`cancelOnlinePendingBooking`**, `findActiveOnlinePendingBookingId`, `confirmPayment`, `getById`, `getDetailById`, `getCurrentVatRate` |
+| `BookingDAO` | `Bookings`, `BookingSeats` | `createOfflineBooking`, **`createOnlineBooking`**, **`applyPromotionToBooking`**, **`removePromotionFromBooking`**, **`cancelOnlinePendingBooking`**, **`completeOnlinePayment`**, `findActiveOnlinePendingBookingId`, `confirmPayment`, `getById`, `getDetailById`, `getCurrentVatRate` |
+| `PaymentDAO` | `Payments` | FR-16: **`insertPendingOnlineVietQR`**, **`findLatestPendingVietQR`**, **`findByTransferCode`**, `markSuccess`, `markFailed` |
+| `TicketDAO` | `Tickets`, `BookingSeats` | FR-17: **`issueTicketsForBooking`**, `findBookingSeats` |
 | `BookingPromotionDAO` | `BookingPromotions` | FR-22: find/insert/delete junction đơn–voucher |
 | `BookingStatsDAO` | `Bookings`, `BookingSeats`, `Showtimes`, `Movies` | Thống kê báo cáo admin: overview + top movies theo date range |
 | `PromotionDAO` | `Promotions` | CRUD (admin `/admin/promotions`, MANAGER truy cập được); FR-22: **`findByCode`**, **`validateForApply`**, **`findByCodeForApply`**, **`incrementUsedCountIfAvailable`**, **`decrementUsedCount`** |
@@ -400,7 +420,7 @@ MovieTicketBookingSystem/
 | `SystemConfigLogDAO` | `SystemConfigLog` | insert, findLoyaltyHistory (audit log cấu hình loyalty) |
 | `VatRuleDAO` | `VatRules` | findEffectiveNow, findScheduledList, findCurrentActiveRate (fallback 8%), findById, createAndActivate, updateScheduled, cancelScheduled, findHistory |
 
-**Bảng có schema nhưng chưa có DAO (hoặc chỉ đọc gián tiếp):** `Payments`, `Tickets`, `LoyaltyPointsLog`, `ShowtimeIncidents`, `ChatbotConversations`, `ChatbotMessages`, `MovieReviews`, `CinemaInfo`
+**Bảng có schema nhưng chưa có DAO (hoặc chỉ đọc gián tiếp):** `LoyaltyPointsLog`, `ShowtimeIncidents`, `ChatbotConversations`, `ChatbotMessages`, `MovieReviews`, `CinemaInfo`
 
 ---
 
@@ -461,7 +481,7 @@ MovieTicketBookingSystem/
 | `/admin/*` | ADMIN |
 | `/manager/*` | MANAGER |
 | `/staff/*` | STAFF |
-| `/booking-history`, `/loyalty`, `/reviews/mine`, `/checkout`, `/payment` | CUSTOMER |
+| `/booking-history`, `/loyalty`, `/reviews/mine`, `/checkout`, `/payment`, `/payment/status`, `/payment/success` | CUSTOMER |
 | `/profile`, `/profile/*` | Bất kỳ role đã login |
 | `/movies`, `/showtimes` | Public (prefix) |
 | `/reviews*` | Public (trừ `/reviews/mine`) |
@@ -496,6 +516,8 @@ MovieTicketBookingSystem/
 | `SeatHoldException` | FR-13: ngoại lệ conflict khi giữ ghế (race / ghế đã bị chọn) |
 | `AdminPaginationUtil` | Parse page number, `DEFAULT_PAGE_SIZE` cho admin list/report |
 | `ReportDateUtil` | Resolve date range (preset `range` hoặc custom `from`/`to`) cho báo cáo |
+| `VietQRConfig` | FR-16: đọc `vietqr.properties` — BIN, STK, tên chủ TK, template QR |
+| `VietQRUtil` | FR-16: `transferContent(bookingCode)`, `qrImageUrl(amount, content)` → URL img.vietqr.io |
 
 ---
 
@@ -567,14 +589,15 @@ MovieTicketBookingSystem/
 |------|-------|
 | `showtimes.jsp` | Wrapper trang lịch chiếu — header/footer + `jsp:include` 2 component |
 | `checkout.jsp` | Wrapper chọn ghế (FR-12) — `extraCss=customer-checkout` |
-| `payment.jsp` | Thanh toán online (FR-14 / FR-22) — countdown, breakdown VAT, voucher |
+| `payment.jsp` | Thanh toán online VietQR (FR-14 / FR-16 / FR-22) — QR, STK, voucher, countdown |
+| `payment-success.jsp` | Xác nhận thanh toán thành công + tóm tắt vé (FR-17) |
 | `components/movie-info-placeholder.jsp` | **Phần trên** showtimes — thông tin phim (placeholder; đồng nghiệp mở rộng) |
 | `components/showtimes-selector.jsp` | **Phần dưới** — tab 7 ngày + suất theo phòng + chip link `/checkout` (FR-11) |
 | `components/checkout-header.jsp` | Back link, tên phim, giờ, phòng, badge tuổi (FR-12) |
 | `components/seat-map.jsp` | Màn hình + lưới ghế + legend (`.ck-*`) |
 | `components/booking-summary.jsp` | Ghế đã chọn, countdown giữ ghế, badge giá động, nút hủy/tiếp tục đơn PENDING, POST "Tiếp tục thanh toán" |
 
-> Kiến trúc modular: [`CUSTOMER_MODULE_DETAIL.md`](CUSTOMER_MODULE_DETAIL.md) §3, §14. Design: `Screen Design/Seat selection/`, `Screen Design/Ticket booking/`.
+> Kiến trúc modular: [`CUSTOMER_MODULE_DETAIL.md`](CUSTOMER_MODULE_DETAIL.md) §3, §14. Design: `Screen Design/Seat selection/`, `Screen Design/Online payment/`.
 
 ### 10.8 CSS & JS
 
@@ -594,7 +617,7 @@ MovieTicketBookingSystem/
 | `css/manager-seat-layout.css` | Editor layout ghế — `.slt-*` classes |
 | `css/manager-showtimes.css` | Quản lý suất chiếu — `.st-*`, filter bar, status badges |
 | `css/customer-showtimes.css` | Lịch chiếu khách — glass panel, tab ngày, chip suất (`.mi-*`, `.st-*`) |
-| `css/customer-checkout.css` | Chọn ghế + payment — `.ck-*`, `.pay-*`, `.pay-promo-*` (glass, VIP gold, countdown) |
+| `css/customer-checkout.css` | Chọn ghế + payment — `.ck-*`, `.pay-*`, `.pay-promo-*`, `.pay-vqr-*` (glass, VIP gold, countdown) |
 
 **JS (10 file):**
 
@@ -609,7 +632,7 @@ MovieTicketBookingSystem/
 | `js/seat-type-colors.js` | Preset + dynamic HSL color cho loại ghế |
 | `js/showtimes-selector.js` | Tab chọn ngày suất chiếu (zero reload, FR-11) |
 | `js/customer-checkout.js` | Chọn ghế + **AJAX hold ngay** (`action=hold`), countdown giữ ghế, poll JSON 2s **hai chiều** (available ↔ sold) |
-| `js/customer-payment.js` | Countdown hết hạn đơn PENDING; uppercase mã voucher; redirect checkout khi hết giờ |
+| `js/customer-payment.js` | Countdown hết hạn đơn PENDING; uppercase mã voucher; nút copy STK/nội dung CK; redirect checkout khi hết giờ |
 
 ### 10.9 Images
 
@@ -620,7 +643,8 @@ MovieTicketBookingSystem/
 
 ## 11. Database
 
-**Script:** `Database/create_database.sql` (~990 dòng) — chạy một lần trên SSMS/Azure Data Studio.
+**Script:** `Database/create_database.sql` (~990 dòng) — chạy một lần trên SSMS/Azure Data Studio.  
+**Migration bổ sung:** `Database/migrations/add_vietqr_payment_method.sql` — thêm `VIETQR` vào `CK_Payments_Method` (DB đã tạo trước khi có VietQR).
 
 ### 11.1 26 bảng
 
@@ -698,7 +722,8 @@ MovieTicketBookingSystem/
 | Customer — Giữ ghế & validate (FR-13) | ✅ Hoàn thành | **Giữ ngay khi click** (`SeatHolds` 10 phút qua POST `action=hold`); validate tuổi + availability |
 | Customer — Áp mã giảm giá (FR-22) | ✅ Hoàn thành | `/payment` — `applyPromo` / `removePromo`; seed `WEEKEND10`, `FLAT20K` |
 | Customer — Tạo đơn online (FR-14) | ✅ Hoàn thành | Form POST → `Bookings` PENDING/UNPAID + redirect `/payment`; hủy đơn PENDING (`action=cancel`) |
-| Customer — Thanh toán VNPay/MoMo (FR-16–18) | ❌ Chưa làm | Trang `/payment` stub; callback, `Payments`, `Tickets` |
+| Customer — Thanh toán VietQR (FR-16–17) | ✅ Hoàn thành | QR img.vietqr.io; xác nhận thủ công; `PaymentDAO`, `TicketDAO` |
+| Customer — E-ticket / email vé (FR-18–19) | 🟡 Một phần | Vé lưu DB sau thanh toán; chưa gửi email |
 | Customer — Chi tiết phim (UI đầy đủ) | 🟡 Placeholder | `movie-info-placeholder.jsp` — đồng nghiệp làm |
 | Loyalty / Điểm tích lũy | ❌ Chưa làm | Schema + seed config |
 | Reviews | ❌ Chưa làm | Nav link có, chưa servlet |
@@ -746,13 +771,14 @@ sequenceDiagram
 2. **ADMIN không vào được `/manager/*`** — `RoleFilter` chặn; header vẫn hiện một số link manager cho ADMIN (phim, thể loại). Servlet `isAuthorized()` cho cả ADMIN nhưng bị filter chặn trước.
 3. **Không có CSRF token** trên form POST (admin, manager, staff).
 4. **Không có connection pool** — mỗi DAO gọi `DBContext.getConnection()` trực tiếp.
-5. **~7/26 bảng** chưa có lớp DAO đầy đủ — chỉ schema + seed. `Bookings` online có `createOnlineBooking` + `cancelOnlinePendingBooking`; `Promotions` / `BookingPromotions` có DAO (FR-22); `Payments`/`Tickets` chưa có DAO customer-facing.
-6. **Checkout — chặn ghế 2 giai đoạn:** (1) click ghế → `SeatHolds` 10 phút; (2) "Tiếp tục thanh toán" → `Bookings` PENDING (xóa holds). Poll JSON 2s, client cập nhật **hai chiều** (ghế giải phóng hiện lại available).
-7. **FR-22 voucher:** CRUD tại `/admin/promotions` (FR-21, MANAGER được truy cập); customer áp mã trên `/payment`. Validate Java (`validateForApply`) — **start_date phải ≤ hôm nay** mới áp được; admin hiện **SCHEDULED** nếu chưa đến ngày bắt đầu.
-8. **SQL Server booking ID** — `createOnlineBooking` / `createOfflineBooking` dùng `OUTPUT INSERTED.id` (không dùng `getGeneratedKeys` với `UNIQUEIDENTIFIER`).
-9. **Xóa phòng chiếu** chưa có — chỉ tạo, rename, toggle status.
-10. **Suất chiếu có booking** — manager không xóa hard; dùng status `CANCELLED`.
-11. **Không có test tự động** — JUnit dependency có nhưng chưa viết test.
+5. **~5/26 bảng** chưa có lớp DAO đầy đủ — chỉ schema + seed. Online booking có `BookingDAO`, `PaymentDAO`, `TicketDAO`; `Promotions` / `BookingPromotions` có DAO (FR-22).
+6. **VietQR — chưa đối soát tự động:** img.vietqr.io chỉ tạo QR; khách bấm "Tôi đã chuyển khoản" để hoàn tất (chưa webhook Casso/Sepay). Cấu hình STK tại `vietqr.properties` (gitignored).
+7. **Checkout — chặn ghế 2 giai đoạn:** (1) click ghế → `SeatHolds` 10 phút; (2) "Tiếp tục thanh toán" → `Bookings` PENDING (xóa holds). Poll JSON 2s, client cập nhật **hai chiều** (ghế giải phóng hiện lại available).
+8. **FR-22 voucher:** CRUD tại `/admin/promotions` (FR-21, MANAGER được truy cập); customer áp mã trên `/payment`. Validate Java (`validateForApply`) — **start_date phải ≤ hôm nay** mới áp được; admin hiện **SCHEDULED** nếu chưa đến ngày bắt đầu. Sau áp/gỡ voucher cần tạo lại mã QR.
+9. **SQL Server booking ID** — `createOnlineBooking` / `createOfflineBooking` dùng `OUTPUT INSERTED.id` (không dùng `getGeneratedKeys` với `UNIQUEIDENTIFIER`).
+10. **Xóa phòng chiếu** chưa có — chỉ tạo, rename, toggle status.
+11. **Suất chiếu có booking** — manager không xóa hard; dùng status `CANCELLED`.
+12. **Không có test tự động** — JUnit dependency có nhưng chưa viết test.
 
 ---
 

@@ -13,6 +13,7 @@ import java.util.Set;
  */
 public final class AccessControl {
 
+/** FR-16 — Thanh toán online (customer paths). */
     private static final Set<String> PUBLIC_EXACT = Set.of(
             "/",
             "/home",
@@ -38,7 +39,9 @@ public final class AccessControl {
             "/loyalty",
             "/reviews/mine",
             "/checkout",
-            "/payment"
+            "/payment",
+            "/payment/status",
+            "/payment/success"
     );
 
     private static final Map<String, Set<String>> ROLE_PREFIXES = Map.of(
