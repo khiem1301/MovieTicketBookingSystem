@@ -16,6 +16,8 @@ public class Seat {
     private BigDecimal ticketPrice;
     /** Computed field: true nếu ghế chưa bị đặt cho suất này. */
     private boolean available;
+    /** FR-13 — ghế đang được chính user hiện tại giữ (SeatHolds). */
+    private boolean heldByCurrentUser;
 
     public Seat() {}
 
@@ -60,4 +62,7 @@ public class Seat {
 
     public boolean isAvailable() { return available; }
     public void setAvailable(boolean available) { this.available = available; }
+
+    public boolean isHeldByCurrentUser() { return heldByCurrentUser; }
+    public void setHeldByCurrentUser(boolean heldByCurrentUser) { this.heldByCurrentUser = heldByCurrentUser; }
 }
