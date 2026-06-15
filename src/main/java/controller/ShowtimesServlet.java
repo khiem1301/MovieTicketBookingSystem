@@ -75,6 +75,7 @@ public class ShowtimesServlet extends HttpServlet {
         req.setAttribute("dateLabels", dateLabels);
         req.setAttribute("showtimeMap", showtimeMap);
         req.setAttribute("genreList", movieDAO.getAllGenres());
+        req.setAttribute("similarMovies", movieDAO.getSimilarMovies(movie.getId(), 6));
 
         req.getRequestDispatcher("/WEB-INF/views/customer/showtimes.jsp").forward(req, resp);
     }

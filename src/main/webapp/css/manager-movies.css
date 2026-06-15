@@ -364,6 +364,20 @@ body {
   border-color: rgba(255,255,255,0.06);
 }
 
+.mm-td-actions { display: flex; align-items: center; gap: 6px; }
+
+.mm-action-btn--delete {
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+.mm-action-btn--delete:hover {
+  background: rgba(229,57,53,0.15);
+  border-color: rgba(229,57,53,0.40);
+  color: #ef5350;
+  transform: translateY(-1px);
+}
+
 /* ── Pagination ───────────────────────────────────────────── */
 .mm-pagination {
   display: flex;
