@@ -81,22 +81,51 @@ public class VatRuleDAO {
                 .orElse(FALLBACK_RATE);
     }
 
+    private static final String HISTORY_WHERE = """
+            status = 'INACTIVE'
+            AND NOT (
+                start_date <= GETDATE()
+                AND (end_date IS NULL OR end_date >= GETDATE())
+            )
+            """;
+
     /** Quy tắc đã hết hiệu lực — loại rule vẫn còn trong khoảng ngày (dù status INACTIVE). */
     public List<VatRule> findHistory() {
-        String sql = SELECT_COLUMNS + """
-                WHERE status = 'INACTIVE'
-                  AND NOT (
-                      start_date <= GETDATE()
-                      AND (end_date IS NULL OR end_date >= GETDATE())
-                  )
-                ORDER BY created_at DESC
-                """;
-        List<VatRule> result = new ArrayList<>();
+        return findHistory(0, Integer.MAX_VALUE);
+    }
+
+    public int countHistory() {
+        String sql = "SELECT COUNT(*) AS total FROM VatRules WHERE " + HISTORY_WHERE;
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                result.add(mapRow(rs));
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("countHistory failed", e);
+        }
+        return 0;
+    }
+
+    public List<VatRule> findHistory(int offset, int limit) {
+        if (limit <= 0) {
+            return List.of();
+        }
+        String sql = SELECT_COLUMNS + """
+                WHERE %s
+                ORDER BY created_at DESC
+                OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                """.formatted(HISTORY_WHERE);
+        List<VatRule> result = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, Math.max(0, offset));
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    result.add(mapRow(rs));
+                }
             }
         } catch (SQLException e) {
             throw new RuntimeException("findHistory failed", e);
