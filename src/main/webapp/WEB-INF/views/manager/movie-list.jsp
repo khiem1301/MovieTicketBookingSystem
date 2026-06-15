@@ -60,8 +60,7 @@
           Advanced Filters
         </button>
       </div>
-    </div>
-
+    </di
     <c:choose>
       <c:when test="${empty movieList}">
         <div class="mm-empty">No movies found. Click <strong>+ Add Movie</strong> to add one.</div>

@@ -1,0 +1,306 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>CineReserve - Seat Selection</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Montserrat:wght@700;800;900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#e9bcb6",
+                        "surface-dim": "#131313",
+                        "primary-fixed-dim": "#ffb4aa",
+                        "on-primary-container": "#fff7f6",
+                        "surface": "#131313",
+                        "error": "#ffb4ab",
+                        "on-primary-fixed-variant": "#930007",
+                        "inverse-on-surface": "#313030",
+                        "background": "#131313",
+                        "surface-container": "#201f1f",
+                        "secondary-fixed-dim": "#e9c349",
+                        "inverse-surface": "#e5e2e1",
+                        "on-tertiary-fixed-variant": "#474746",
+                        "tertiary-container": "#737272",
+                        "secondary-container": "#af8d11",
+                        "on-tertiary-fixed": "#1b1b1c",
+                        "surface-container-high": "#2a2a2a",
+                        "surface-variant": "#353534",
+                        "on-tertiary": "#303030",
+                        "surface-tint": "#ffb4aa",
+                        "secondary-fixed": "#ffe088",
+                        "surface-container-highest": "#353534",
+                        "on-secondary-fixed-variant": "#574500",
+                        "primary-container": "#e50914",
+                        "on-primary-fixed": "#410001",
+                        "on-tertiary-container": "#fbf8f8",
+                        "on-primary": "#690003",
+                        "error-container": "#93000a",
+                        "on-error": "#690005",
+                        "on-secondary": "#3c2f00",
+                        "surface-container-low": "#1c1b1b",
+                        "on-error-container": "#ffdad6",
+                        "inverse-primary": "#c0000c",
+                        "surface-container-lowest": "#0e0e0e",
+                        "primary": "#ffb4aa",
+                        "outline-variant": "#5e3f3b",
+                        "tertiary": "#c8c6c5",
+                        "primary-fixed": "#ffdad5",
+                        "on-secondary-container": "#342800",
+                        "tertiary-fixed-dim": "#c8c6c5",
+                        "secondary": "#e9c349",
+                        "outline": "#af8782",
+                        "on-secondary-fixed": "#241a00",
+                        "on-background": "#e5e2e1",
+                        "surface-bright": "#3a3939",
+                        "on-surface": "#e5e2e1",
+                        "tertiary-fixed": "#e5e2e1"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-padding-desktop": "80px",
+                        "container-padding-mobile": "20px",
+                        "base": "8px",
+                        "gutter": "24px",
+                        "section-gap": "64px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "headline-lg": ["Montserrat"],
+                        "display-lg": ["Montserrat"],
+                        "headline-lg-mobile": ["Montserrat"],
+                        "body-md": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "display-sm": ["Montserrat"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["14px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "1.3", "fontWeight": "700" }],
+                        "display-lg": ["64px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "1.3", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "1.2", "fontWeight": "500" }],
+                        "display-sm": ["40px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen font-body-md selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top Navigation Bar - Suppressed for transactional flow as per JSON logic, replaced with a simple back header -->
+<header class="w-full px-container-padding-mobile md:px-container-padding-desktop py-4 flex items-center justify-between border-b border-surface-variant/50 sticky top-0 bg-surface/80 backdrop-blur-3xl z-50">
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-white/5 transition-colors text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div>
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Select Seats</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Dune: Part Two • Today, 7:30 PM • IMAX</p>
+</div>
+</div>
+
+</header>
+<main class="w-full px-container-padding-mobile md:px-container-padding-desktop py-gutter max-w-[1440px] mx-auto flex flex-col lg:flex-row gap-gutter relative">
+<!-- Seat Map Canvas -->
+<section class="flex-1 flex flex-col items-center">
+<!-- Screen Indicator -->
+<div class="w-full max-w-3xl mb-12 flex flex-col items-center">
+<div class="w-full h-2 bg-gradient-to-r from-transparent via-primary-container/80 to-transparent rounded-full shadow-[0_0_20px_rgba(229,9,20,0.5)]"></div>
+<div class="w-3/4 h-16 bg-gradient-to-b from-primary-container/20 to-transparent rounded-t-full transform -translate-y-1 opacity-50 blur-xl"></div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mt-2">Screen</span>
+</div>
+<!-- Seat Grid -->
+<div class="overflow-x-auto w-full pb-8">
+<div class="min-w-max mx-auto flex flex-col gap-3">
+<!-- Row H (VIP) -->
+<div class="flex items-center justify-center gap-4">
+<span class="w-6 font-label-sm text-label-sm text-on-surface-variant text-center">H</span>
+<div class="flex gap-2 justify-center">
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-highest border border-secondary/50 text-secondary hover:bg-secondary/20 transition-colors flex items-center justify-center shadow-[0_0_10px_rgba(233,195,73,0.1)] group">
+<span class="font-label-sm text-label-sm opacity-0 group-hover:opacity-100 transition-opacity">1</span>
+</button>
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-highest border border-secondary/50 text-secondary hover:bg-secondary/20 transition-colors flex items-center justify-center shadow-[0_0_10px_rgba(233,195,73,0.1)] group">
+<span class="font-label-sm text-label-sm opacity-0 group-hover:opacity-100 transition-opacity">2</span>
+</button>
+<div class="w-6"></div> <!-- Aisle -->
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-high border border-surface-variant text-on-surface-variant opacity-50 cursor-not-allowed flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-high border border-surface-variant text-on-surface-variant opacity-50 cursor-not-allowed flex items-center justify-center">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+<div class="w-6"></div> <!-- Aisle -->
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-highest border border-secondary/50 text-secondary hover:bg-secondary/20 transition-colors flex items-center justify-center shadow-[0_0_10px_rgba(233,195,73,0.1)] group">
+<span class="font-label-sm text-label-sm opacity-0 group-hover:opacity-100 transition-opacity">5</span>
+</button>
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-highest border border-secondary/50 text-secondary hover:bg-secondary/20 transition-colors flex items-center justify-center shadow-[0_0_10px_rgba(233,195,73,0.1)] group">
+<span class="font-label-sm text-label-sm opacity-0 group-hover:opacity-100 transition-opacity">6</span>
+</button>
+</div>
+<span class="w-6 font-label-sm text-label-sm text-on-surface-variant text-center">H</span>
+</div>
+<!-- Row G (Standard + Selected) -->
+<div class="flex items-center justify-center gap-4">
+<span class="w-6 font-label-sm text-label-sm text-on-surface-variant text-center">G</span>
+<div class="flex gap-2 justify-center">
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-high border border-surface-variant hover:border-primary-container/50 hover:bg-surface-container-highest transition-colors flex items-center justify-center group">
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">1</span>
+</button>
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-high border border-surface-variant hover:border-primary-container/50 hover:bg-surface-container-highest transition-colors flex items-center justify-center group">
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">2</span>
+</button>
+<div class="w-6"></div> <!-- Aisle -->
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-high border border-surface-variant hover:border-primary-container/50 hover:bg-surface-container-highest transition-colors flex items-center justify-center group">
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">3</span>
+</button>
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-high border border-surface-variant hover:border-primary-container/50 hover:bg-surface-container-highest transition-colors flex items-center justify-center group">
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">4</span>
+</button>
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-high border border-surface-variant hover:border-primary-container/50 hover:bg-surface-container-highest transition-colors flex items-center justify-center group">
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">5</span>
+</button>
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-high border border-surface-variant hover:border-primary-container/50 hover:bg-surface-container-highest transition-colors flex items-center justify-center group">
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">6</span>
+</button>
+<button class="w-10 h-10 rounded-t-lg bg-primary-container border border-primary text-on-primary-container shadow-[0_0_15px_rgba(229,9,20,0.4)] flex items-center justify-center transform scale-105 transition-all">
+<span class="font-label-sm text-label-sm font-bold">7</span>
+</button>
+<button class="w-10 h-10 rounded-t-lg bg-primary-container border border-primary text-on-primary-container shadow-[0_0_15px_rgba(229,9,20,0.4)] flex items-center justify-center transform scale-105 transition-all">
+<span class="font-label-sm text-label-sm font-bold">8</span>
+</button>
+<div class="w-6"></div> <!-- Aisle -->
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-high border border-surface-variant hover:border-primary-container/50 hover:bg-surface-container-highest transition-colors flex items-center justify-center group">
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">9</span>
+</button>
+<button class="w-10 h-10 rounded-t-lg bg-surface-container-high border border-surface-variant hover:border-primary-container/50 hover:bg-surface-container-highest transition-colors flex items-center justify-center group">
+<span class="font-label-sm text-label-sm text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">10</span>
+</button>
+</div>
+<span class="w-6 font-label-sm text-label-sm text-on-surface-variant text-center">G</span>
+</div>
+<!-- Row F (Couple) -->
+<div class="flex items-center justify-center gap-4 mt-4">
+<span class="w-6 font-label-sm text-label-sm text-on-surface-variant text-center">F</span>
+<div class="flex gap-4 justify-center">
+<button class="w-[88px] h-10 rounded-t-xl bg-surface-container-highest border border-tertiary/30 hover:bg-white/5 transition-colors flex items-center justify-center group">
+<span class="material-symbols-outlined text-tertiary opacity-50 group-hover:opacity-100 transition-opacity">favorite</span>
+</button>
+<div class="w-2"></div> <!-- Aisle -->
+<button class="w-[88px] h-10 rounded-t-xl bg-surface-container-highest border border-tertiary/30 hover:bg-white/5 transition-colors flex items-center justify-center group">
+<span class="material-symbols-outlined text-tertiary opacity-50 group-hover:opacity-100 transition-opacity">favorite</span>
+</button>
+<button class="w-[88px] h-10 rounded-t-xl bg-surface-container-highest border border-tertiary/30 hover:bg-white/5 transition-colors flex items-center justify-center group">
+<span class="material-symbols-outlined text-tertiary opacity-50 group-hover:opacity-100 transition-opacity">favorite</span>
+</button>
+<div class="w-2"></div> <!-- Aisle -->
+<button class="w-[88px] h-10 rounded-t-xl bg-surface-container-highest border border-tertiary/30 hover:bg-white/5 transition-colors flex items-center justify-center group">
+<span class="material-symbols-outlined text-tertiary opacity-50 group-hover:opacity-100 transition-opacity">favorite</span>
+</button>
+</div>
+<span class="w-6 font-label-sm text-label-sm text-on-surface-variant text-center">F</span>
+</div>
+</div>
+</div>
+<!-- Legend -->
+<div class="mt-8 flex flex-wrap justify-center gap-6 px-4 py-4 bg-surface-container-highest/50 backdrop-blur-md rounded-2xl border border-white/5">
+<div class="flex items-center gap-2">
+<div class="w-5 h-5 rounded-sm bg-surface-container-high border border-surface-variant"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Available</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-5 h-5 rounded-sm bg-primary-container border border-primary shadow-[0_0_10px_rgba(229,9,20,0.3)]"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Selected</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-5 h-5 rounded-sm bg-surface-container-high border border-surface-variant opacity-50 flex items-center justify-center"><span class="material-symbols-outlined text-[12px] text-on-surface-variant">close</span></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Reserved</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-5 h-5 rounded-sm bg-surface-container-highest border border-secondary/50 text-secondary"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">VIP ($25)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-8 h-5 rounded-sm bg-surface-container-highest border border-tertiary/30"></div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Couple ($40)</span>
+</div>
+</div>
+</section>
+<!-- Booking Summary Sidebar -->
+<aside class="w-full lg:w-[400px] flex flex-col gap-6">
+<div class="bg-surface-container-low rounded-2xl border border-white/5 overflow-hidden flex flex-col shadow-2xl shadow-black/50 sticky top-[100px]">
+<!-- Movie Mini Poster Context (Glassmorphism) -->
+<div class="relative h-40 overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-low to-transparent z-10"></div>
+<div class="w-full h-full bg-cover bg-center" data-alt="A dark, cinematic abstract background featuring swirling cosmic dust and deep amber light flares against pitch blackness. The lighting creates a high-drama, intense atmosphere typical of an epic sci-fi blockbuster movie poster backdrop. The aesthetic relies heavily on glassmorphic depth and premium luxury tones." style="background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuBHUymrrm0YzcMfGeMHZi8-w7wBgU8G6rydw78eUAFaqA8Xjxe_m5xa7jfDE-5_3mOfys1RxWHGnafWqUiQ4rCm8kZK575jsaYg9b1A6X_vQuAjvXTnYFff6-WkKPi-tPc1uEsYfPp48bk76nshNtr3SpzqF_CMiORmz6nedDu22MeL-68ssEEZ_-J3CUaJsoVPeQ0NtATnDk4887ZIea8qwnsMwz7PlUZg0jBeHqjk1DUVun9QMSU1xVk7IIoueX4-R0ciTcK2m-4&quot;);"></div>
+<div class="absolute bottom-4 left-4 z-20">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface drop-shadow-md">Dune: Part Two</h2>
+<div class="flex items-center gap-2 mt-1">
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-white/10 text-on-surface border border-white/20 backdrop-blur-md">IMAX</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">165 min</span>
+</div>
+</div>
+</div>
+<div class="p-6 flex flex-col gap-6">
+<!-- Selected Seats Info -->
+<div>
+<h3 class="font-label-md text-label-md text-on-surface-variant mb-3 uppercase tracking-wider">Selected Seats</h3>
+<div class="flex flex-wrap gap-2">
+<div class="px-4 py-2 bg-surface-container-high rounded-lg border border-surface-variant flex items-center justify-between min-w-[100px]">
+<span class="font-label-md text-label-md text-on-surface">G7</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">$18.50</span>
+</div>
+<div class="px-4 py-2 bg-surface-container-high rounded-lg border border-surface-variant flex items-center justify-between min-w-[100px]">
+<span class="font-label-md text-label-md text-on-surface">G8</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">$18.50</span>
+</div>
+</div>
+</div>
+<hr class="border-white/5 border-t">
+<!-- Mobile Timer Fallback -->
+<div class="md:hidden flex items-center justify-between bg-surface-container-high px-4 py-3 rounded-xl border border-white/5">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: &quot;FILL&quot; 1;">timer</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Hold Time</span>
+</div>
+<span class="font-label-md text-label-md text-primary font-bold tracking-widest">09:45</span>
+</div>
+<!-- Total Price -->
+<div class="flex items-end justify-between">
+<span class="font-body-md text-body-md text-on-surface-variant">Total</span>
+<div class="flex flex-col items-end">
+<span class="font-display-sm text-display-sm text-on-surface">$37.00</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Includes taxes &amp; fees</span>
+</div>
+</div>
+<!-- CTA -->
+<button class="w-full py-4 bg-primary-container text-on-primary-container font-headline-lg-mobile text-[18px] rounded-xl hover:bg-primary transition-colors flex justify-center items-center gap-2 mt-4 shadow-[0_4px_20px_rgba(229,9,20,0.3)] hover:shadow-[0_4px_25px_rgba(229,9,20,0.5)] transform hover:scale-[1.02] active:scale-[0.98]">
+                        Continue Booking
+                        <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<p class="text-center font-label-sm text-label-sm text-on-surface-variant/50 mt-2">Tickets are non-refundable after purchase.</p>
+</div>
+</div>
+</aside>
+</main>
+
+
+</body></html>
