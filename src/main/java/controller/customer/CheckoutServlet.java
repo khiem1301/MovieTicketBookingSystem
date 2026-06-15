@@ -14,6 +14,7 @@ import java.util.Optional;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import dal.BookingDAO;
 import dal.PricingRuleDAO;
 import dal.SeatDAO;
 import dal.SeatHoldDAO;
@@ -36,10 +37,11 @@ import utils.SeatHoldException;
 import utils.SessionUtil;
 
 /**
- * FR-12 / FR-13 — Màn chọn ghế online tại /checkout?showtimeId=
+ * FR-12 / FR-13 / FR-14 — Màn chọn ghế online tại /checkout?showtimeId=
  * GET  → sơ đồ ghế + panel tóm tắt
  * GET  ?action=seats&showtimeId=X → JSON refresh ghế
- * POST → FR-13 validate + INSERT SeatHolds (10 phút)
+ * POST action=hold → đồng bộ SeatHolds ngay khi chọn/bỏ ghế (JSON)
+ * POST (form) → FR-14 createOnlineBooking → redirect /payment
  */
 @WebServlet("/checkout")
 public class CheckoutServlet extends HttpServlet {
@@ -72,6 +74,13 @@ public class CheckoutServlet extends HttpServlet {
             throws ServletException, IOException {
 
         req.setCharacterEncoding("UTF-8");
+        String action = trim(req.getParameter("action"));
+
+        if ("hold".equals(action)) {
+            serveHoldSync(req, resp);
+            return;
+        }
+
         String showtimeId = trim(req.getParameter("showtimeId"));
         String[] rawSeatIds = req.getParameterValues("seatIds");
 
@@ -120,33 +129,31 @@ public class CheckoutServlet extends HttpServlet {
             return;
         }
 
-        SeatHoldDAO holdDAO = new SeatHoldDAO();
-        List<String> blocked = holdDAO.findBlockingSeatCodes(showtimeId, seatIds, user.getId());
-        if (!blocked.isEmpty()) {
-            forwardCheckoutPage(req, resp, showtimeId,
-                    "Ghế không còn trống: " + String.join(", ", blocked) + ". Vui lòng chọn ghế khác.");
-            return;
-        }
-
         try {
-            Timestamp expiresAt = holdDAO.holdSeats(showtimeId, user.getId(), seatIds);
+            BookingDAO bookingDAO = new BookingDAO();
+            String bookingId = bookingDAO.createOnlineBooking(showtimeId, user.getId(), seatIds);
+            model.entity.Booking booking = bookingDAO.getById(bookingId);
+            if (booking == null || booking.getExpiredAt() == null) {
+                forwardCheckoutPage(req, resp, showtimeId, "Không thể tạo đơn đặt vé.");
+                return;
+            }
 
             HttpSession session = req.getSession();
             session.setAttribute("checkoutDraft", Map.of(
+                    "bookingId", bookingId,
                     "showtimeId", showtimeId,
                     "seatIds", new ArrayList<>(seatIds),
-                    "holdExpiresAt", expiresAt.getTime()
+                    "expiredAt", booking.getExpiredAt().getTime()
             ));
 
-            resp.sendRedirect(req.getContextPath()
-                    + "/checkout?showtimeId=" + showtimeId + "&hold=ok");
+            resp.sendRedirect(req.getContextPath() + "/payment?bookingId=" + bookingId);
 
         } catch (SeatHoldException e) {
             forwardCheckoutPage(req, resp, showtimeId, e.getMessage());
         } catch (RuntimeException e) {
-            log("CheckoutServlet hold error", e);
+            log("CheckoutServlet createOnlineBooking error", e);
             forwardCheckoutPage(req, resp, showtimeId,
-                    "Không thể giữ ghế: " + e.getMessage());
+                    "Không thể tạo đơn. Vui lòng thử lại sau giây lát.");
         }
     }
 
@@ -194,21 +201,124 @@ public class CheckoutServlet extends HttpServlet {
 
         if (errorMessage != null) {
             req.setAttribute("errorMessage", errorMessage);
+        } else {
+            String queryError = trim(req.getParameter("error"));
+            if (!isBlank(queryError)) {
+                req.setAttribute("errorMessage", queryError);
+            }
         }
 
-        if ("ok".equals(req.getParameter("hold"))) {
-            req.setAttribute("infoMessage",
-                    "Đã giữ ghế thành công trong " + SeatHoldDAO.HOLD_MINUTES
-                            + " phút. Tính năng thanh toán sẽ có ở bước tiếp theo (FR-14).");
+        String queryInfo = trim(req.getParameter("info"));
+        if (!isBlank(queryInfo)) {
+            req.setAttribute("infoMessage", queryInfo);
+        } else if (userId != null) {
+            BookingDAO bookingDAO = new BookingDAO();
+            String pendingId = bookingDAO.findActiveOnlinePendingBookingId(showtimeId, userId);
+            if (pendingId != null) {
+                req.setAttribute("pendingBookingId", pendingId);
+                req.setAttribute("infoMessage",
+                        "Bạn có đơn đang chờ thanh toán. "
+                                + "Vui lòng hoàn tất hoặc hủy đơn để chọn ghế khác.");
+            }
         }
 
-        if (userId != null) {
-            SeatHoldDAO holdDAO = new SeatHoldDAO();
-            holdDAO.getActiveHoldExpiry(showtimeId, userId).ifPresent(expiry ->
+        if (userId != null && req.getAttribute("pendingBookingId") == null) {
+            new SeatHoldDAO().getActiveHoldExpiry(showtimeId, userId).ifPresent(expiry ->
                     req.setAttribute("holdExpiresAt", expiry.getTime()));
         }
 
         req.getRequestDispatcher(VIEW).forward(req, resp);
+    }
+
+    /** POST action=hold — giữ ghế ngay khi user chọn/bỏ trên sơ đồ. */
+    private void serveHoldSync(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        resp.setContentType("application/json; charset=UTF-8");
+
+        String showtimeId = trim(req.getParameter("showtimeId"));
+        String[] rawSeatIds = req.getParameterValues("seatIds");
+
+        SessionUser sessionUser = SessionUtil.getLoggedUser(req);
+        if (sessionUser == null) {
+            resp.setStatus(401);
+            resp.getWriter().write("{\"ok\":false,\"error\":\"Chưa đăng nhập\"}");
+            return;
+        }
+
+        if (isBlank(showtimeId)) {
+            resp.setStatus(400);
+            resp.getWriter().write("{\"ok\":false,\"error\":\"Thiếu showtimeId\"}");
+            return;
+        }
+
+        Showtime showtime = new ShowtimeDAO().getShowtimeById(showtimeId);
+        if (showtime == null || "CANCELLED".equals(showtime.getStatus())
+                || "SOLD_OUT".equals(showtime.getStatus())) {
+            resp.setStatus(400);
+            resp.getWriter().write("{\"ok\":false,\"error\":\"Suất chiếu không khả dụng\"}");
+            return;
+        }
+
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        if (showtime.getStartTime() != null && showtime.getStartTime().before(now)) {
+            resp.setStatus(400);
+            resp.getWriter().write("{\"ok\":false,\"error\":\"Suất chiếu đã bắt đầu\"}");
+            return;
+        }
+
+        User user = new UserDAO().findById(sessionUser.getId()).orElse(null);
+        if (user == null) {
+            resp.setStatus(400);
+            resp.getWriter().write("{\"ok\":false,\"error\":\"Không tìm thấy tài khoản\"}");
+            return;
+        }
+
+        if (new BookingDAO().findActiveOnlinePendingBookingId(showtimeId, user.getId()) != null) {
+            resp.setStatus(409);
+            resp.getWriter().write("{\"ok\":false,\"error\":\"Bạn có đơn đang chờ thanh toán. Hãy hủy hoặc hoàn tất đơn trước.\"}");
+            return;
+        }
+
+        Optional<String> ageError = SeatAvailabilityValidator.validateAge(
+                showtime.getMovieAgeRating(), user.getDateOfBirth());
+        if (ageError.isPresent()) {
+            resp.setStatus(403);
+            resp.getWriter().write("{\"ok\":false,\"error\":\"" + jsonEscape(ageError.get()) + "\"}");
+            return;
+        }
+
+        List<String> seatIds = rawSeatIds != null && rawSeatIds.length > 0
+                ? SeatHoldDAO.distinctSeatIds(Arrays.asList(rawSeatIds))
+                : List.of();
+
+        try {
+            SeatHoldDAO holdDAO = new SeatHoldDAO();
+            Timestamp expiresAt = holdDAO.syncHolds(showtimeId, user.getId(), seatIds);
+
+            JSONObject result = new JSONObject();
+            result.put("ok", true);
+            if (expiresAt != null) {
+                result.put("expiresAt", expiresAt.getTime());
+            }
+            resp.getWriter().write(result.toString());
+
+        } catch (SeatHoldException e) {
+            resp.setStatus(409);
+            JSONObject err = new JSONObject();
+            err.put("ok", false);
+            err.put("error", e.getMessage());
+            resp.getWriter().write(err.toString());
+        } catch (RuntimeException e) {
+            resp.setStatus(500);
+            JSONObject err = new JSONObject();
+            err.put("ok", false);
+            err.put("error", "Không thể giữ ghế");
+            resp.getWriter().write(err.toString());
+        }
+    }
+
+    private String jsonEscape(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private void serveSeatsJson(HttpServletRequest req, HttpServletResponse resp,

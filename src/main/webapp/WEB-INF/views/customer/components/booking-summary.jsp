@@ -34,9 +34,8 @@
 
     <div class="ck-summary-body">
       <h3 class="ck-summary-heading">Ghế đã chọn</h3>
-      <div class="ck-seat-list" id="ckSeatList">
-        <p class="ck-empty-msg">Chưa chọn ghế nào</p>
-      </div>
+      <div class="ck-seat-list" id="ckSeatList" hidden></div>
+      <p class="ck-empty-msg" id="ckEmptyMsg">Chưa chọn ghế nào</p>
 
       <hr class="ck-divider"/>
 
@@ -46,10 +45,24 @@
       </div>
       <p class="ck-total-note">Chưa bao gồm VAT và phí dịch vụ</p>
 
-      <c:if test="${not empty holdExpiresAt}">
-        <div class="ck-hold-timer" id="ckHoldTimer" data-expires="<c:out value='${holdExpiresAt}'/>">
-          <span class="ck-hold-timer-label">Thời gian giữ ghế</span>
-          <span class="ck-hold-timer-value" id="ckHoldCountdown">--:--</span>
+      <div class="ck-hold-timer" id="ckHoldTimer"
+           <c:if test="${empty holdExpiresAt}">hidden</c:if>
+           data-expires="<c:out value='${holdExpiresAt}'/>">
+        <span class="ck-hold-timer-label">Thời gian giữ ghế</span>
+        <span class="ck-hold-timer-value" id="ckHoldCountdown">--:--</span>
+      </div>
+
+      <c:if test="${not empty pendingBookingId}">
+        <div class="ck-pending-actions">
+          <a class="ck-pending-pay-link" href="${ctx}/payment?bookingId=${pendingBookingId}">
+            Tiếp tục thanh toán đơn đang chờ &rarr;
+          </a>
+          <form method="post" action="${ctx}/payment" class="ck-cancel-form"
+                onsubmit="return confirm('Hủy đơn đang chờ và giải phóng ghế?');">
+            <input type="hidden" name="bookingId" value="<c:out value='${pendingBookingId}'/>"/>
+            <input type="hidden" name="action" value="cancel"/>
+            <button type="submit" class="ck-cancel-btn">Hủy đơn đang chờ</button>
+          </form>
         </div>
       </c:if>
 
@@ -57,7 +70,7 @@
         <input type="hidden" name="showtimeId" value="<c:out value='${showtime.id}'/>"/>
         <div id="ckHiddenSeats"></div>
         <button type="submit" class="ck-proceed-btn" id="ckProceedBtn" disabled>
-          Giữ ghế &amp; tiếp tục
+          Tiếp tục thanh toán
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"/>

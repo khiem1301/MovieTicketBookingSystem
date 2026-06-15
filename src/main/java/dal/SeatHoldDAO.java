@@ -101,6 +101,32 @@ public class SeatHoldDAO {
     }
 
     /**
+     * Đồng bộ danh sách ghế đang giữ: rỗng → xóa hold; có ghế → thay batch hold 10 phút.
+     *
+     * @return expired_at mới, hoặc null nếu không còn ghế nào được giữ
+     */
+    public Timestamp syncHolds(String showtimeId, String userId, List<String> seatIds) {
+        if (seatIds == null || seatIds.isEmpty()) {
+            releaseHolds(showtimeId, userId);
+            return null;
+        }
+        return holdSeats(showtimeId, userId, seatIds);
+    }
+
+    /** Xóa toàn bộ SeatHolds của user trên suất chiếu. */
+    public void releaseHolds(String showtimeId, String userId) {
+        String sql = "DELETE FROM SeatHolds WHERE showtime_id = ? AND user_id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, showtimeId);
+            ps.setString(2, userId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("releaseHolds failed", e);
+        }
+    }
+
+    /**
      * Thay thế hold cũ của user trên suất này và tạo hold mới (10 phút).
      *
      * @return expired_at của batch hold vừa tạo
