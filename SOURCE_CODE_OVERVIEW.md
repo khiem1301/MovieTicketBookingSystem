@@ -45,18 +45,18 @@ Browser
 
 | Thống kê | Số lượng |
 |----------|----------|
-| File Java (`src/main/java`) | **~105** |
-| Servlet đã triển khai | **~31** |
-| DAO | **15** |
+| File Java (`src/main/java`) | **~109** |
+| Servlet đã triển khai | **33** |
+| DAO | **16** |
 | Entity | **13** |
-| DTO | **6** |
+| DTO | **~10** |
 | Filter | **3** |
-| Util | **19** |
-| JSP view | **~34** (+ 4 `.gitkeep`) |
-| CSS | **12** |
-| JS | **8** |
+| Util | **~22** |
+| JSP view | **~36** (+ 4 `.gitkeep`) |
+| CSS | **13** |
+| JS | **10** |
 | Script SQL | `create_database.sql` |
-| Screen Design (mockup HTML) | **4 màn** (Cinema Auditoriums, Seat Layout, Showtime Management, Movie-detail) |
+| Screen Design (mockup HTML) | **5 màn** (Movie-detail, Seat selection, Cinema Auditoriums, Seat Layout, Showtime Management) |
 
 ---
 
@@ -73,6 +73,7 @@ MovieTicketBookingSystem/
 ├── CUSTOMER_MODULE_DETAIL.md        # Chi tiết Customer
 ├── implementation_plan.md           # Kế hoạch triển khai FR (spec nội bộ)
 ├── implementation_plan_fr-11.md     # Kế hoạch FR-11 (lịch chiếu khách hàng)
+├── fr-12_seat_selection_2f514b7b.plan.md  # Kế hoạch FR-12 (chọn ghế online)
 ├── SEAT_LAYOUT_DESIGN.md            # Thiết kế layout ghế
 ├── Database/
 │   └── create_database.sql          # Schema + seed data
@@ -218,17 +219,21 @@ MovieTicketBookingSystem/
 | `/staff/counter` | `CounterBookingServlet` | POST | Tạo booking OFFLINE → redirect payment |
 | `/staff/counter?action=payment` | `CounterBookingServlet` | POST | Xác nhận thanh toán → redirect print |
 
-### 4.5 Customer — role `CUSTOMER` (đang triển khai dần)
+### 4.5 Customer — role `CUSTOMER`
 
 | URL | Servlet | Method | Trạng thái | Chức năng |
 |-----|---------|--------|------------|-----------|
 | `/showtimes?movieId=` | `ShowtimesServlet` | GET | ✅ Public | Lịch chiếu theo phim + giá động (FR-11, FR-50) |
-| `/checkout` | — | — | ❌ Chưa có | Chọn ghế & thanh toán online |
+| `/checkout?showtimeId=` | `CheckoutServlet` | GET | ✅ CUSTOMER | Sơ đồ ghế + panel tóm tắt (FR-12) |
+| `/checkout?action=seats&showtimeId=` | `CheckoutServlet` | GET | ✅ CUSTOMER | JSON refresh trạng thái ghế (poll client 2s) |
+| `/checkout` | `CheckoutServlet` | POST | ✅ CUSTOMER | Validate tuổi + ghế → `createOnlineBooking` (FR-14) → redirect `/payment` |
+| `/payment?bookingId=` | `PaymentServlet` | GET | ✅ CUSTOMER | Tóm tắt đơn + countdown 10 phút (stub FR-16) |
+| `/payment` | `PaymentServlet` | POST | ✅ CUSTOMER | Stub VNPay/MoMo (FR-16–18) |
 | `/booking-history` | — | — | ❌ Chưa có | Lịch sử đặt vé |
 | `/loyalty` | — | — | ❌ Chưa có | Điểm tích lũy |
 | `/reviews/mine` | — | — | ❌ Chưa có | Đánh giá của tôi |
 
-> **Lưu ý:** `ShowtimesServlet` nằm package `controller` (public), không trong `controller.customer`. Package `controller.customer` vẫn chỉ có `package-info.java` — các servlet customer-authenticated sẽ bổ sung sau.  
+> `ShowtimesServlet` nằm package `controller` (public). Package `controller.customer` có `CheckoutServlet` (FR-12/13/14) và `PaymentServlet` (FR-14 stub).
 > Chi tiết module Customer → [`CUSTOMER_MODULE_DETAIL.md`](CUSTOMER_MODULE_DETAIL.md)
 
 ### 4.6 Mọi role đã đăng nhập
@@ -333,6 +338,20 @@ MovieTicketBookingSystem/
 - Xác nhận thanh toán qua `BookingDAO.confirmPayment()`
 - Dùng `BookingDetailDTO` cho view payment/print
 
+### 5.6 `controller.customer`
+
+#### `CheckoutServlet` — `/checkout` (FR-12 / FR-13 / FR-14)
+- **GET** `?showtimeId=` — load suất, tính `effectivePrice`, render sơ đồ ghế (`SeatDAO.getSeatsForShowtime(showtimeId, userId)` — ghế do chính user giữ vẫn hiển thị selected)
+- Guard: thiếu param → `/movies`; null/CANCELLED/đã qua → `404.jsp`; `SOLD_OUT` → read-only
+- **GET** `?action=seats&showtimeId=` — JSON rows/seats (availability + `heldByMe`) cho poll client
+- **POST** — validate tuổi (`SeatAvailabilityValidator`), `BookingDAO.createOnlineBooking()` (PENDING/UNPAID, `expired_at` 10 phút); session `checkoutDraft`; redirect `/payment?bookingId=`
+- View: `customer/checkout.jsp` + 3 component (`.ck-*`); CSS `customer-checkout.css`; JS `customer-checkout.js` (poll JSON mỗi **2 giây**)
+
+#### `PaymentServlet` — `/payment` (FR-14 stub / FR-16)
+- **GET** `?bookingId=` — `BookingDAO.getDetailById()`; guard ownership + ONLINE + PENDING + chưa hết `expired_at`
+- **POST** — stub thông báo VNPay/MoMo (FR-16)
+- View: `customer/payment.jsp`; JS `customer-payment.js` (countdown hết hạn)
+
 ---
 
 ## 6. Package `dal` — Data Access Layer
@@ -346,16 +365,17 @@ MovieTicketBookingSystem/
 | `GenreDAO` | `Genres` | getAll, getAllActive, getById, create, update, delete, updateStatus; isDuplicate*; hasLinkedMovies, hasActiveOrUpcomingMovies; getMovieCountPerGenre, getGenreIdsInUse, getGenreIdsWithActiveMovies |
 | `ShowtimeDAO` | `Showtimes` | Counter: suất theo phim; Customer: `getUpcomingShowtimesByMovieId`; Manager: `getAllForManager`, create, update, delete, `isOverlapping`, `countBookingsByShowtimeId` |
 | `PricingRuleDAO` | `PricingRules` | `getActiveRules()` — đọc rule ACTIVE cho tính giá động (FR-50) |
-| `SeatDAO` | `Seats`, `SeatTypes` | Ghế theo suất + availability + giá vé; `saveLayout()` |
+| `SeatDAO` | `Seats`, `SeatTypes`, `SeatHolds`, `BookingSeats` | Ghế theo suất + availability (booked + hold); overload `getSeatsForShowtime(id, userId)` cho checkout; `saveLayout()` |
+| `SeatHoldDAO` | `SeatHolds` | FR-13: `findBlockingSeatCodes`, `holdSeats` (10 phút), `getActiveHoldExpiry`, `deleteExpiredHolds` |
 | `SeatTypeDAO` | `SeatTypes` | getAll, getById, create, update, delete; isDuplicate*; getTypeKeyToIdMap; countUsedIn |
 | `CinemaRoomDAO` | `CinemaRooms` | getAll, getById, getActiveRooms, create, updateName, updateStatus; existsByName*; countUpcomingShowtimes, countActiveSeats, countAccessibleSeats |
-| `BookingDAO` | `Bookings`, `BookingSeats` | `createOfflineBooking` (transaction), `confirmPayment`, `getById`, `getCurrentVatRate` |
+| `BookingDAO` | `Bookings`, `BookingSeats` | `createOfflineBooking`, **`createOnlineBooking`** (FR-14), `findActiveOnlinePendingBookingId`, `confirmPayment`, `getById`, `getDetailById`, `getCurrentVatRate` |
 | `PasswordResetTokenDAO` | `PasswordResetTokens` | insert, find valid, mark used, invalidate |
 | `SystemConfigDAO` | `SystemConfig` | findAll, findByKeys, findByKey, updateValue (JOINs Users cho `updated_by_name`) |
 | `SystemConfigLogDAO` | `SystemConfigLog` | insert, findLoyaltyHistory (audit log cấu hình loyalty) |
 | `VatRuleDAO` | `VatRules` | findEffectiveNow, findScheduledList, findCurrentActiveRate (fallback 8%), findById, createAndActivate, updateScheduled, cancelScheduled, findHistory |
 
-**Bảng có schema nhưng chưa có DAO:** `Payments`, `Promotions`, `Tickets`, `LoyaltyPointsLog`, `ShowtimeIncidents`, `ChatbotConversations`, `ChatbotMessages`, `SeatHolds`, `MovieReviews`, `CinemaInfo`, `BookingPromotions`
+**Bảng có schema nhưng chưa có DAO (hoặc chỉ đọc gián tiếp):** `Payments`, `Promotions`, `Tickets`, `LoyaltyPointsLog`, `ShowtimeIncidents`, `ChatbotConversations`, `ChatbotMessages`, `MovieReviews`, `CinemaInfo`, `BookingPromotions`
 
 ---
 
@@ -370,7 +390,7 @@ MovieTicketBookingSystem/
 | `Movie` | `Movies` | Có list `genres` computed |
 | `Genre` | `Genres` | |
 | `Showtime` | `Showtimes` | Denormalized movie/room cho UI; `effectivePrice` transient (FR-50) |
-| `Seat` | `Seats` | `ticketPrice`, `available` computed |
+| `Seat` | `Seats` | `ticketPrice`, `available`, `heldByCurrentUser` computed |
 | `SeatType` | `SeatTypes` | typeName, priceMultiplier, description |
 | `CinemaRoom` | `CinemaRooms` | id, roomName, capacity, status, createdAt |
 | `Booking` | `Bookings` | |
@@ -413,7 +433,7 @@ MovieTicketBookingSystem/
 | `/admin/*` | ADMIN |
 | `/manager/*` | MANAGER |
 | `/staff/*` | STAFF |
-| `/booking-history`, `/loyalty`, `/reviews/mine`, `/checkout` | CUSTOMER |
+| `/booking-history`, `/loyalty`, `/reviews/mine`, `/checkout`, `/payment` | CUSTOMER |
 | `/profile`, `/profile/*` | Bất kỳ role đã login |
 | `/movies`, `/showtimes` | Public (prefix) |
 | `/reviews*` | Public (trừ `/reviews/mine`) |
@@ -443,6 +463,8 @@ MovieTicketBookingSystem/
 | `SystemConfigValidator` | Validate giá trị loyalty config (earn rate, redeem rate, min/max) |
 | `VatRuleValidator` | Validate form VatRule (rate 0–100%, tên, ngày bắt đầu) |
 | `PricingCalculator` | FR-50: tính `effectivePrice` từ `base_price` + `PricingRules` ACTIVE |
+| `SeatAvailabilityValidator` | FR-13: validate tuổi T13/T16/T18 từ `Users.date_of_birth` |
+| `SeatHoldException` | FR-13: ngoại lệ conflict khi giữ ghế (race / ghế đã bị chọn) |
 
 ---
 
@@ -511,14 +533,19 @@ MovieTicketBookingSystem/
 | File | Mô tả |
 |------|-------|
 | `showtimes.jsp` | Wrapper trang lịch chiếu — header/footer + `jsp:include` 2 component |
-| `components/movie-info-placeholder.jsp` | **Phần trên** — thông tin phim (placeholder; đồng nghiệp mở rộng) |
-| `components/showtimes-selector.jsp` | **Phần dưới** — tab 7 ngày + suất theo phòng + chip giá (FR-11) |
+| `checkout.jsp` | Wrapper chọn ghế (FR-12) — `extraCss=customer-checkout` |
+| `payment.jsp` | Thanh toán online stub (FR-14) — countdown + breakdown VAT |
+| `components/movie-info-placeholder.jsp` | **Phần trên** showtimes — thông tin phim (placeholder; đồng nghiệp mở rộng) |
+| `components/showtimes-selector.jsp` | **Phần dưới** — tab 7 ngày + suất theo phòng + chip link `/checkout` (FR-11) |
+| `components/checkout-header.jsp` | Back link, tên phim, giờ, phòng, badge tuổi (FR-12) |
+| `components/seat-map.jsp` | Màn hình + lưới ghế + legend (`.ck-*`) |
+| `components/booking-summary.jsp` | Ghế đã chọn, tổng tiền, nút POST "Tiếp tục thanh toán" (FR-12/14) |
 
-> Kiến trúc tách module: xem [`CUSTOMER_MODULE_DETAIL.md`](CUSTOMER_MODULE_DETAIL.md) §3 và [`implementation_plan_fr-11.md`](implementation_plan_fr-11.md).
+> Kiến trúc modular: [`CUSTOMER_MODULE_DETAIL.md`](CUSTOMER_MODULE_DETAIL.md) §3, §14. Design: `Screen Design/Seat selection/`, `Screen Design/Ticket booking/`.
 
 ### 10.8 CSS & JS
 
-**CSS (12 file):**
+**CSS (13 file):**
 
 | File | Dùng bởi |
 |------|----------|
@@ -534,8 +561,9 @@ MovieTicketBookingSystem/
 | `css/manager-seat-layout.css` | Editor layout ghế — `.slt-*` classes |
 | `css/manager-showtimes.css` | Quản lý suất chiếu — `.st-*`, filter bar, status badges |
 | `css/customer-showtimes.css` | Lịch chiếu khách — glass panel, tab ngày, chip suất (`.mi-*`, `.st-*`) |
+| `css/customer-checkout.css` | Chọn ghế online — layout 2 cột, ghế VIP/selected, summary glass (`.ck-*`) |
 
-**JS (8 file):**
+**JS (9 file):**
 
 | File | Dùng bởi |
 |------|----------|
@@ -547,6 +575,8 @@ MovieTicketBookingSystem/
 | `js/manager-showtimes.js` | Lọc bảng suất + xác nhận xóa |
 | `js/seat-type-colors.js` | Preset + dynamic HSL color cho loại ghế |
 | `js/showtimes-selector.js` | Tab chọn ngày suất chiếu (zero reload, FR-11) |
+| `js/customer-checkout.js` | Chọn ghế, summary, poll JSON 2s refresh availability (FR-12/13) |
+| `js/customer-payment.js` | Countdown hết hạn đơn PENDING trên trang payment (FR-14) |
 
 ### 10.9 Images
 
@@ -581,7 +611,7 @@ MovieTicketBookingSystem/
 | Dữ liệu | Chi tiết |
 |---------|----------|
 | Roles | ADMIN, MANAGER, STAFF, CUSTOMER |
-| Users | 6 tài khoản test — mật khẩu `Password@123` |
+| Users | 6 tài khoản test — mật khẩu `Password@123` (gồm 3 CUSTOMER seed) |
 | Movies | 8 phim (4 NOW_SHOWING + 4 COMING_SOON) |
 | Genres | 8 thể loại |
 | Cinema | 3 phòng, 4 loại ghế (REGULAR/VIP/COUPLE/SWEETBOX) |
@@ -594,6 +624,8 @@ MovieTicketBookingSystem/
 | ADMIN | admin@movieticket.vn | admin | Password@123 |
 | MANAGER | manager@movieticket.vn | manager | Password@123 |
 | STAFF | staff@movieticket.vn | staff | Password@123 |
+| CUSTOMER (người lớn) | customer.adult@email.com | customer_adult | Password@123 |
+| CUSTOMER (14 tuổi) | customer.teen@email.com | customer_teen | Password@123 |
 
 ---
 
@@ -625,9 +657,11 @@ MovieTicketBookingSystem/
 | Manager — Loại ghế & hệ số giá | ✅ Hoàn thành | CRUD + delete (usage guard) |
 | Staff — Đặt vé quầy | ✅ Hoàn thành | POS: booking → payment → print |
 | Customer — Xem lịch chiếu (FR-11) | ✅ Hoàn thành | `/showtimes` public + dynamic pricing (FR-50) |
+| Customer — Chọn ghế online (FR-12) | ✅ Hoàn thành | `/checkout` — sơ đồ ghế, giá × multiplier, poll refresh |
+| Customer — Giữ ghế & validate (FR-13) | ✅ Hoàn thành | Validate tuổi + availability (logic tái dùng trong FR-14) |
+| Customer — Tạo đơn online (FR-14) | ✅ Hoàn thành | POST checkout → `Bookings` PENDING/UNPAID + redirect `/payment` stub |
+| Customer — Thanh toán VNPay/MoMo (FR-16–18) | ❌ Chưa làm | Trang `/payment` stub; callback, `Payments`, `Tickets` |
 | Customer — Chi tiết phim (UI đầy đủ) | 🟡 Placeholder | `movie-info-placeholder.jsp` — đồng nghiệp làm |
-| Customer — Đặt vé online (checkout) | ❌ Chưa làm | URL `/checkout` đã reserve; chip suất đã link sẵn |
-| Thanh toán (VNPay/MoMo) | ❌ Chưa làm | Chỉ có schema DB |
 | Loyalty / Điểm tích lũy | ❌ Chưa làm | Schema + seed config |
 | Reviews | ❌ Chưa làm | Nav link có, chưa servlet |
 | Profile | ❌ Chưa làm | Path reserve trong AccessControl |
@@ -674,10 +708,11 @@ sequenceDiagram
 2. **ADMIN không vào được `/manager/*`** — `RoleFilter` chặn; header vẫn hiện một số link manager cho ADMIN (phim, thể loại). Servlet `isAuthorized()` cho cả ADMIN nhưng bị filter chặn trước.
 3. **Không có CSRF token** trên form POST (admin, manager, staff).
 4. **Không có connection pool** — mỗi DAO gọi `DBContext.getConnection()` trực tiếp.
-5. **~11/26 bảng** chưa có lớp DAO tương ứng — chỉ schema + seed. Đã có `PricingRuleDAO` (read-only `getActiveRules`); CRUD pricing rules cho Manager (FR-49) chưa có.
-6. **Xóa phòng chiếu** chưa có — chỉ tạo, rename, toggle status.
-7. **Suất chiếu có booking** — manager không xóa hard; dùng status `CANCELLED`.
-8. **Không có test tự động** — JUnit dependency có nhưng chưa viết test.
+5. **~10/26 bảng** chưa có lớp DAO đầy đủ — chỉ schema + seed. `Bookings` online có `createOnlineBooking` (FR-14); `Payments`/`Tickets` chưa có DAO.
+6. **Checkout poll 2s** — cập nhật sơ đồ ghế qua JSON, không phải SSE/WebSocket; race condition xử lý ở DB (UK + validate POST).
+7. **Xóa phòng chiếu** chưa có — chỉ tạo, rename, toggle status.
+8. **Suất chiếu có booking** — manager không xóa hard; dùng status `CANCELLED`.
+9. **Không có test tự động** — JUnit dependency có nhưng chưa viết test.
 
 ---
 
