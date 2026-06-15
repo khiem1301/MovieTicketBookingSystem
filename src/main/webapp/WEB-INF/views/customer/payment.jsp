@@ -13,7 +13,8 @@
   <c:set var="poster" value="${ctx}/${poster}"/>
 </c:if>
 
-<c:set var="vatAmount" value="${detail.finalAmount - detail.totalAmount}"/>
+<c:set var="discount" value="${detail.discountAmount != null ? detail.discountAmount : 0}"/>
+<c:set var="vatAmount" value="${detail.vatAmount != null ? detail.vatAmount : 0}"/>
 
 <div class="pay-page"
      data-ctx="${ctx}"
@@ -105,11 +106,45 @@
       <div class="pay-card pay-card--summary">
         <h3 class="pay-section-title">Tóm tắt đơn</h3>
 
+        <div class="pay-promo-block">
+          <label class="pay-promo-label" for="payPromoCode">Mã giảm giá / Voucher</label>
+          <c:choose>
+            <c:when test="${not empty detail.appliedPromoCode}">
+              <div class="pay-promo-applied">
+                <span class="pay-promo-applied-code"><c:out value="${detail.appliedPromoCode}"/></span>
+                <span class="pay-promo-applied-title"><c:out value="${detail.appliedPromoTitle}"/></span>
+              </div>
+              <form method="post" action="${ctx}/payment" class="pay-promo-form">
+                <input type="hidden" name="bookingId" value="<c:out value='${detail.bookingId}'/>"/>
+                <input type="hidden" name="action" value="removePromo"/>
+                <button type="submit" class="pay-promo-remove-btn">Gỡ mã</button>
+              </form>
+            </c:when>
+            <c:otherwise>
+              <form method="post" action="${ctx}/payment" class="pay-promo-form">
+                <input type="hidden" name="bookingId" value="<c:out value='${detail.bookingId}'/>"/>
+                <input type="hidden" name="action" value="applyPromo"/>
+                <div class="pay-promo-row">
+                  <input type="text" id="payPromoCode" name="promoCode" class="pay-promo-input"
+                         placeholder="Nhập mã voucher" maxlength="50" autocomplete="off"/>
+                  <button type="submit" class="pay-promo-apply-btn">Áp dụng</button>
+                </div>
+              </form>
+            </c:otherwise>
+          </c:choose>
+        </div>
+
         <div class="pay-breakdown">
           <div class="pay-breakdown-row">
             <span>Tạm tính (<c:out value="${fn:length(detail.seats)}"/> vé)</span>
             <span><fmt:formatNumber value="${detail.totalAmount}" type="number" groupingUsed="true"/> ₫</span>
           </div>
+          <c:if test="${discount gt 0}">
+            <div class="pay-breakdown-row pay-breakdown-row--discount">
+              <span>Giảm giá (<c:out value="${detail.appliedPromoCode}"/>)</span>
+              <span>-<fmt:formatNumber value="${discount}" type="number" groupingUsed="true"/> ₫</span>
+            </div>
+          </c:if>
           <div class="pay-breakdown-row">
             <span>VAT (<fmt:formatNumber value="${detail.vatRate}" maxFractionDigits="1"/>%)</span>
             <span><fmt:formatNumber value="${vatAmount}" type="number" groupingUsed="true"/> ₫</span>

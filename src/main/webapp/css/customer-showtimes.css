@@ -292,6 +292,24 @@
   opacity: 0.4;
 }
 
+.st-chip-prices {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.st-chip--dynamic {
+  border-color: rgba(233, 195, 73, 0.35);
+}
+
+.st-price-original {
+  font-size: 0.75em;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  text-decoration: line-through;
+}
+
 .st-empty {
   text-align: center;
   padding: 40px 16px;

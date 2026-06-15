@@ -81,15 +81,12 @@ public class PromotionDAO {
         }
     }
 
-    /** Áp dụng voucher: tìm theo code, phải ACTIVE và còn hiệu lực */
-    public Optional<Promotion> findByCodeForApply(String code) {
-        String sql = SELECT_COLUMNS + """
-                WHERE UPPER(code) = UPPER(?)
-                  AND status = 'ACTIVE'
-                  AND start_date <= GETDATE()
-                  AND end_date   >= GETDATE()
-                  AND (usage_limit IS NULL OR used_count < usage_limit)
-                """;
+    /** Tìm theo mã (không lọc hiệu lực) — dùng cho FR-22 validate chi tiết. */
+    public Optional<Promotion> findByCode(String code) {
+        if (code == null || code.isBlank()) {
+            return Optional.empty();
+        }
+        String sql = SELECT_COLUMNS + "WHERE UPPER(code) = UPPER(?)";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, code.trim());
@@ -97,8 +94,45 @@ public class PromotionDAO {
                 return rs.next() ? Optional.of(mapRow(rs)) : Optional.empty();
             }
         } catch (SQLException e) {
-            throw new RuntimeException("PromotionDAO.findByCodeForApply failed", e);
+            throw new RuntimeException("PromotionDAO.findByCode failed", e);
         }
+    }
+
+    /**
+     * Lý do không áp dụng được; null nếu hợp lệ.
+     * Dùng thay vì chỉ {@link #findByCodeForApply} để báo lỗi rõ cho khách.
+     */
+    public String validateForApply(Promotion p) {
+        if (p == null) {
+            return "Mã voucher không tồn tại.";
+        }
+        if (!"ACTIVE".equals(p.getStatus())) {
+            return "Mã voucher đang tắt (INACTIVE). Vui lòng liên hệ quầy vé.";
+        }
+        long now = System.currentTimeMillis();
+        if (p.getStartDate() != null && p.getStartDate().getTime() > now) {
+            return "Mã voucher chưa đến ngày áp dụng (bắt đầu từ "
+                    + formatDateTime(p.getStartDate()) + ").";
+        }
+        if (p.getEndDate() != null && p.getEndDate().getTime() < now) {
+            return "Mã voucher đã hết hạn (kết thúc "
+                    + formatDateTime(p.getEndDate()) + ").";
+        }
+        if (p.getUsageLimit() != null && p.getUsedCount() >= p.getUsageLimit()) {
+            return "Mã voucher đã hết lượt sử dụng.";
+        }
+        return null;
+    }
+
+    /** Áp dụng voucher: tìm theo code, phải ACTIVE và còn hiệu lực */
+    public Optional<Promotion> findByCodeForApply(String code) {
+        return findByCode(code).filter(p -> validateForApply(p) == null);
+    }
+
+    private static String formatDateTime(Timestamp ts) {
+        if (ts == null) return "";
+        return ts.toLocalDateTime()
+                .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
     }
 
     public boolean codeExists(String code, String excludeId) {
@@ -217,6 +251,38 @@ public class PromotionDAO {
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("PromotionDAO.incrementUsedCount failed", e);
+        }
+    }
+
+    /**
+     * FR-22 — Tăng used_count trong transaction; false nếu đã hết lượt.
+     */
+    public boolean incrementUsedCountIfAvailable(Connection conn, String id) throws SQLException {
+        String sql = """
+                UPDATE Promotions
+                SET used_count = used_count + 1
+                WHERE id = ?
+                  AND status = 'ACTIVE'
+                  AND start_date <= GETDATE()
+                  AND end_date >= GETDATE()
+                  AND (usage_limit IS NULL OR used_count < usage_limit)
+                """;
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, id);
+            return ps.executeUpdate() > 0;
+        }
+    }
+
+    /** FR-22 — Hoàn lượt khi gỡ mã hoặc hủy đơn PENDING. */
+    public void decrementUsedCount(Connection conn, String id) throws SQLException {
+        String sql = """
+                UPDATE Promotions
+                SET used_count = CASE WHEN used_count > 0 THEN used_count - 1 ELSE 0 END
+                WHERE id = ?
+                """;
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, id);
+            ps.executeUpdate();
         }
     }
 

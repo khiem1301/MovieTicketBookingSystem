@@ -24,6 +24,16 @@
         <span class="ck-subtitle-sep">·</span>
         <c:out value="${showtime.roomName}"/>
       </p>
+      <c:set var="ckBase" value="${showtime.basePrice}"/>
+      <c:set var="ckEff" value="${showtime.effectivePrice != null ? showtime.effectivePrice : showtime.basePrice}"/>
+      <c:if test="${showtime.effectivePrice != null and showtime.basePrice != null and showtime.effectivePrice ne showtime.basePrice}">
+        <p class="ck-price-line">
+          <span class="ck-price-badge">Giá suất</span>
+          <strong><fmt:formatNumber value="${ckEff}" pattern="#,##0"/> ₫</strong>
+          <span class="ck-price-original"><fmt:formatNumber value="${ckBase}" pattern="#,##0"/> ₫</span>
+          <span class="ck-price-note">(đã áp quy tắc giá động)</span>
+        </p>
+      </c:if>
     </div>
     <c:if test="${not empty showtime.movieAgeRating and showtime.movieAgeRating != 'P'}">
       <span class="ck-age-badge ck-age-badge--<c:out value='${fn:toLowerCase(showtime.movieAgeRating)}'/>">

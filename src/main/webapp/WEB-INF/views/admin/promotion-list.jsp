@@ -676,6 +676,12 @@
                           <span class="promo-status-text">EXPIRED</span>
                         </div>
                       </c:when>
+                      <c:when test="${p.scheduled}">
+                        <div class="promo-status promo-status--inactive">
+                          <span class="promo-status-dot"></span>
+                          <span class="promo-status-text">SCHEDULED</span>
+                        </div>
+                      </c:when>
                       <c:when test="${p.status == 'ACTIVE'}">
                         <div class="promo-status promo-status--active">
                           <span class="promo-status-dot"></span>
@@ -911,6 +917,13 @@ function closeModal() {
 }
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
 
+function formatIsoDate(d) {
+  var y = d.getFullYear();
+  var m = String(d.getMonth() + 1).padStart(2, '0');
+  var day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
 function openCreateModal() {
   document.getElementById('modalHeading').textContent   = 'Create Promotion';
   document.getElementById('modalSubmitBtn').textContent = 'Tạo mã giảm giá';
@@ -918,6 +931,11 @@ function openCreateModal() {
   document.getElementById('promoForm').reset();
   document.getElementById('modalUsedInfo').style.display = 'none';
   document.getElementById('modalCode').removeAttribute('readonly');
+  var today = new Date();
+  var end = new Date();
+  end.setDate(end.getDate() + 30);
+  document.getElementById('modalStartDate').value = formatIsoDate(today);
+  document.getElementById('modalEndDate').value   = formatIsoDate(end);
   onTypeChange('PERCENTAGE');
   openModal();
 }
