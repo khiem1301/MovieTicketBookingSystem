@@ -1,10 +1,13 @@
 package utils;
 
 import model.dto.RevenuePeriodStatsDTO;
+import model.dto.TopMovieStatsDTO;
+import model.dto.TopShowtimeStatsDTO;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.List;
 
 public final class ReportExportUtil {
@@ -14,6 +17,9 @@ public final class ReportExportUtil {
     public static final String GROUP_YEAR = "year";
 
     private static final DateTimeFormatter EXPORT_TS_FMT =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+    private static final DateTimeFormatter SHOWTIME_FMT =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private ReportExportUtil() {
@@ -66,12 +72,7 @@ public final class ReportExportUtil {
         }
 
         String csv = sb.toString();
-        byte[] bom = new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
-        byte[] body = csv.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-        byte[] result = new byte[bom.length + body.length];
-        System.arraycopy(bom, 0, result, 0, bom.length);
-        System.arraycopy(body, 0, result, bom.length, body.length);
-        return result;
+        return toUtf8BomBytes(csv);
     }
 
     public static String buildFilename(String groupBy, String rangeKey) {
@@ -87,6 +88,83 @@ public final class ReportExportUtil {
         appendParam(q, "to", to);
         appendParam(q, "groupBy", normalizeGroupBy(groupBy));
         return q.toString();
+    }
+
+    public static String buildTicketExportQuery(String range, String from, String to, String viewBy) {
+        StringBuilder q = new StringBuilder();
+        appendParam(q, "range", range);
+        appendParam(q, "from", from);
+        appendParam(q, "to", to);
+        appendParam(q, "viewBy", TicketStatsViewUtil.normalizeViewBy(viewBy));
+        return q.toString();
+    }
+
+    public static byte[] buildMovieTicketCsvBytes(List<TopMovieStatsDTO> rows, String rangeLabel) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("# ÉPCINE — Thống kê vé bán theo phim\n");
+        sb.append("# Khoảng: ").append(escapeCsv(rangeLabel)).append('\n');
+        sb.append("# Lọc theo: ngày đặt vé (booked_at)\n");
+        sb.append("# Tạo lúc: ").append(LocalDateTime.now().format(EXPORT_TS_FMT)).append('\n');
+        sb.append("Phim,Số vé,Số đơn,Doanh thu (VND)\n");
+
+        if (rows == null || rows.isEmpty()) {
+            sb.append("(Không có dữ liệu),0,0,0\n");
+        } else {
+            for (TopMovieStatsDTO row : rows) {
+                sb.append(escapeCsv(row.getTitle())).append(',');
+                sb.append(row.getTicketCount()).append(',');
+                sb.append(row.getBookingCount()).append(',');
+                sb.append(formatAmount(row.getRevenue())).append('\n');
+            }
+        }
+        return toUtf8BomBytes(sb.toString());
+    }
+
+    public static byte[] buildShowtimeTicketCsvBytes(List<TopShowtimeStatsDTO> rows, String rangeLabel) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("# ÉPCINE — Thống kê vé bán theo suất chiếu\n");
+        sb.append("# Khoảng: ").append(escapeCsv(rangeLabel)).append('\n');
+        sb.append("# Lọc theo: giờ chiếu (start_time)\n");
+        sb.append("# Tạo lúc: ").append(LocalDateTime.now().format(EXPORT_TS_FMT)).append('\n');
+        sb.append("Phim,Phòng,Giờ chiếu,Trạng thái,Số vé,Số đơn,Doanh thu (VND)\n");
+
+        if (rows == null || rows.isEmpty()) {
+            sb.append("(Không có dữ liệu),,,,0,0,0\n");
+        } else {
+            for (TopShowtimeStatsDTO row : rows) {
+                sb.append(escapeCsv(row.getMovieTitle())).append(',');
+                sb.append(escapeCsv(row.getRoomName())).append(',');
+                sb.append(escapeCsv(formatShowtime(row.getStartTime()))).append(',');
+                sb.append(escapeCsv(row.getShowtimeStatus())).append(',');
+                sb.append(row.getTicketCount()).append(',');
+                sb.append(row.getBookingCount()).append(',');
+                sb.append(formatAmount(row.getRevenue())).append('\n');
+            }
+        }
+        return toUtf8BomBytes(sb.toString());
+    }
+
+    public static String buildTicketFilename(String viewBy, String rangeKey) {
+        String normalized = TicketStatsViewUtil.normalizeViewBy(viewBy);
+        String safeRange = rangeKey == null || rangeKey.isBlank() ? "all" : rangeKey.replaceAll("[^a-zA-Z0-9_-]", "");
+        return "tickets-" + normalized + "-" + safeRange + ".csv";
+    }
+
+    private static String formatShowtime(Date value) {
+        if (value == null) {
+            return "";
+        }
+        return SHOWTIME_FMT.format(
+                value.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime());
+    }
+
+    private static byte[] toUtf8BomBytes(String csv) {
+        byte[] bom = new byte[] {(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+        byte[] body = csv.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] result = new byte[bom.length + body.length];
+        System.arraycopy(bom, 0, result, 0, bom.length);
+        System.arraycopy(body, 0, result, bom.length, body.length);
+        return result;
     }
 
     private static void appendParam(StringBuilder q, String name, String value) {

@@ -238,6 +238,12 @@
   border: 1px solid var(--border);
 }
 
+.admin-badge--showtime {
+  background: rgba(33, 150, 243, 0.15);
+  color: #90caf9;
+  border: 1px solid rgba(33, 150, 243, 0.35);
+}
+
 /* ── Pagination ──────────────────────────────────────────── */
 .admin-pagination {
   display: flex;

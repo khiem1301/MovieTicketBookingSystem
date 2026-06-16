@@ -63,18 +63,29 @@
                  value="<c:out value='${filterTo}'/>"/>
         </div>
         <div class="admin-field">
-          <label class="admin-label" for="groupBy">Nhóm theo</label>
+          <label class="admin-label" for="groupBy">Nhóm doanh thu</label>
           <select id="groupBy" name="groupBy" class="admin-select">
             <option value="day"   <c:if test="${filterGroupBy == 'day'}">selected</c:if>>Ngày</option>
             <option value="month" <c:if test="${filterGroupBy == 'month'}">selected</c:if>>Tháng</option>
             <option value="year"  <c:if test="${filterGroupBy == 'year'}">selected</c:if>>Năm</option>
           </select>
         </div>
+        <div class="admin-field">
+          <label class="admin-label" for="viewBy">Thống kê vé theo</label>
+          <select id="viewBy" name="viewBy" class="admin-select">
+            <option value="movie"     <c:if test="${filterViewBy == 'movie'}">selected</c:if>>Phim</option>
+            <option value="showtime"  <c:if test="${filterViewBy == 'showtime'}">selected</c:if>>Suất chiếu</option>
+          </select>
+        </div>
         <button type="submit" class="admin-btn admin-btn--primary">Áp dụng</button>
         <a href="${pageContext.request.contextPath}/admin/reports" class="admin-btn admin-btn--ghost">Xóa lọc</a>
         <a href="${pageContext.request.contextPath}/admin/reports/export?${exportQuery}"
            class="admin-btn admin-btn--ghost admin-btn--export">
-          Xuất CSV
+          Xuất CSV doanh thu
+        </a>
+        <a href="${pageContext.request.contextPath}/admin/reports/export-tickets?${ticketExportQuery}"
+           class="admin-btn admin-btn--ghost admin-btn--export">
+          Xuất CSV vé bán
         </a>
       </form>
       <p class="admin-stats" style="margin-top:12px;margin-bottom:0;">
@@ -105,7 +116,7 @@
       <p class="admin-stats">
         Chi tiết nhóm theo <strong><c:out value="${periodColumnLabel}"/></strong>
         — <c:out value="${rangeLabel}"/>.
-        Bấm <strong>Xuất CSV</strong> để tải file.
+        Bấm <strong>Xuất CSV doanh thu</strong> để tải file.
       </p>
       <c:choose>
         <c:when test="${not empty periodStats}">
@@ -141,49 +152,117 @@
     </div>
 
     <div class="admin-card" style="margin-top:24px;">
-      <h2 class="admin-section-title">Top phim được đặt nhiều</h2>
+      <h2 class="admin-section-title">Thống kê vé bán</h2>
       <p class="admin-stats">
-        Xếp hạng theo số vé bán trong khoảng thời gian đã chọn
-        <c:if test="${not empty topMoviesTotal}">
-          — <strong><c:out value="${topMoviesTotal}"/></strong> phim
+        <c:choose>
+          <c:when test="${filterViewBy == 'showtime'}">
+            Xếp hạng theo suất chiếu — lọc theo <strong>giờ chiếu</strong> trong khoảng
+            <c:out value="${rangeLabel}"/>.
+          </c:when>
+          <c:otherwise>
+            Xếp hạng theo phim — lọc theo <strong>ngày đặt vé</strong> trong khoảng
+            <c:out value="${rangeLabel}"/>.
+          </c:otherwise>
+        </c:choose>
+        <c:if test="${not empty ticketStatsTotal}">
+          — <strong><c:out value="${ticketStatsTotal}"/></strong>
+          <c:choose>
+            <c:when test="${filterViewBy == 'showtime'}">suất</c:when>
+            <c:otherwise>phim</c:otherwise>
+          </c:choose>
         </c:if>
       </p>
 
       <c:choose>
-        <c:when test="${not empty topMovies}">
-          <div class="admin-table-wrap">
-            <table class="admin-table admin-table--top-movies">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Phim</th>
-                  <th>Số vé</th>
-                  <th>Số đơn</th>
-                  <th>Doanh thu</th>
-                </tr>
-              </thead>
-              <tbody>
-                <c:forEach var="movie" items="${topMovies}" varStatus="st">
-                  <tr>
-                    <td><c:out value="${rankStart + st.index}"/></td>
-                    <td><strong><c:out value="${movie.title}"/></strong></td>
-                    <td><c:out value="${movie.ticketCount}"/></td>
-                    <td><c:out value="${movie.bookingCount}"/></td>
-                    <td>
-                      <fmt:formatNumber value="${movie.revenue}" type="number" groupingUsed="true" maxFractionDigits="0"/>đ
-                    </td>
-                  </tr>
-                </c:forEach>
-              </tbody>
-            </table>
-          </div>
-          <c:set var="pgCurrent" value="${currentPage}"/>
-          <c:set var="pgTotal" value="${totalPages}"/>
-          <c:set var="pgTotalItems" value="${topMoviesTotal}"/>
-          <%@ include file="/WEB-INF/views/admin/pagination.jspf" %>
+        <c:when test="${filterViewBy == 'showtime'}">
+          <c:choose>
+            <c:when test="${not empty showtimeStats}">
+              <div class="admin-table-wrap">
+                <table class="admin-table admin-table--ticket-showtime">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Phim</th>
+                      <th>Phòng</th>
+                      <th>Giờ chiếu</th>
+                      <th>Trạng thái</th>
+                      <th>Số vé</th>
+                      <th>Số đơn</th>
+                      <th>Doanh thu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <c:forEach var="row" items="${showtimeStats}" varStatus="st">
+                      <tr>
+                        <td><c:out value="${rankStart + st.index}"/></td>
+                        <td><strong><c:out value="${row.movieTitle}"/></strong></td>
+                        <td><c:out value="${row.roomName}"/></td>
+                        <td>
+                          <fmt:formatDate value="${row.startTime}" pattern="dd/MM/yyyy HH:mm"/>
+                        </td>
+                        <td>
+                          <span class="admin-badge admin-badge--showtime">
+                            <c:out value="${row.showtimeStatus}"/>
+                          </span>
+                        </td>
+                        <td><c:out value="${row.ticketCount}"/></td>
+                        <td><c:out value="${row.bookingCount}"/></td>
+                        <td>
+                          <fmt:formatNumber value="${row.revenue}" type="number" groupingUsed="true" maxFractionDigits="0"/>đ
+                        </td>
+                      </tr>
+                    </c:forEach>
+                  </tbody>
+                </table>
+              </div>
+              <c:set var="pgCurrent" value="${currentPage}"/>
+              <c:set var="pgTotal" value="${totalPages}"/>
+              <c:set var="pgTotalItems" value="${ticketStatsTotal}"/>
+              <%@ include file="/WEB-INF/views/admin/pagination.jspf" %>
+            </c:when>
+            <c:otherwise>
+              <p class="admin-empty">Chưa có vé bán theo suất chiếu trong khoảng thời gian này.</p>
+            </c:otherwise>
+          </c:choose>
         </c:when>
         <c:otherwise>
-          <p class="admin-empty">Chưa có đơn đã thanh toán trong khoảng thời gian này.</p>
+          <c:choose>
+            <c:when test="${not empty topMovies}">
+              <div class="admin-table-wrap">
+                <table class="admin-table admin-table--top-movies">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Phim</th>
+                      <th>Số vé</th>
+                      <th>Số đơn</th>
+                      <th>Doanh thu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <c:forEach var="movie" items="${topMovies}" varStatus="st">
+                      <tr>
+                        <td><c:out value="${rankStart + st.index}"/></td>
+                        <td><strong><c:out value="${movie.title}"/></strong></td>
+                        <td><c:out value="${movie.ticketCount}"/></td>
+                        <td><c:out value="${movie.bookingCount}"/></td>
+                        <td>
+                          <fmt:formatNumber value="${movie.revenue}" type="number" groupingUsed="true" maxFractionDigits="0"/>đ
+                        </td>
+                      </tr>
+                    </c:forEach>
+                  </tbody>
+                </table>
+              </div>
+              <c:set var="pgCurrent" value="${currentPage}"/>
+              <c:set var="pgTotal" value="${totalPages}"/>
+              <c:set var="pgTotalItems" value="${ticketStatsTotal}"/>
+              <%@ include file="/WEB-INF/views/admin/pagination.jspf" %>
+            </c:when>
+            <c:otherwise>
+              <p class="admin-empty">Chưa có vé bán theo phim trong khoảng thời gian này.</p>
+            </c:otherwise>
+          </c:choose>
         </c:otherwise>
       </c:choose>
     </div>
