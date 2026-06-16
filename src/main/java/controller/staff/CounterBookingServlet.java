@@ -179,6 +179,7 @@ public class CounterBookingServlet extends HttpServlet {
                     JSONObject so = new JSONObject();
                     so.put("id",          s.getId());
                     so.put("seatCode",    s.getSeatCode());
+                    so.put("seatColumn",  s.getSeatColumn());
                     so.put("typeName",    s.getSeatTypeName() == null ? "STANDARD" : s.getSeatTypeName());
                     so.put("ticketPrice", s.getTicketPrice() == null ? BigDecimal.ZERO : s.getTicketPrice());
                     so.put("available",   s.isAvailable());

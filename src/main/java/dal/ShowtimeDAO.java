@@ -43,6 +43,36 @@ public class ShowtimeDAO {
     }
 
     /**
+     * FR-11 — Suất chiếu sắp tới của phim (từ hiện tại trở đi, không gồm CANCELLED).
+     */
+    public List<Showtime> getUpcomingShowtimesByMovieId(String movieId) {
+        String sql = """
+                SELECT s.id, s.movie_id, m.title AS movie_title, m.poster_url AS movie_poster_url,
+                       m.duration_minutes AS movie_duration, m.age_rating AS movie_age_rating,
+                       s.room_id, cr.room_name,
+                       s.start_time, s.end_time, s.base_price, s.status, s.created_at
+                FROM Showtimes s
+                JOIN Movies m       ON m.id = s.movie_id
+                JOIN CinemaRooms cr ON cr.id = s.room_id
+                WHERE s.movie_id = ?
+                  AND s.start_time >= GETDATE()
+                  AND s.status <> 'CANCELLED'
+                ORDER BY s.start_time
+                """;
+        List<Showtime> result = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, movieId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) result.add(mapShowtime(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("getUpcomingShowtimesByMovieId failed", e);
+        }
+        return result;
+    }
+
+    /**
      * FR-35 — Lấy danh sách suất chiếu còn lại trong ngày + tương lai theo phim.
      */
     public List<Showtime> getShowtimesByMovieId(String movieId) {
@@ -94,6 +124,132 @@ public class ShowtimeDAO {
             throw new RuntimeException("getShowtimeById failed", e);
         }
         return null;
+    }
+
+    /** FR-25 — Danh sách suất chiếu cho manager (mọi trạng thái). */
+    public List<Showtime> getAllForManager() {
+        String sql = """
+                SELECT s.id, s.movie_id, m.title AS movie_title, m.poster_url AS movie_poster_url,
+                       m.duration_minutes AS movie_duration, m.age_rating AS movie_age_rating,
+                       s.room_id, cr.room_name,
+                       s.start_time, s.end_time, s.base_price, s.status, s.created_at
+                FROM Showtimes s
+                JOIN Movies m       ON m.id = s.movie_id
+                JOIN CinemaRooms cr ON cr.id = s.room_id
+                ORDER BY s.start_time DESC
+                """;
+        List<Showtime> result = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) result.add(mapShowtime(rs));
+        } catch (SQLException e) {
+            throw new RuntimeException("getAllForManager failed", e);
+        }
+        return result;
+    }
+
+    public void create(Showtime showtime, String createdBy) {
+        String sql = """
+                INSERT INTO Showtimes (id, movie_id, room_id, start_time, end_time, base_price, status, created_by)
+                VALUES (NEWID(), ?, ?, ?, ?, ?, ?, ?)
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, showtime.getMovieId());
+            ps.setString(2, showtime.getRoomId());
+            ps.setTimestamp(3, showtime.getStartTime());
+            ps.setTimestamp(4, showtime.getEndTime());
+            ps.setBigDecimal(5, showtime.getBasePrice());
+            ps.setString(6, showtime.getStatus());
+            ps.setString(7, createdBy);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("create showtime failed", e);
+        }
+    }
+
+    public void update(Showtime showtime) {
+        String sql = """
+                UPDATE Showtimes
+                SET movie_id = ?, room_id = ?, start_time = ?, end_time = ?,
+                    base_price = ?, status = ?
+                WHERE id = ?
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, showtime.getMovieId());
+            ps.setString(2, showtime.getRoomId());
+            ps.setTimestamp(3, showtime.getStartTime());
+            ps.setTimestamp(4, showtime.getEndTime());
+            ps.setBigDecimal(5, showtime.getBasePrice());
+            ps.setString(6, showtime.getStatus());
+            ps.setString(7, showtime.getId());
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("update showtime failed", e);
+        }
+    }
+
+    public void delete(String id) {
+        String sql = "DELETE FROM Showtimes WHERE id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, id);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("delete showtime failed", e);
+        }
+    }
+
+    /**
+     * Kiểm tra trùng lịch cùng phòng (bỏ qua suất CANCELLED).
+     * Overlap: existing.start &lt; newEnd AND existing.end &gt; newStart
+     */
+    public boolean isOverlapping(String roomId, Timestamp startTime, Timestamp endTime, String excludeId) {
+        String sql = """
+                SELECT COUNT(1)
+                FROM Showtimes
+                WHERE room_id = ?
+                  AND status <> 'CANCELLED'
+                  AND start_time < ?
+                  AND end_time > ?
+                """;
+        if (excludeId != null && !excludeId.isBlank()) {
+            sql += " AND id <> ?";
+        }
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, roomId);
+            ps.setTimestamp(2, endTime);
+            ps.setTimestamp(3, startTime);
+            if (excludeId != null && !excludeId.isBlank()) {
+                ps.setString(4, excludeId);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("isOverlapping failed", e);
+        }
+    }
+
+    /** Đếm booking còn hiệu lực (PENDING / CONFIRMED). */
+    public int countBookingsByShowtimeId(String showtimeId) {
+        String sql = """
+                SELECT COUNT(1) FROM Bookings
+                WHERE showtime_id = ?
+                  AND booking_status IN ('PENDING', 'CONFIRMED')
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, showtimeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("countBookingsByShowtimeId failed", e);
+        }
     }
 
     private Movie mapMovie(ResultSet rs) throws SQLException {

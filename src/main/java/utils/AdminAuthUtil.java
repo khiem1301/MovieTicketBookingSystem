@@ -15,6 +15,24 @@ public final class AdminAuthUtil {
 
     private AdminAuthUtil() {}
 
+    public static boolean requireAdminOrManager(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        String role = SessionUtil.getUserRole(req);
+        if ("ADMIN".equals(role) || "MANAGER".equals(role)) {
+            return true;
+        }
+        if (SessionUtil.getLoggedUser(req) == null) {
+            String redirect = req.getRequestURI();
+            String query = req.getQueryString();
+            if (query != null && !query.isBlank()) redirect += "?" + query;
+            resp.sendRedirect(req.getContextPath() + "/login?redirect="
+                    + java.net.URLEncoder.encode(redirect, java.nio.charset.StandardCharsets.UTF_8));
+        } else {
+            setFlash(req, FLASH_ERROR, "Bạn không có quyền truy cập trang này.");
+            resp.sendRedirect(req.getContextPath() + "/home");
+        }
+        return false;
+    }
+
     public static boolean requireAdmin(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         if ("ADMIN".equals(SessionUtil.getUserRole(req))) {
             return true;

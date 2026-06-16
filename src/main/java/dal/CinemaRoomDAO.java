@@ -35,6 +35,25 @@ public class CinemaRoomDAO {
         return list;
     }
 
+    /** FR-25 — Phòng đang hoạt động, có thể xếp suất chiếu. */
+    public List<CinemaRoom> getActiveRooms() {
+        String sql = """
+                SELECT id, room_name, capacity, status, created_at
+                FROM CinemaRooms
+                WHERE status = 'ACTIVE'
+                ORDER BY room_name
+                """;
+        List<CinemaRoom> list = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) list.add(mapRow(rs));
+        } catch (SQLException e) {
+            throw new RuntimeException("CinemaRoomDAO.getActiveRooms failed", e);
+        }
+        return list;
+    }
+
     public CinemaRoom getById(String id) {
         String sql = """
                 SELECT id, room_name, capacity, status, created_at

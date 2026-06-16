@@ -5,7 +5,8 @@
          version="6.0">
 
   <session-config>
-    <session-timeout>1</session-timeout>
+    <!-- Thời gian không hoạt động trước khi session hết hạn (phút). 1440 = 24 giờ -->
+    <session-timeout>1440</session-timeout>
   </session-config>
 
   <!-- Welcome page -->

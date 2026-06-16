@@ -7,11 +7,17 @@ import java.util.List;
 public class BookingDetailDTO {
     private String bookingId;
     private String bookingCode;
+    private String userId;
+    private String showtimeId;
+    private String bookingSource;
+    private Timestamp expiredAt;
     private String customerName;
     private String customerPhone;
     private String bookingStatus;
     private String paymentStatus;
     private BigDecimal totalAmount;
+    private BigDecimal discountAmount;
+    private BigDecimal vatAmount;
     private BigDecimal finalAmount;
     private BigDecimal vatRate;
     private String movieTitle;
@@ -20,8 +26,9 @@ public class BookingDetailDTO {
     private Timestamp startTime;
     private List<SeatItem> seats;
     private List<TicketItem> tickets;
-    private String linkedUserId;
     private String linkedUserEmail;
+    private String appliedPromoCode;
+    private String appliedPromoTitle;
 
     public static class SeatItem {
         private final String seatCode;
@@ -62,6 +69,18 @@ public class BookingDetailDTO {
     public String getBookingCode()   { return bookingCode; }
     public void setBookingCode(String v) { this.bookingCode = v; }
 
+    public String getUserId()        { return userId; }
+    public void setUserId(String v)  { this.userId = v; }
+
+    public String getShowtimeId()    { return showtimeId; }
+    public void setShowtimeId(String v) { this.showtimeId = v; }
+
+    public String getBookingSource() { return bookingSource; }
+    public void setBookingSource(String v) { this.bookingSource = v; }
+
+    public Timestamp getExpiredAt()  { return expiredAt; }
+    public void setExpiredAt(Timestamp v) { this.expiredAt = v; }
+
     public String getCustomerName()  { return customerName; }
     public void setCustomerName(String v){ this.customerName = v; }
 
@@ -76,6 +95,12 @@ public class BookingDetailDTO {
 
     public BigDecimal getTotalAmount()  { return totalAmount; }
     public void setTotalAmount(BigDecimal v){ this.totalAmount = v; }
+
+    public BigDecimal getDiscountAmount() { return discountAmount; }
+    public void setDiscountAmount(BigDecimal v) { this.discountAmount = v; }
+
+    public BigDecimal getVatAmount() { return vatAmount; }
+    public void setVatAmount(BigDecimal v) { this.vatAmount = v; }
 
     public BigDecimal getFinalAmount()  { return finalAmount; }
     public void setFinalAmount(BigDecimal v){ this.finalAmount = v; }
@@ -101,9 +126,16 @@ public class BookingDetailDTO {
     public List<TicketItem> getTickets() { return tickets; }
     public void setTickets(List<TicketItem> v){ this.tickets = v; }
 
-    public String getLinkedUserId() { return linkedUserId; }
-    public void setLinkedUserId(String v){ this.linkedUserId = v; }
-
     public String getLinkedUserEmail() { return linkedUserEmail; }
     public void setLinkedUserEmail(String v){ this.linkedUserEmail = v; }
+
+    public String getAppliedPromoCode() { return appliedPromoCode; }
+    public void setAppliedPromoCode(String v) { this.appliedPromoCode = v; }
+
+    public String getAppliedPromoTitle() { return appliedPromoTitle; }
+    public void setAppliedPromoTitle(String v) { this.appliedPromoTitle = v; }
+
+    public boolean hasAppliedPromo() {
+        return appliedPromoCode != null && !appliedPromoCode.isBlank();
+    }
 }

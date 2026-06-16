@@ -19,6 +19,9 @@
   <c:if test="${param.success == 'deleted'}">
     <div class="genre-alert genre-alert--success">Genre deleted successfully.</div>
   </c:if>
+  <c:if test="${param.success == 'status-updated'}">
+    <div class="genre-alert genre-alert--success">Genre status updated successfully.</div>
+  </c:if>
 
   <%-- Page Header --%>
   <div class="genre-header">
@@ -85,11 +88,13 @@
           </thead>
           <tbody id="genreTableBody">
             <c:forEach var="g" items="${genreList}">
-              <c:set var="isActive"   value="${genreIdsInUse.contains(g.id)}"/>
-              <c:set var="movieCount" value="${movieCountMap[g.id] != null ? movieCountMap[g.id] : 0}"/>
-              <c:set var="slug"       value="${fn:replace(fn:toLowerCase(g.genreName), ' ', '-')}"/>
+              <c:set var="inUse"          value="${genreIdsInUse.contains(g.id)}"/>
+              <c:set var="hasActiveMov"   value="${genreIdsWithActiveMovies.contains(g.id)}"/>
+              <c:set var="movieCount"     value="${movieCountMap[g.id] != null ? movieCountMap[g.id] : 0}"/>
+              <c:set var="slug"           value="${fn:replace(fn:toLowerCase(g.genreName), ' ', '-')}"/>
               <tr data-name="${fn:toLowerCase(g.genreName)}"
-                  data-status="${isActive ? 'active' : 'inactive'}">
+                  data-status="${g.active ? 'active' : 'inactive'}"
+                  data-description="<c:out value='${g.description}'/>">
 
                 <td class="genre-name-cell"><c:out value="${g.genreName}"/></td>
 
@@ -99,7 +104,7 @@
 
                 <td>
                   <c:choose>
-                    <c:when test="${isActive}">
+                    <c:when test="${g.active}">
                       <span class="status-badge status-badge--active">Active</span>
                     </c:when>
                     <c:otherwise>
@@ -110,8 +115,9 @@
 
                 <td>
                   <div class="genre-actions">
+                    <%-- Edit name: disabled khi thể loại đang có phim gắn vào --%>
                     <c:choose>
-                      <c:when test="${isActive}">
+                      <c:when test="${inUse}">
                         <button class="genre-action-btn genre-action-btn--disabled"
                                 title="Cannot edit — genre is in use">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -121,6 +127,74 @@
                             <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
                           </svg>
                         </button>
+                      </c:when>
+                      <c:otherwise>
+                        <button class="genre-action-btn genre-action-btn--edit" title="Edit genre"
+                                onclick="openEditModal('<c:out value="${g.id}"/>', '<c:out value="${g.genreName}"/>', this.closest('tr'))">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                               stroke="currentColor" stroke-width="2"
+                               stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 20h9"/>
+                            <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                          </svg>
+                        </button>
+                      </c:otherwise>
+                    </c:choose>
+
+                    <%-- Toggle status: disabled khi có phim đang chiếu / sắp chiếu --%>
+                    <c:choose>
+                      <c:when test="${hasActiveMov}">
+                        <button class="genre-action-btn genre-action-btn--disabled"
+                                title="Cannot change status — genre has now-showing or upcoming movies">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                               stroke="currentColor" stroke-width="2"
+                               stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                          </svg>
+                        </button>
+                      </c:when>
+                      <c:otherwise>
+                        <form method="post"
+                              action="${pageContext.request.contextPath}/manager/genres"
+                              style="display:inline"
+                              onsubmit="return confirm('${g.active ? 'Deactivate' : 'Activate'} genre &quot;<c:out value="${g.genreName}"/>&quot;?');">
+                          <input type="hidden" name="action" value="toggle-status"/>
+                          <input type="hidden" name="id"     value="<c:out value='${g.id}'/>"/>
+                          <c:choose>
+                            <c:when test="${g.active}">
+                              <button type="submit"
+                                      class="genre-action-btn genre-action-btn--deactivate"
+                                      title="Deactivate genre">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2"
+                                     stroke-linecap="round" stroke-linejoin="round">
+                                  <circle cx="12" cy="12" r="10"/>
+                                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                                </svg>
+                              </button>
+                            </c:when>
+                            <c:otherwise>
+                              <button type="submit"
+                                      class="genre-action-btn genre-action-btn--activate"
+                                      title="Activate genre">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2"
+                                     stroke-linecap="round" stroke-linejoin="round">
+                                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                                  <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                              </button>
+                            </c:otherwise>
+                          </c:choose>
+                        </form>
+                      </c:otherwise>
+                    </c:choose>
+
+                    <%-- Delete: disabled khi thể loại đang có phim gắn vào --%>
+                    <c:choose>
+                      <c:when test="${inUse}">
                         <button class="genre-action-btn genre-action-btn--disabled"
                                 title="Cannot delete — genre is in use">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -133,19 +207,10 @@
                         </button>
                       </c:when>
                       <c:otherwise>
-                        <button class="genre-action-btn genre-action-btn--edit" title="Edit genre"
-                                onclick="openEditModal('<c:out value="${g.id}"/>', '<c:out value="${g.genreName}"/>')">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                               stroke="currentColor" stroke-width="2"
-                               stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 20h9"/>
-                            <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                          </svg>
-                        </button>
                         <form method="post"
                               action="${pageContext.request.contextPath}/manager/genres"
                               style="display:inline"
-                              onsubmit="return confirm('Delete genre "<c:out value="${g.genreName}"/>"? This cannot be undone.');">
+                              onsubmit="return confirm('Delete genre &quot;<c:out value="${g.genreName}"/>&quot;? This cannot be undone.');">
                           <input type="hidden" name="action" value="delete"/>
                           <input type="hidden" name="id"     value="<c:out value='${g.id}'/>"/>
                           <button type="submit" class="genre-action-btn genre-action-btn--delete" title="Delete genre">
@@ -198,6 +263,25 @@
                placeholder="e.g. Science Fiction"
                maxlength="100" autocomplete="off" required/>
         <p class="genre-hint">Name is case-insensitive when checking for duplicates.</p>
+
+        <label for="addDescription" style="margin-top:14px;display:block">Mô tả</label>
+        <textarea id="addDescription" name="description" rows="3" maxlength="500"
+                  placeholder="Mô tả ngắn về thể loại…"
+                  style="resize:vertical"><c:out value='${descriptionValue}'/></textarea>
+        <p class="genre-hint">Tối đa 500 ký tự. Hiển thị khi chọn thể loại cho phim.</p>
+
+        <label style="margin-top:12px;display:block">Status <span class="required">*</span></label>
+        <div class="genre-status-radios">
+          <label class="genre-status-radio">
+            <input type="radio" name="isActive" value="true" checked/>
+            <span class="status-badge status-badge--active">Active</span>
+          </label>
+          <label class="genre-status-radio">
+            <input type="radio" name="isActive" value="false"/>
+            <span class="status-badge status-badge--inactive">Inactive</span>
+          </label>
+        </div>
+
         <div class="genre-modal-actions">
           <button type="submit" class="btn-modal-primary">Add Genre</button>
           <button type="button" class="btn-modal-cancel" onclick="closeAddModal()">Cancel</button>
@@ -227,6 +311,13 @@
         <input id="editGenreName" type="text" name="genreName"
                maxlength="100" autocomplete="off" required/>
         <p class="genre-hint">Name is case-insensitive when checking for duplicates.</p>
+
+        <label for="editDescription" style="margin-top:14px;display:block">Mô tả</label>
+        <textarea id="editDescription" name="description" rows="3" maxlength="500"
+                  placeholder="Mô tả ngắn về thể loại…"
+                  style="resize:vertical"></textarea>
+        <p class="genre-hint">Tối đa 500 ký tự. Hiển thị khi chọn thể loại cho phim.</p>
+
         <div class="genre-modal-actions">
           <button type="submit" class="btn-modal-primary">Save Changes</button>
           <button type="button" class="btn-modal-cancel" onclick="closeEditModal()">Cancel</button>
@@ -237,7 +328,7 @@
 </div>
 
 <script>
-  const ROWS_PER_PAGE = 10;
+  const ROWS_PER_PAGE = 5;
   let currentPage  = 1;
   let currentFilter = 'all';
   let filteredRows  = [];
@@ -329,9 +420,10 @@
   function closeAddModal() {
     document.getElementById('addModal').classList.remove('open');
   }
-  function openEditModal(id, name) {
-    document.getElementById('editGenreId').value   = id;
-    document.getElementById('editGenreName').value = name;
+  function openEditModal(id, name, row) {
+    document.getElementById('editGenreId').value       = id;
+    document.getElementById('editGenreName').value     = name;
+    document.getElementById('editDescription').value   = row ? (row.dataset.description || '') : '';
     document.getElementById('editModal').classList.add('open');
     document.getElementById('editGenreName').focus();
   }
@@ -369,7 +461,10 @@
     applyFilters();
 
     <c:if test="${not empty editGenre}">
-    openEditModal('<c:out value="${editGenre.id}"/>', '<c:out value="${editGenre.genreName}"/>');
+    (function() {
+      var fakeRow = { dataset: { description: '<c:out value="${descriptionValue != null ? descriptionValue : editGenre.description}"/>' } };
+      openEditModal('<c:out value="${editGenre.id}"/>', '<c:out value="${editGenre.genreName}"/>', fakeRow);
+    })();
     </c:if>
 
     <c:if test="${not empty error and empty editGenre}">

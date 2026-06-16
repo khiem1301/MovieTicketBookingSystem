@@ -1,0 +1,314 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>CineReserve - Secure Payment</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;800;900&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface-variant": "#e9bcb6",
+                    "surface-dim": "#131313",
+                    "primary-fixed-dim": "#ffb4aa",
+                    "on-primary-container": "#fff7f6",
+                    "surface": "#131313",
+                    "error": "#ffb4ab",
+                    "on-primary-fixed-variant": "#930007",
+                    "inverse-on-surface": "#313030",
+                    "background": "#131313",
+                    "surface-container": "#201f1f",
+                    "secondary-fixed-dim": "#e9c349",
+                    "inverse-surface": "#e5e2e1",
+                    "on-tertiary-fixed-variant": "#474746",
+                    "tertiary-container": "#737272",
+                    "secondary-container": "#af8d11",
+                    "on-tertiary-fixed": "#1b1b1c",
+                    "surface-container-high": "#2a2a2a",
+                    "surface-variant": "#353534",
+                    "on-tertiary": "#303030",
+                    "surface-tint": "#ffb4aa",
+                    "secondary-fixed": "#ffe088",
+                    "surface-container-highest": "#353534",
+                    "on-secondary-fixed-variant": "#574500",
+                    "primary-container": "#e50914",
+                    "on-primary-fixed": "#410001",
+                    "on-tertiary-container": "#fbf8f8",
+                    "on-primary": "#690003",
+                    "error-container": "#93000a",
+                    "on-error": "#690005",
+                    "on-secondary": "#3c2f00",
+                    "surface-container-low": "#1c1b1b",
+                    "on-error-container": "#ffdad6",
+                    "inverse-primary": "#c0000c",
+                    "surface-container-lowest": "#0e0e0e",
+                    "primary": "#ffb4aa",
+                    "outline-variant": "#5e3f3b",
+                    "tertiary": "#c8c6c5",
+                    "primary-fixed": "#ffdad5",
+                    "on-secondary-container": "#342800",
+                    "tertiary-fixed-dim": "#c8c6c5",
+                    "secondary": "#e9c349",
+                    "outline": "#af8782",
+                    "on-secondary-fixed": "#241a00",
+                    "on-background": "#e5e2e1",
+                    "surface-bright": "#3a3939",
+                    "on-surface": "#e5e2e1",
+                    "tertiary-fixed": "#e5e2e1"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "container-padding-desktop": "80px",
+                    "container-padding-mobile": "20px",
+                    "base": "8px",
+                    "gutter": "24px",
+                    "section-gap": "64px"
+            },
+            "fontFamily": {
+                    "label-md": ["Inter"],
+                    "headline-lg": ["Montserrat"],
+                    "display-lg": ["Montserrat"],
+                    "headline-lg-mobile": ["Montserrat"],
+                    "body-md": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "display-sm": ["Montserrat"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "label-md": ["14px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                    "display-lg": ["64px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "500"}],
+                    "display-sm": ["40px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body {
+            background-color: #0B0B0B;
+            color: #e5e2e1;
+            font-family: 'Inter', sans-serif;
+            background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, #0B0B0B 70%);
+            background-attachment: fixed;
+        }
+        .glass-panel {
+            background: rgba(18, 18, 18, 0.7);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glow-effect {
+            box-shadow: 0 0 30px rgba(229, 9, 20, 0.15);
+        }
+        /* Custom Scrollbar for dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0B0B0B; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #353534; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #474746; 
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+<!-- TopNavBar Suppressed: Transactional screen -->
+<main class="flex-grow w-full max-w-[1440px] mx-auto px-container-padding-mobile md:px-container-padding-desktop py-12">
+<!-- Header -->
+<div class="mb-10 flex items-center gap-4">
+<button class="w-10 h-10 rounded-full glass-panel flex items-center justify-center text-on-surface hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</button>
+<div>
+<h1 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Secure Checkout</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">lock</span>
+                    Encrypted Payment Session
+                </p>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Left Column: Payment Methods (8 cols) -->
+<div class="lg:col-span-8 flex flex-col gap-8">
+<!-- Payment Method Selection Box -->
+<div class="glass-panel rounded-xl p-6 md:p-8 relative overflow-hidden">
+<!-- Subtle cinematic light leak behind the methods -->
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[80px] -z-10 pointer-events-none"></div>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:text-[24px] text-on-surface mb-6">Select Payment Method</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 max-w-2xl">
+<!-- MoMo (Selected) -->
+<div class="relative cursor-pointer group">
+<div class="absolute inset-0 bg-primary-container/20 rounded-xl blur-lg transition-opacity"></div>
+<div class="relative bg-surface-container border-2 border-primary-container rounded-xl p-6 flex flex-col items-center justify-center gap-4 transition-all duration-300 transform hover:scale-[1.02] z-10 h-40">
+<div class="w-16 h-16 bg-[#A50064] rounded-2xl flex items-center justify-center text-white font-bold text-2xl tracking-tighter shadow-lg shadow-[#A50064]/20">
+        MoMo
+      </div>
+<span class="font-label-md text-label-md text-on-surface font-semibold">MoMo Wallet</span>
+<!-- Active check -->
+<div class="absolute top-3 right-3 text-primary-container">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+</div>
+<!-- VNPay (Unselected) -->
+<div class="relative cursor-pointer group">
+<div class="relative bg-surface-container/50 border border-white/10 hover:border-white/30 rounded-xl p-6 flex flex-col items-center justify-center gap-4 transition-all duration-300 transform hover:scale-[1.02] z-10 h-40">
+<div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center p-2 shadow-lg">
+<span class="text-[#005BAA] font-bold text-xl leading-tight text-center italic">VN<br><span class="text-[#ED1B24]">PAY</span></span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant group-hover:text-on-surface transition-colors">VNPay QR</span>
+</div>
+</div>
+</div>
+<!-- Active Method Details (QR Display) -->
+<div class="bg-surface rounded-lg p-8 border border-white/5 flex flex-col md:flex-row items-center gap-8 glow-effect">
+<!-- QR Code Container -->
+<div class="bg-white p-4 rounded-xl shadow-lg relative flex-shrink-0">
+<!-- Scanning line animation simulation -->
+<div class="absolute top-0 left-0 w-full h-1 bg-primary-container opacity-50 shadow-[0_0_10px_rgba(229,9,20,0.8)] rounded-t-xl" style="top: 30%;"></div>
+<img alt="Payment QR Code" class="w-48 h-48 object-cover mix-blend-multiply" data-alt="A stylized, high-contrast, black and white square QR code centered on a pristine white background. The image is sharply focused, demonstrating a modern fintech aesthetic. The overall mood is precise and technological, fitting a premium, high-stakes cinematic dark-mode interface where the white square pops against the surrounding dark lobby-like environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBV3E7bne4c3kX7tnv3U0a0aoaOltL8hUVs5hy3K9x2TUQ2HNnHSvOBhpljR8EWICUCZDkw5wUfUTFMgcOzIzZvObTnDgshDY3h96lKPDV0WTlMbV-VFuVgBqaCKkYBQFi5CYiQUzfa0clUWaZsL7byn71_IjUPQwCkZhEN2DgLJmgmauWF_q2NAiU143YXgHjPrFKFRLskcSZPtWil9M5VFNkK15QTmdXW15cW6sARP6HnDzD9qUujM1miyyfBBI4PSHwkNu6YfX8">
+<!-- Corner brackets -->
+<div class="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-primary-container"></div>
+<div class="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-primary-container"></div>
+<div class="absolute bottom-2 left-2 w-4 h-4 border-b-2 border-l-2 border-primary-container"></div>
+<div class="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-primary-container"></div>
+</div>
+<!-- Instructions -->
+<div class="flex flex-col flex-grow">
+<div class="flex items-center gap-2 mb-2">
+<div class="w-8 h-8 rounded-full bg-[#A50064]/20 flex items-center justify-center text-[#A50064]">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">smartphone</span>
+</div>
+<h3 class="font-headline-lg-mobile text-[20px] text-on-surface font-bold">Scan to Pay via MoMo</h3>
+</div>
+<ol class="font-body-md text-body-md text-on-surface-variant space-y-3 mt-4">
+<li class="flex gap-3">
+<span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center text-xs font-bold text-on-surface shrink-0">1</span>
+<span class="">Open the MoMo app on your mobile device.</span>
+</li>
+<li class="flex gap-3">
+<span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center text-xs font-bold text-on-surface shrink-0">2</span>
+<span class="">Select the <strong>Scan QR</strong> option from the home screen.</span>
+</li>
+<li class="flex gap-3">
+<span class="w-6 h-6 rounded-full bg-surface-variant flex items-center justify-center text-xs font-bold text-on-surface shrink-0">3</span>
+<span class="">Confirm the payment amount and complete the transaction.</span>
+</li>
+</ol>
+<div class="mt-6 p-3 bg-surface-container-high rounded border border-white/5 flex items-start gap-3">
+<span class="material-symbols-outlined text-secondary mt-0.5" style="font-variation-settings: 'FILL' 1;">info</span>
+<p class="font-label-sm text-label-sm text-tertiary">The page will automatically update once the payment is successful. Please do not close this window.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Security Trust Badges -->
+<div class="flex flex-wrap items-center justify-center md:justify-start gap-6 pt-4 opacity-60">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface" style="font-variation-settings: 'FILL' 1;">shield</span>
+<span class="font-label-sm text-label-sm text-on-surface">256-bit SSL Encryption</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="font-label-sm text-label-sm text-on-surface">PCI-DSS Compliant</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface" style="font-variation-settings: 'FILL' 0;">support_agent</span>
+<span class="font-label-sm text-label-sm text-on-surface">24/7 Support</span>
+</div>
+</div>
+</div>
+<!-- Right Column: Order Summary (4 cols) -->
+<div class="lg:col-span-4">
+<div class="glass-panel rounded-xl border-t-4 border-t-primary-container p-6 md:p-8 sticky top-6 shadow-2xl shadow-primary-container/10">
+<h2 class="font-headline-lg-mobile text-[22px] text-on-surface mb-6 font-bold border-b border-white/10 pb-4">Order Summary</h2>
+<!-- Movie Details Mini -->
+<div class="flex gap-4 mb-6">
+<img alt="Movie Poster" class="w-16 h-24 object-cover rounded shadow-md" data-alt="A cinematic movie poster showcasing a dramatic, dark sci-fi landscape with glowing neon red accents. The image is highly detailed, evoking a premium, immersive theater experience. The aesthetic perfectly matches the dark, glassmorphism UI surrounding it, utilizing deep shadows and vibrant light-leaks." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8z8iDTICg4xxoB7owZcE7LnZcYhHsa7zHrN5cuAmdx2MLMqPAweAsYTMPTSeSLipYUXkuGNNSYPqdsyKXIQ9aVFFzJ3AM4asqh9T0SongOHf4U958Y-22PTTvX08gqJBwX50C3pPdQZReFdJHoWEC9eYv4hCaHrLXFKXNPI1yFalSCfoHJZKfAuFMKT7RiXLjH-F9COiNqkvzUbgGsXeiWhoQUMkiUosUdVWQS8jz1bSi7PbZOhnAPbFZKrmG6bIk2aXUM_ricTQ">
+<div>
+<h3 class="font-label-md text-[16px] text-on-surface font-bold leading-tight">DUNE: PART TWO</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">IMAX 2D - English</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Today, 19:30</p>
+<div class="inline-flex items-center gap-1 mt-2 px-2 py-0.5 bg-surface-container rounded text-tertiary font-label-sm text-[10px] uppercase tracking-wider">
+<span class="material-symbols-outlined text-[12px]">location_on</span>
+                                CineReserve Prime
+                            </div>
+</div>
+</div>
+<!-- Seats -->
+<div class="mb-6 pb-6 border-b border-white/10">
+<div class="flex justify-between items-center mb-2">
+<span class="font-body-md text-body-md text-on-surface-variant">Seats (2)</span>
+<span class="font-label-md text-label-md text-on-surface font-bold">H12, H13</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="font-body-md text-[14px] text-tertiary">VIP Recliner</span>
+<span class="font-body-md text-[14px] text-on-surface">$36.00</span>
+</div>
+</div>
+<!-- F&B -->
+<div class="mb-6 pb-6 border-b border-white/10">
+<div class="flex justify-between items-center mb-2">
+<span class="font-body-md text-body-md text-on-surface-variant">Food &amp; Beverage</span>
+</div>
+<div class="flex justify-between items-center text-sm mb-1">
+<span class="font-body-md text-[14px] text-tertiary">1x Large Popcorn Combo</span>
+<span class="font-body-md text-[14px] text-on-surface">$12.50</span>
+</div>
+</div>
+<!-- Totals -->
+<div class="space-y-3 mb-8">
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Subtotal</span>
+<span class="font-body-md text-body-md text-on-surface">$48.50</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Convenience Fee</span>
+<span class="font-body-md text-body-md text-on-surface">$2.00</span>
+</div>
+<div class="flex justify-between items-center pt-3 border-t border-white/10 mt-3">
+<span class="font-label-md text-[18px] text-on-surface uppercase tracking-wider">Total Payable</span>
+<span class="font-headline-lg-mobile text-[28px] text-primary font-bold">$50.50</span>
+</div>
+</div>
+<!-- Timer & CTA -->
+<div class="bg-surface-container-low rounded-lg p-4 mb-6 border border-error/20 flex flex-col items-center justify-center">
+<span class="font-label-sm text-label-sm text-on-surface-variant mb-1 uppercase tracking-widest">Time remaining</span>
+<div class="font-display-sm text-[32px] text-error font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 0;">timer</span>
+                            04:59
+                        </div>
+</div>
+<!-- Since QR is active, the primary action is scanning, but providing a simulated "I have paid" or fallback CTA -->
+<button class="w-full bg-primary-container text-white font-headline-lg-mobile text-[16px] py-4 rounded-lg hover:bg-inverse-primary transition-colors duration-300 shadow-[0_4px_20px_rgba(229,9,20,0.3)] hover:shadow-[0_6px_25px_rgba(229,9,20,0.5)] active:scale-[0.98] uppercase tracking-wider">
+                        Awaiting Payment
+                    </button>
+<p class="font-label-sm text-label-sm text-tertiary text-center mt-4">
+                        By proceeding, you agree to our <a class="text-primary hover:underline" href="#">Terms of Service</a> &amp; <a class="text-primary hover:underline" href="#">Cancellation Policy</a>.
+                    </p>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer Suppressed: Transactional screen -->
+</body></html>

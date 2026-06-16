@@ -25,6 +25,12 @@
       <c:if test="${not empty errorMessage}">
         <div class="auth-alert auth-alert--error" role="alert">
           <c:out value="${errorMessage}"/>
+          <c:if test="${not empty lockReason}">
+            <p class="auth-lock-reason">
+              <span class="auth-lock-reason-label">Lý do:</span>
+              <c:out value="${lockReason}"/>
+            </p>
+          </c:if>
         </div>
       </c:if>
 
@@ -70,9 +76,6 @@
         <div class="auth-alert auth-alert--error" role="alert">
           Tài khoản Google không có email. Vui lòng dùng tài khoản Google khác.
         </div>
-      </c:if>
-      <c:if test="${param.google == 'banned'}">
-        <div class="auth-alert auth-alert--error" role="alert">Tài khoản đã bị khóa.</div>
       </c:if>
       <c:if test="${param.google == 'session_expired'}">
         <div class="auth-alert auth-alert--error" role="alert">

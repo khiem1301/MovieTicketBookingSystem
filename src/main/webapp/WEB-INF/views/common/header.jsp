@@ -58,9 +58,11 @@
           <c:choose>
             <c:when test="${not empty genreList}">
               <c:forEach var="genre" items="${genreList}">
-                <a href="${pageContext.request.contextPath}/movies?genre=${genre.id}">
-                  <c:out value="${genre.genreName}"/>
-                </a>
+                <c:if test="${genre.active}">
+                  <a href="${pageContext.request.contextPath}/movies?genre=${genre.id}">
+                    <c:out value="${genre.genreName}"/>
+                  </a>
+                </c:if>
               </c:forEach>
             </c:when>
             <c:otherwise>
@@ -135,6 +137,8 @@
                 <a href="${pageContext.request.contextPath}/manager/genres">Quản lý thể loại</a>
                 <a href="${pageContext.request.contextPath}/manager/rooms">Quản lý phòng chiếu</a>
                 <a href="${pageContext.request.contextPath}/manager/seat-types">Quản lý loại ghế</a>
+                <a href="${pageContext.request.contextPath}/manager/showtimes">Quản lý suất chiếu</a>
+                <a href="${pageContext.request.contextPath}/admin/promotions">Quản lý voucher</a>
               </c:if>
               <c:if test="${sessionScope.userRole == 'ADMIN'}">
                 <a href="${pageContext.request.contextPath}/manager/movies">Quản lý phim</a>
@@ -143,6 +147,7 @@
                 <a href="${pageContext.request.contextPath}/admin/dashboard">Bảng điều khiển</a>
                 <a href="${pageContext.request.contextPath}/admin/users">Quản lý người dùng</a>
                 <a href="${pageContext.request.contextPath}/admin/config">Cấu hình hệ thống</a>
+                <a href="${pageContext.request.contextPath}/admin/reports">Báo cáo &amp; thống kê</a>
               </c:if>
               <a href="${pageContext.request.contextPath}/logout"
                  style="color:#ef5350 !important;">Đăng xuất</a>

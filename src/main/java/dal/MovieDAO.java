@@ -7,7 +7,9 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public class MovieDAO {
@@ -236,16 +238,57 @@ public class MovieDAO {
         return result;
     }
 
-    // Manager: danh sách tất cả phim
+    // Manager: danh sách tất cả phim (kèm genre)
     public List<Movie> getAllForManager() {
-        String sql = "SELECT " + MOVIE_COLS + " FROM Movies ORDER BY created_at DESC";
+        String sql = """
+                SELECT m.id, m.title, m.slug, m.description, m.duration_minutes, m.release_date,
+                       m.trailer_url, m.poster_url, m.backdrop_url, m.director,
+                       m.language, m.subtitle, m.age_rating, m.status, m.average_rating, m.created_at,
+                       STRING_AGG(g.genre_name, ', ') AS genre_names
+                FROM Movies m
+                LEFT JOIN MovieGenres mg ON m.id = mg.movie_id
+                LEFT JOIN Genres g       ON mg.genre_id = g.id
+                GROUP BY m.id, m.title, m.slug, m.description, m.duration_minutes, m.release_date,
+                         m.trailer_url, m.poster_url, m.backdrop_url, m.director,
+                         m.language, m.subtitle, m.age_rating, m.status, m.average_rating, m.created_at
+                ORDER BY m.created_at DESC
+                """;
+        List<Movie> list = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Movie m = mapRowFull(rs);
+                String genreNames = rs.getString("genre_names");
+                if (genreNames != null && !genreNames.isBlank()) {
+                    m.setGenres(Arrays.asList(genreNames.split(", ")));
+                }
+                list.add(m);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("getAllForManager failed", e);
+        }
+        return list;
+    }
+
+    /** FR-25 — Phim có thể xếp lịch (đang chiếu / sắp chiếu). */
+    public List<Movie> getSchedulableMovies() {
+        String sql = """
+                SELECT m.id, m.title, m.slug, m.description, m.duration_minutes, m.release_date,
+                       m.trailer_url, m.poster_url, m.backdrop_url, m.director,
+                       m.language, m.subtitle, m.age_rating, m.status, m.average_rating, m.created_at,
+                       NULL AS genre_names
+                FROM Movies m
+                WHERE m.status IN ('NOW_SHOWING', 'COMING_SOON')
+                ORDER BY m.title
+                """;
         List<Movie> list = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) list.add(mapRowFull(rs));
         } catch (SQLException e) {
-            throw new RuntimeException("getAllForManager failed", e);
+            throw new RuntimeException("getSchedulableMovies failed", e);
         }
         return list;
     }
@@ -256,12 +299,39 @@ public class MovieDAO {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, id);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return mapRowFull(rs);
+                if (rs.next()) {
+                    Movie movie = mapRowFull(rs);
+                    loadGenres(movie);
+                    return movie;
+                }
             }
         } catch (SQLException e) {
             throw new RuntimeException("getById failed", e);
         }
         return null;
+    }
+
+    /** Nạp danh sách tên thể loại vào đối tượng Movie (dùng cho trang chi tiết / lịch chiếu). */
+    public void loadGenres(Movie movie) {
+        if (movie == null || movie.getId() == null) return;
+        String sql = """
+                SELECT g.genre_name
+                FROM Genres g
+                INNER JOIN MovieGenres mg ON mg.genre_id = g.id
+                WHERE mg.movie_id = ?
+                ORDER BY g.genre_name
+                """;
+        List<String> names = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, movie.getId());
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) names.add(rs.getString("genre_name"));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("loadGenres failed", e);
+        }
+        movie.setGenres(names);
     }
 
     public List<String> getGenreIds(String movieId) {
@@ -333,6 +403,45 @@ public class MovieDAO {
         }
     }
 
+    /** Phim cùng thể loại để hiển thị gợi ý trên trang chi tiết. */
+    public List<Movie> getSimilarMovies(String movieId, int limit) {
+        String sql = """
+                SELECT TOP (?) m.id, m.title, m.slug, m.description, m.duration_minutes,
+                       m.release_date, m.trailer_url, m.poster_url, m.backdrop_url, m.director,
+                       m.age_rating, m.status, m.average_rating, m.created_at,
+                       STRING_AGG(g.genre_name, ',') AS genre_names
+                FROM Movies m
+                LEFT JOIN MovieGenres mg ON m.id = mg.movie_id
+                LEFT JOIN Genres g       ON mg.genre_id = g.id
+                WHERE m.id <> ?
+                  AND m.status IN ('NOW_SHOWING', 'COMING_SOON', 'EARLY_SHOWING')
+                  AND EXISTS (
+                      SELECT 1 FROM MovieGenres mg2
+                      WHERE mg2.movie_id = m.id
+                        AND mg2.genre_id IN (
+                            SELECT genre_id FROM MovieGenres WHERE movie_id = ?
+                        )
+                  )
+                GROUP BY m.id, m.title, m.slug, m.description, m.duration_minutes,
+                         m.release_date, m.trailer_url, m.poster_url, m.backdrop_url, m.director,
+                         m.age_rating, m.status, m.average_rating, m.created_at
+                ORDER BY m.average_rating DESC, m.created_at DESC
+                """;
+        List<Movie> result = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            ps.setString(2, movieId);
+            ps.setString(3, movieId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) result.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("getSimilarMovies failed", e);
+        }
+        return result;
+    }
+
     public void create(Movie movie, List<String> genreIds) {
         String id = UUID.randomUUID().toString();
         movie.setId(id);
@@ -390,9 +499,57 @@ public class MovieDAO {
         }
     }
 
+    /** ID của các phim đã có ít nhất 1 suất chiếu (không được xóa). */
+    public Set<String> getMovieIdsWithShowtimes() {
+        String sql = "SELECT DISTINCT movie_id FROM Showtimes";
+        Set<String> ids = new HashSet<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) ids.add(rs.getString("movie_id"));
+        } catch (SQLException e) {
+            throw new RuntimeException("getMovieIdsWithShowtimes failed", e);
+        }
+        return ids;
+    }
+
+    /** Xóa phim chỉ khi chưa có suất chiếu nào. */
+    public boolean delete(String movieId) {
+        String checkSql = "SELECT COUNT(1) FROM Showtimes WHERE movie_id = ?";
+        String delGenres  = "DELETE FROM MovieGenres  WHERE movie_id = ?";
+        String delReviews = "DELETE FROM MovieReviews WHERE movie_id = ?";
+        String delMovie   = "DELETE FROM Movies       WHERE id = ?";
+        try (Connection conn = DBContext.getConnection()) {
+            try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
+                ps.setString(1, movieId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) return false;
+                }
+            }
+            conn.setAutoCommit(false);
+            try {
+                for (String sql : new String[]{delGenres, delReviews, delMovie}) {
+                    try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setString(1, movieId);
+                        ps.executeUpdate();
+                    }
+                }
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("delete failed", e);
+        }
+    }
+
     // Dropdown thể loại trong header
     public List<Genre> getAllGenres() {
-        return new GenreDAO().getAll();
+        return new GenreDAO().getAllActive();
     }
 
     private void insertMovie(Connection conn, String sql, Movie m) throws SQLException {

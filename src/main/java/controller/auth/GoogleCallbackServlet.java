@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import model.dto.GoogleSignupInfo;
 import model.entity.User;
+import utils.AccountLockUtil;
 import utils.AuthRedirectUtil;
 import utils.GoogleOAuthSession;
 import utils.GoogleOAuthUtil;
@@ -78,6 +79,7 @@ public class GoogleCallbackServlet extends HttpServlet {
                              UserDAO userDAO, User user,
                              GoogleOAuthUtil.GoogleUserInfo profile) throws IOException {
         if ("BANNED".equals(user.getStatus())) {
+            AccountLockUtil.stashLockReasonForLogin(req, user.getId());
             resp.sendRedirect(req.getContextPath() + "/login?google=banned");
             return;
         }

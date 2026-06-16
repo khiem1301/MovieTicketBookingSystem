@@ -10,22 +10,51 @@ import java.util.List;
 public class SeatDAO {
 
     /**
-     * FR-35 — Lấy tất cả ghế active của phòng chiếu, kèm trạng thái available/booked.
-     * Tính sẵn ticketPrice = base_price × price_multiplier để hiển thị trực tiếp trong UI.
+     * FR-35 / FR-12 — Lấy tất cả ghế active của phòng chiếu, kèm trạng thái available/booked/held.
+     * Tính sẵn ticketPrice = base_price × price_multiplier (staff counter).
+     * Servlet customer ghi đè ticketPrice sau khi có effectivePrice từ PricingCalculator.
      *
-     * Chú thích: kiểm tra availability đầy đủ (FR-13 — Seat Availability Validation)
-     * sẽ được Khiêm bổ sung ở Sprint 2. Hiện tại ghế bị đánh dấu unavailable
-     * khi đã có BookingSeats với booking PENDING/CONFIRMED cho cùng suất chiếu.
+     * Ghế unavailable khi:
+     * - BookingSeats thuộc booking PENDING/CONFIRMED cùng suất, hoặc
+     * - SeatHolds cùng (showtime_id, seat_id) với expired_at > GETDATE()
+     *   (trừ hold của chính currentUserId khi gọi overload 2 tham số — FR-13).
      */
     public List<Seat> getSeatsForShowtime(String showtimeId) {
+        return querySeatsForShowtime(showtimeId, null);
+    }
+
+    /** FR-13 — Checkout online: ghế user đang giữ vẫn available trên sơ đồ. */
+    public List<Seat> getSeatsForShowtime(String showtimeId, String currentUserId) {
+        return querySeatsForShowtime(showtimeId, currentUserId);
+    }
+
+    private List<Seat> querySeatsForShowtime(String showtimeId, String currentUserId) {
+        boolean forCustomer = currentUserId != null && !currentUserId.isBlank();
+
+        String availabilityCase = forCustomer ? """
+                CASE
+                    WHEN bs.seat_id IS NOT NULL THEN 0
+                    WHEN sh_hold.seat_id IS NOT NULL
+                         AND (sh_hold.user_id IS NULL OR sh_hold.user_id <> ?) THEN 0
+                    ELSE 1
+                END
+                """ : """
+                CASE
+                    WHEN bs.seat_id IS NULL AND sh_hold.seat_id IS NULL THEN 1
+                    ELSE 0
+                END
+                """;
+
+        String heldByMeCase = forCustomer
+                ? "CASE WHEN sh_hold.user_id = ? THEN 1 ELSE 0 END"
+                : "0";
+
         String sql = """
                 SELECT s.id, s.room_id, s.seat_type_id, st.type_name, st.price_multiplier,
                        s.seat_row, s.seat_column, s.seat_code, s.status,
                        sh.base_price,
-                       CASE
-                           WHEN bs.seat_id IS NULL THEN 1
-                           ELSE 0
-                       END AS is_available
+                       %s AS is_available,
+                       %s AS held_by_me
                 FROM Showtimes sh
                 JOIN Seats s      ON s.room_id = sh.room_id
                 JOIN SeatTypes st ON st.id = s.seat_type_id
@@ -35,14 +64,23 @@ public class SeatDAO {
                         WHERE b.showtime_id = sh.id
                           AND b.booking_status IN ('PENDING', 'CONFIRMED')
                     )
+                LEFT JOIN SeatHolds sh_hold ON sh_hold.seat_id = s.id
+                    AND sh_hold.showtime_id = sh.id
+                    AND sh_hold.expired_at > GETDATE()
                 WHERE sh.id = ?
                   AND s.status = 'ACTIVE'
                 ORDER BY s.seat_row, s.seat_column
-                """;
+                """.formatted(availabilityCase, heldByMeCase);
+
         List<Seat> result = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, showtimeId);
+            int i = 1;
+            if (forCustomer) {
+                ps.setString(i++, currentUserId);
+                ps.setString(i++, currentUserId);
+            }
+            ps.setString(i, showtimeId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) result.add(mapRow(rs));
             }
@@ -177,6 +215,7 @@ public class SeatDAO {
         s.setSeatCode(rs.getString("seat_code"));
         s.setStatus(rs.getString("status"));
         s.setAvailable(rs.getInt("is_available") == 1);
+        s.setHeldByCurrentUser(rs.getInt("held_by_me") == 1);
 
         BigDecimal basePrice = rs.getBigDecimal("base_price");
         if (basePrice != null && multiplier != null) {

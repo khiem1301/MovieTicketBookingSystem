@@ -84,15 +84,27 @@
     if (meta.wide) seatEl.classList.add('slt-seat--wide');
   }
 
+  function applyHintTemplate(template, vars) {
+    var s = template || '';
+    if (vars) {
+      Object.keys(vars).forEach(function (k) {
+        s = s.split('{' + k + '}').join(String(vars[k]));
+      });
+    }
+    return s;
+  }
+
   function updateActiveTypeUI() {
     var hint = document.getElementById('sltActiveTypeHint');
     var meta = getTypeMeta(state.activeType);
     if (hint) {
       if (state.tool === 'add') {
-        hint.textContent = 'Đang chọn: ' + (meta.label || state.activeType) + ' — click lên layout để đặt ghế';
+        hint.textContent = applyHintTemplate(hint.dataset.hintAdd, {
+          label: meta.label || state.activeType
+        });
         hint.classList.add('slt-active-type-hint--visible');
       } else if (state.tool === 'delete') {
-        hint.textContent = 'Chế độ Xóa — click ghế hoặc lối đi để xóa';
+        hint.textContent = hint.dataset.hintDelete || '';
         hint.classList.add('slt-active-type-hint--visible');
       } else {
         hint.classList.remove('slt-active-type-hint--visible');
@@ -339,12 +351,53 @@
   }
 
   function deleteCellAt(rowIdx, colIdx) {
-    state.rows[rowIdx].cells.splice(colIdx, 1);
+    if (state.tool !== 'delete') return false;
+    var row = state.rows[rowIdx];
+    if (!row || !row.cells[colIdx]) return false;
+    row.cells.splice(colIdx, 1);
     if (state.selected && state.selected.row === rowIdx && state.selected.col === colIdx) {
       state.selected = null;
     }
-    markDirty();
-    render();
+    return true;
+  }
+
+  function applyCellClick(rowIdx, colIdx) {
+    var row = state.rows[rowIdx];
+    if (!row) return false;
+    var cell = row.cells[colIdx];
+    if (!cell) return false;
+
+    if (state.tool === 'select') {
+      if (cell.kind === 'gap') return false;
+      state.selected = { row: rowIdx, col: colIdx };
+      return true;
+    }
+
+    if (state.tool === 'delete') {
+      return deleteCellAt(rowIdx, colIdx);
+    }
+
+    if (state.tool === 'gap') {
+      if (cell.kind === 'gap') {
+        row.cells.splice(colIdx + 1, 0, { kind: 'gap', id: uid() });
+      } else {
+        row.cells.splice(colIdx, 0, { kind: 'gap', id: uid() });
+      }
+      return true;
+    }
+
+    if (state.tool === 'add') {
+      if (cell.kind === 'gap') return false;
+      cell.type = state.activeType;
+      return true;
+    }
+
+    return false;
+  }
+
+  function applyDeleteKey() {
+    if (state.tool !== 'delete' || !state.selected) return false;
+    return deleteCellAt(state.selected.row, state.selected.col);
   }
 
   function appendGap(rowIdx) {
@@ -355,7 +408,7 @@
 
   function appendSeat(rowIdx) {
     if (!ensureActiveTypeSelected()) {
-      alert('Chọn loại ghế ở sidebar trước khi thêm ghế.');
+      alert(t('alertSelectTypeSidebar'));
       return;
     }
     state.rows[rowIdx].cells.push({
@@ -430,7 +483,7 @@
         seatEl.dataset.row = String(rowIdx);
         seatEl.dataset.col = String(cellIdx);
         seatEl.title = state.tool === 'delete'
-          ? (cell.code ? cell.code + ' — ' + t('deleteSeat') : t('deleteSeat'))
+          ? (cell.code ? cell.code + ' \u2014 ' + t('deleteSeat') : t('deleteSeat'))
           : (cell.code || '');
 
         if (meta.icon) {
@@ -486,52 +539,22 @@
   }
 
   function onCellClick(e) {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (state.tool === 'add' && !ensureActiveTypeSelected()) {
+      alert(t('alertNoSeatType'));
+      return;
+    }
+
     var rowIdx = parseInt(e.currentTarget.dataset.row, 10);
     var colIdx = parseInt(e.currentTarget.dataset.col, 10);
-    var cell = state.rows[rowIdx].cells[colIdx];
-
-    if (state.tool === 'select') {
-      if (cell.kind === 'gap') {
-        deleteCellAt(rowIdx, colIdx);
-        return;
-      }
-      state.selected = { row: rowIdx, col: colIdx };
-      render();
+    if (!applyCellClick(rowIdx, colIdx)) {
       return;
     }
 
-    if (state.tool === 'delete') {
-      deleteCellAt(rowIdx, colIdx);
-      return;
-    }
-
-    if (state.tool === 'gap') {
-      if (cell.kind === 'gap') {
-        state.rows[rowIdx].cells.splice(colIdx + 1, 0, { kind: 'gap', id: uid() });
-      } else {
-        state.rows[rowIdx].cells.splice(colIdx, 0, { kind: 'gap', id: uid() });
-      }
-      markDirty();
-      render();
-      return;
-    }
-
-    if (state.tool === 'add') {
-      if (!ensureActiveTypeSelected()) {
-        alert('Chưa có loại ghế nào. Thêm loại ghế trong Quản lý loại ghế trước.');
-        return;
-      }
-      if (cell.kind === 'gap') {
-        var code = nextSeatCode(rowIdx);
-        state.rows[rowIdx].cells[colIdx] = {
-          kind: 'seat', id: uid(), type: state.activeType, code: code
-        };
-      } else {
-        cell.type = state.activeType;
-      }
-      markDirty();
-      render();
-    }
+    markDirty();
+    render();
   }
 
   function nextSeatCode(rowIdx) {
@@ -595,11 +618,7 @@
         });
         card.classList.add('slt-type-card--active');
         state.activeType = normalizeType(card.dataset.typeKey || 'regular');
-        state.tool = 'add';
-        document.querySelectorAll('.slt-tool').forEach(function (b) {
-          b.classList.toggle('slt-tool--active', b.dataset.tool === 'add');
-        });
-        render();
+        updateActiveTypeUI();
       });
     });
   }
@@ -637,15 +656,12 @@
     if (addRowBtn) addRowBtn.addEventListener('click', addRow);
 
     document.addEventListener('keydown', function (e) {
-      if (e.key !== 'Delete' || !state.selected) return;
-      if (state.tool !== 'select' && state.tool !== 'delete') return;
-      var r = state.selected.row;
-      var c = state.selected.col;
-      var cell = state.rows[r].cells[c];
-      if (!cell) return;
-      if (state.tool === 'delete' || cell.kind === 'seat') {
-        deleteCellAt(r, c);
-      }
+      if (e.key !== 'Delete') return;
+      if (state.tool !== 'delete') return;
+      if (!applyDeleteKey()) return;
+      e.preventDefault();
+      markDirty();
+      render();
     });
   }
 
