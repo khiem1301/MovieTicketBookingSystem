@@ -1,7 +1,7 @@
 ﻿# 🎬 Movie Ticket Booking System — Tổng hợp toàn bộ dự án
 
 > **Phạm vi:** 1 rạp duy nhất · Không refund tiền mặt
-> **Stack:** Java + JSP/Servlet (SWP391) · **27 bảng (PascalCase)** · **50 Functional Requirements**  
+> **Stack:** Java + JSP/Servlet (SWP391) · **28 bảng (PascalCase)** · **50 Functional Requirements**  
 > **Database & migration:** [`Database/README.md`](Database/README.md) · **Hướng dẫn chạy:** [`README.md`](README.md)
 
 ---
@@ -100,7 +100,28 @@ Ghi snapshot mỗi lần admin lưu thay đổi tích điểm (không ghi nếu 
 | `updated_by` | FK → Users. Admin thực hiện thay đổi |
 | `updated_at` | Thời điểm lưu |
 
-> Migration cho DB cũ: `Database/migrations/add_system_config_log.sql`
+> Migration cho DB cũ: chạy lại `create_database.sql` hoặc tạo bảng theo định nghĩa trong file.
+
+---
+
+#### 3b. `UserStatusLog` — Lịch sử khóa / mở khóa tài khoản
+Ghi audit mỗi lần admin thay đổi trạng thái user (lock / unlock / deactivate).
+
+| Field | Dùng để làm gì |
+|---|---|
+| `id` | Khoá chính |
+| `user_id` | FK → Users. Tài khoản bị tác động |
+| `performed_by` | FK → Users. Admin thực hiện |
+| `action` | `LOCK` · `UNLOCK` · `DEACTIVATE` |
+| `previous_status` | Trạng thái trước: `ACTIVE` · `INACTIVE` · `BANNED` |
+| `new_status` | Trạng thái sau |
+| `reason` | Lý do khóa (bắt buộc khi `LOCK`, 10–500 ký tự) |
+| `email_sent` | `1` nếu đã gửi email thông báo khóa |
+| `performed_at` | Thời điểm thực hiện |
+
+**UI Admin:** `/admin/users/detail` — form khóa kèm lý do + checkbox email; hiển thị lý do gần nhất khi user `BANNED`. Login/Google callback hiển thị lý do cho user bị khóa.
+
+> Migration cho DB cũ: `Database/migrations/add_user_status_log.sql`
 
 ---
 
@@ -562,13 +583,15 @@ Từng tin nhắn (user lẫn bot) theo thứ tự thời gian trong conversatio
 | FR-46 | Showtime Incident Management | Khai báo sự cố suất chiếu, cấu hình tỷ lệ hoàn điểm và voucher bồi thường | `ShowtimeIncidents`, `Showtimes` |
 | FR-49 | Pricing Rule Management | Tạo, sửa, xoá quy tắc điều chỉnh giá vé theo thời điểm: ngày trong tuần, khung giờ, ngày lễ | `PricingRules` |
 
+> **Triển khai báo cáo (Phase 1 — Admin, không phải Manager UI):** FR-30 🟡 dashboard admin có thống kê tháng; FR-31 🟡 `/admin/reports` + xuất CSV doanh thu theo ngày/tháng/năm (chưa tách VAT riêng); FR-32 🟡 cùng trang — thống kê vé theo phim/suất + CSV (chưa theo loại ghế).
+
 ---
 
 ### Nhóm Admin
 
 | FR | Tên | Mô tả | Bảng chính |
 |---|---|---|---|
-| FR-28 | User Management | Quản lý tài khoản: tạo Staff/Manager, khoá TK, reset mật khẩu | `Users`, `Roles` |
+| FR-28 | User Management | Quản lý tài khoản: tạo Staff/Manager, khoá TK (+ lý do, email), reset mật khẩu | `Users`, `Roles`, `UserStatusLog` |
 | FR-29 | Role-Based Authorization | Phân quyền theo role: Customer/Staff/Manager/Admin thấy và làm được gì | `Roles`, `Users` |
 
 ---
