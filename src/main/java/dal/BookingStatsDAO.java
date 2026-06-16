@@ -1,16 +1,23 @@
 package dal;
 
 import model.dto.BookingOverviewStatsDTO;
+import model.dto.RevenuePeriodStatsDTO;
 import model.dto.TopMovieStatsDTO;
 import utils.ReportDateUtil;
+import utils.ReportExportUtil;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Year;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,6 +48,53 @@ public class BookingStatsDAO {
     public BookingOverviewStatsDTO getCurrentMonthOverview() {
         ReportDateUtil.DateRange month = ReportDateUtil.currentMonth();
         return getOverviewStats(month.fromInclusive(), month.toExclusive());
+    }
+
+    public List<RevenuePeriodStatsDTO> findRevenueByPeriod(
+            LocalDateTime fromInclusive, LocalDateTime toExclusive, String groupBy) {
+        String normalized = ReportExportUtil.normalizeGroupBy(groupBy);
+        PeriodSql periodSql = buildPeriodSql(normalized);
+        String dateFilter = buildDateFilter("b.booked_at", fromInclusive, toExclusive);
+
+        String sql = """
+                SELECT %s AS period_key,
+                       %s AS sort_key,
+                       COALESCE(SUM(b.final_amount), 0) AS revenue,
+                       COUNT(DISTINCT b.id) AS booking_count,
+                       COUNT(bs.id) AS ticket_count
+                FROM Bookings b
+                LEFT JOIN BookingSeats bs ON bs.booking_id = b.id
+                WHERE %s
+                %s
+                GROUP BY %s
+                ORDER BY sort_key ASC
+                """.formatted(
+                periodSql.selectExpr(),
+                periodSql.sortExpr(),
+                PAID_BOOKING_WHERE_B,
+                dateFilter,
+                periodSql.groupByExpr());
+
+        List<RevenuePeriodStatsDTO> result = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindDateParams(ps, 1, fromInclusive, toExclusive);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    RevenuePeriodStatsDTO dto = new RevenuePeriodStatsDTO();
+                    String periodKey = rs.getString("period_key");
+                    dto.setPeriodKey(periodKey);
+                    dto.setPeriodLabel(formatPeriodLabel(normalized, periodKey, rs));
+                    dto.setRevenue(rs.getBigDecimal("revenue"));
+                    dto.setBookingCount(rs.getInt("booking_count"));
+                    dto.setTicketCount(rs.getInt("ticket_count"));
+                    result.add(dto);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findRevenueByPeriod failed", e);
+        }
+        return result;
     }
 
     public List<TopMovieStatsDTO> findTopMoviesByTickets(
@@ -219,5 +273,50 @@ public class BookingStatsDAO {
         ps.setTimestamp(startIndex, Timestamp.valueOf(fromInclusive));
         ps.setTimestamp(startIndex + 1, Timestamp.valueOf(toExclusive));
         return startIndex + 2;
+    }
+
+    private static PeriodSql buildPeriodSql(String groupBy) {
+        return switch (groupBy) {
+            case ReportExportUtil.GROUP_DAY -> new PeriodSql(
+                    "CONVERT(VARCHAR(10), b.booked_at, 23)",
+                    "CAST(b.booked_at AS DATE)",
+                    "CAST(b.booked_at AS DATE)");
+            case ReportExportUtil.GROUP_YEAR -> new PeriodSql(
+                    "CAST(YEAR(b.booked_at) AS VARCHAR(4))",
+                    "YEAR(b.booked_at)",
+                    "YEAR(b.booked_at)");
+            default -> new PeriodSql(
+                    "CONCAT(YEAR(b.booked_at), '-', RIGHT('0' + CAST(MONTH(b.booked_at) AS VARCHAR(2)), 2))",
+                    "YEAR(b.booked_at) * 100 + MONTH(b.booked_at)",
+                    "YEAR(b.booked_at), MONTH(b.booked_at)");
+        };
+    }
+
+    private static String formatPeriodLabel(String groupBy, String periodKey, ResultSet rs) throws SQLException {
+        if (periodKey == null || periodKey.isBlank()) {
+            return "—";
+        }
+        return switch (groupBy) {
+            case ReportExportUtil.GROUP_DAY -> {
+                try {
+                    yield LocalDate.parse(periodKey, DateTimeFormatter.ISO_LOCAL_DATE)
+                            .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                } catch (Exception ex) {
+                    Date date = rs.getDate("sort_key");
+                    if (date != null) {
+                        yield date.toLocalDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                    }
+                    yield periodKey;
+                }
+            }
+            case ReportExportUtil.GROUP_YEAR -> Year.of(Integer.parseInt(periodKey.trim())).toString();
+            default -> {
+                YearMonth ym = YearMonth.parse(periodKey, DateTimeFormatter.ofPattern("yyyy-MM"));
+                yield String.format("%02d/%d", ym.getMonthValue(), ym.getYear());
+            }
+        };
+    }
+
+    private record PeriodSql(String selectExpr, String sortExpr, String groupByExpr) {
     }
 }
