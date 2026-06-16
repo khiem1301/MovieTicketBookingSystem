@@ -1,0 +1,284 @@
+<!DOCTYPE html><html class="dark" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>CineReserve - Booking Confirmation</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Montserrat:wght@700;800;900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-surface-variant": "#e9bcb6",
+                      "surface-dim": "#131313",
+                      "primary-fixed-dim": "#ffb4aa",
+                      "on-primary-container": "#fff7f6",
+                      "surface": "#131313",
+                      "error": "#ffb4ab",
+                      "on-primary-fixed-variant": "#930007",
+                      "inverse-on-surface": "#313030",
+                      "background": "#131313",
+                      "surface-container": "#201f1f",
+                      "secondary-fixed-dim": "#e9c349",
+                      "inverse-surface": "#e5e2e1",
+                      "on-tertiary-fixed-variant": "#474746",
+                      "tertiary-container": "#737272",
+                      "secondary-container": "#af8d11",
+                      "on-tertiary-fixed": "#1b1b1c",
+                      "surface-container-high": "#2a2a2a",
+                      "surface-variant": "#353534",
+                      "on-tertiary": "#303030",
+                      "surface-tint": "#ffb4aa",
+                      "secondary-fixed": "#ffe088",
+                      "surface-container-highest": "#353534",
+                      "on-secondary-fixed-variant": "#574500",
+                      "primary-container": "#e50914",
+                      "on-primary-fixed": "#410001",
+                      "on-tertiary-container": "#fbf8f8",
+                      "on-primary": "#690003",
+                      "error-container": "#93000a",
+                      "on-error": "#690005",
+                      "on-secondary": "#3c2f00",
+                      "surface-container-low": "#1c1b1b",
+                      "on-error-container": "#ffdad6",
+                      "inverse-primary": "#c0000c",
+                      "surface-container-lowest": "#0e0e0e",
+                      "primary": "#ffb4aa",
+                      "outline-variant": "#5e3f3b",
+                      "tertiary": "#c8c6c5",
+                      "primary-fixed": "#ffdad5",
+                      "on-secondary-container": "#342800",
+                      "tertiary-fixed-dim": "#c8c6c5",
+                      "secondary": "#e9c349",
+                      "outline": "#af8782",
+                      "on-secondary-fixed": "#241a00",
+                      "on-background": "#e5e2e1",
+                      "surface-bright": "#3a3939",
+                      "on-surface": "#e5e2e1",
+                      "tertiary-fixed": "#e5e2e1"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "container-padding-desktop": "80px",
+                      "container-padding-mobile": "20px",
+                      "base": "8px",
+                      "gutter": "24px",
+                      "section-gap": "64px"
+              },
+              "fontFamily": {
+                      "label-md": ["Inter"],
+                      "headline-lg": ["Montserrat"],
+                      "display-lg": ["Montserrat"],
+                      "headline-lg-mobile": ["Montserrat"],
+                      "body-md": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "display-sm": ["Montserrat"],
+                      "body-lg": ["Inter"]
+              },
+              "fontSize": {
+                      "label-md": ["14px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                      "display-lg": ["64px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "700"}],
+                      "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                      "label-sm": ["12px", {"lineHeight": "1.2", "fontWeight": "500"}],
+                      "display-sm": ["40px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        /* Cinematic Glassmorphism utilities */
+        .glass-panel {
+            background: rgba(32, 31, 31, 0.6); /* surface-container with opacity */
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glow-effect {
+            box-shadow: 0 10px 40px -10px rgba(229, 9, 20, 0.15); /* primary-container glow */
+        }
+        /* Custom scrollbar for a polished look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0e0e0e; }
+        ::-webkit-scrollbar-thumb { background: #353534; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #474746; }
+    </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface font-body-md text-body-md antialiased min-h-screen flex flex-col selection:bg-primary-container selection:text-white">
+<!-- Focused Checkout Header (Suppressed Global Nav per Source of Truth) -->
+<header class="w-full py-6 px-container-padding-mobile md:px-container-padding-desktop flex items-center justify-between z-50 relative border-b border-white/5 bg-surface-container-lowest/80 backdrop-blur-md sticky top-0">
+<div class="flex items-center gap-4">
+<button aria-label="Go back" class="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors text-on-surface-variant hover:text-on-surface">
+<span class="material-symbols-outlined" style="font-variation-settings: &quot;FILL&quot; 0;">arrow_back</span>
+</button>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg uppercase tracking-tighter text-on-surface">CineReserve</h1>
+</div>
+<div class="hidden md:flex items-center gap-2 text-on-surface-variant font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px]">lock</span>
+            Secure Checkout
+        </div>
+</header>
+<main class="flex-grow w-full max-w-[1440px] mx-auto px-container-padding-mobile md:px-container-padding-desktop py-section-gap">
+<div class="mb-gutter">
+<h2 class="font-display-sm text-display-sm mb-2">Confirm Your Booking</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Review your selection before proceeding to payment.</p>
+</div>
+<!-- Layout Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter lg:gap-section-gap items-start">
+<!-- Left Column: Order Details -->
+<div class="lg:col-span-7 flex flex-col gap-gutter">
+<!-- Movie Details Card (Bento Style) -->
+<div class="glass-panel rounded-xl p-6 glow-effect relative overflow-hidden group">
+<!-- Subtle ambient background glow based on poster dominant color (simulated) -->
+<div class="absolute -top-24 -right-24 w-64 h-64 bg-primary-container/20 rounded-full blur-[80px] pointer-events-none transition-opacity duration-500 opacity-50 group-hover:opacity-80"></div>
+<div class="flex flex-col md:flex-row gap-8 relative z-10">
+<!-- Poster -->
+<div class="w-[140px] md:w-[180px] shrink-0 rounded-lg overflow-hidden shadow-2xl relative aspect-[2/3]">
+<img alt="The Neon Horizon Movie Poster" class="w-full h-full object-cover" data-alt="A stylized, neon-drenched movie poster for a sci-fi thriller titled 'The Neon Horizon'. The scene depicts a solitary silhouette standing on a slick, rain-soaked city street illuminated by vibrant pink, cyan, and deep purple holographic signs. The aesthetic is heavily inspired by cyberpunk, with high contrast between the deep black shadows and the glowing neon elements. The typography is sleek and futuristic, fitting perfectly within the cinematic glassmorphism UI of the dark-mode theater booking app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCayYRYPAVrwnHO7F7xFDiVAU4tYUviRIMJWJjXM3leDdHiWDQxC4YF5UdixKlUm1n3MubESzLEKYlR1zPAnamRF-WK8x4APy0fCx7QrrZXKavSYCQpAFdsys0zzozvsW2tHrzIYyWIk-30sUpqDR_Dc-r3R2tLGwe4iFkeCSWUf7TR2hm1NmVtEnJWoeCrQbCBi9qEgje2GCHvdpe0dx_iDOoVgwL-1viRL6NaN-pAEOJH3LjTsg9J7hjZNh9IShkHL63C24yqFE0">
+</div>
+<!-- Info -->
+<div class="flex flex-col justify-center flex-grow">
+<div class="inline-flex items-center gap-2 mb-3">
+<span class="bg-white/10 text-on-surface px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm border border-white/10">PG-13</span>
+<span class="bg-secondary-container/20 text-secondary border border-secondary/30 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">IMAX</span>
+</div>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg mb-6 leading-tight">The Neon Horizon</h3>
+<div class="space-y-4">
+<div class="flex items-start gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0 border border-white/5">
+<span class="material-symbols-outlined text-on-surface-variant">calendar_today</span>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Date &amp; Time</p>
+<p class="font-label-md text-label-md text-on-surface">Thu, Oct 24 • 19:00</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0 border border-white/5">
+<span class="material-symbols-outlined text-on-surface-variant">chair</span>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Selected Seats</p>
+<p class="font-label-md text-label-md text-on-surface">VIP Row G • <span class="text-secondary">G7, G8</span></p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center shrink-0 border border-white/5">
+<span class="material-symbols-outlined text-on-surface-variant">location_on</span>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Cinema</p>
+<p class="font-label-md text-label-md text-on-surface">CineReserve Downtown • Screen 4</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Food & Beverage Summary -->
+<div class="glass-panel rounded-xl p-6">
+<div class="flex items-center justify-between border-b border-white/10 pb-4 mb-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">fastfood</span>
+<h4 class="font-headline-lg-mobile text-headline-lg-mobile text-[20px]">Food &amp; Beverages</h4>
+</div>
+<button class="font-label-sm text-label-sm text-primary hover:text-primary-fixed-dim transition-colors uppercase tracking-wider">Edit</button>
+</div>
+<ul class="space-y-4">
+<li class="flex justify-between items-center group">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded bg-surface-container flex items-center justify-center text-on-surface-variant border border-white/5 group-hover:border-white/20 transition-colors">
+<span class="font-label-md text-label-md">1x</span>
+</div>
+<div>
+<p class="font-label-md text-label-md">Couples Combo</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Large Popcorn, 2x Medium Drinks</p>
+</div>
+</div>
+<span class="font-label-md text-label-md">$18.00</span>
+</li>
+<li class="flex justify-between items-center group">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded bg-surface-container flex items-center justify-center text-on-surface-variant border border-white/5 group-hover:border-white/20 transition-colors">
+<span class="font-label-md text-label-md">1x</span>
+</div>
+<div>
+<p class="font-label-md text-label-md">Gourmet Nachos</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Jalapeños, Extra Cheese</p>
+</div>
+</div>
+<span class="font-label-md text-label-md">$9.50</span>
+</li>
+</ul>
+</div>
+</div>
+<!-- Right Column: Order Summary & Checkout -->
+<div class="lg:col-span-5">
+<div class="glass-panel rounded-xl p-6 lg:p-8 sticky top-32">
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile mb-6">Order Summary</h3>
+<!-- Promo Code -->
+<div class="mb-8">
+<label class="block font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-2" for="promo">Voucher / Promo Code</label>
+<div class="flex gap-2">
+<input class="w-full bg-surface-container border border-white/10 rounded-lg px-4 py-3 text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-body-md text-body-md" id="promo" placeholder="Enter code" type="text">
+<button class="bg-surface-container-high border border-white/10 hover:bg-white/10 text-on-surface px-6 py-3 rounded-lg font-label-md text-label-md transition-colors">Apply</button>
+</div>
+</div>
+<!-- Breakdown -->
+<div class="space-y-4 border-t border-white/10 pt-6 mb-6">
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">Tickets (2x VIP)</span>
+<span class="font-label-md text-label-md">$48.00</span>
+</div>
+
+<div class="flex justify-between items-center">
+<span class="font-body-md text-body-md text-on-surface-variant">IMAX Room</span>
+<span class="font-label-md text-label-md">$3.00</span>
+</div>
+<!-- Applied Discount Example -->
+<div class="flex justify-between items-center text-secondary">
+<span class="font-body-md text-body-md flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">local_offer</span>
+                                Discount (MEMBER10)
+                            </span>
+<span class="font-label-md text-label-md">-$4.80</span>
+</div>
+</div>
+<!-- Total -->
+<div class="border-t border-white/10 pt-6 mb-8 flex justify-between items-end">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-1">Final Total</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Includes all taxes</p>
+</div>
+<span class="font-display-sm text-display-sm text-primary">$41.20</span>
+</div>
+<!-- T&C Checkbox -->
+
+<!-- CTA -->
+<button class="w-full bg-primary-container text-on-primary-container font-headline-lg-mobile text-headline-lg-mobile py-4 rounded-full flex items-center justify-center gap-2 hover:bg-inverse-primary transform active:scale-[0.98] transition-all duration-300 shadow-lg shadow-primary-container/20">
+                        Proceed to Payment
+                        <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<p class="text-center font-label-sm text-label-sm text-on-surface-variant mt-4 flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[14px]">lock</span> Payments are secure and encrypted
+                    </p>
+</div>
+</div>
+</div>
+</main>
+
+
+</body></html>

@@ -32,16 +32,29 @@ public final class SeatLayoutJsonUtil {
             JSONObject rowObj = new JSONObject();
             rowObj.put("label", entry.getKey());
             JSONArray cells = new JSONArray();
-            entry.getValue().stream()
+
+            List<Seat> sorted = entry.getValue().stream()
                     .sorted(Comparator.comparingInt(Seat::getSeatColumn))
-                    .forEach(seat -> {
-                        JSONObject cell = new JSONObject();
-                        cell.put("kind", "seat");
-                        cell.put("type", normalizeTypeName(seat.getSeatTypeName()));
-                        cell.put("code", seat.getSeatCode());
-                        cell.put("col", seat.getSeatColumn());
-                        cells.put(cell);
-                    });
+                    .toList();
+
+            int expectedCol = 1;
+            for (Seat seat : sorted) {
+                while (expectedCol < seat.getSeatColumn()) {
+                    JSONObject gap = new JSONObject();
+                    gap.put("kind", "gap");
+                    cells.put(gap);
+                    expectedCol++;
+                }
+
+                JSONObject cell = new JSONObject();
+                cell.put("kind", "seat");
+                cell.put("type", normalizeTypeName(seat.getSeatTypeName()));
+                cell.put("code", seat.getSeatCode());
+                cell.put("col", seat.getSeatColumn());
+                cells.put(cell);
+                expectedCol = seat.getSeatColumn() + 1;
+            }
+
             rowObj.put("cells", cells);
             rowsArr.put(rowObj);
         }
@@ -84,9 +97,8 @@ public final class SeatLayoutJsonUtil {
             for (int j = 0; j < cells.length(); j++) {
                 JSONObject cell = cells.getJSONObject(j);
                 String kind = cell.optString("kind", "seat");
-                if ("gap".equals(kind)) continue;
-
                 col++;
+                if ("gap".equals(kind)) continue;
                 String typeKey = normalizeTypeName(cell.optString("type", "regular"));
                 String typeId = typeKeyToId.get(typeKey);
                 if (typeId == null) {

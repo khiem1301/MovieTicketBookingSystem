@@ -196,7 +196,17 @@
       const cells = document.createElement('div');
       cells.className = 'pos-row-cells';
 
+      let expectedCol = 1;
       row.seats.forEach(seat => {
+        const col = seat.seatColumn ?? expectedCol;
+        while (expectedCol < col) {
+          const gap = document.createElement('span');
+          gap.className = 'pos-seat-gap';
+          gap.setAttribute('aria-hidden', 'true');
+          cells.appendChild(gap);
+          expectedCol++;
+        }
+
         const type = (seat.typeName ?? 'STANDARD').toUpperCase();
         const btn  = document.createElement('button');
         btn.className = `pos-seat-btn pos-seat--${type.toLowerCase()}`;
@@ -213,6 +223,7 @@
           btn.addEventListener('click', () => toggleSeat(btn));
         }
         cells.appendChild(btn);
+        expectedCol = col + 1;
       });
 
       rowDiv.appendChild(cells);

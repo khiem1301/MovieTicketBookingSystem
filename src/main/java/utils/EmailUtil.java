@@ -45,20 +45,6 @@ public final class EmailUtil {
 
     public static void sendVerificationEmail(String toEmail, String fullName, String verifyUrl)
             throws MessagingException {
-        Properties props = requireProperties();
-        String fromEmail = props.getProperty("mail.from", props.getProperty("mail.smtp.username"));
-        String fromName = props.getProperty("mail.from.name", "ÉPCINE");
-
-        Properties mailProps = buildMailSessionProperties(props);
-        Session session = Session.getInstance(mailProps, new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(
-                        props.getProperty("mail.smtp.username"),
-                        props.getProperty("mail.smtp.password"));
-            }
-        });
-
         String subject = "ÉPCINE — Xác thực tài khoản đăng ký";
         String body = """
                 Xin chào %s,
@@ -73,6 +59,44 @@ public final class EmailUtil {
                 Trân trọng,
                 ÉPCINE
                 """.formatted(fullName, verifyUrl);
+        sendPlainTextEmail(toEmail, subject, body);
+    }
+
+    public static void sendAccountLockedEmail(String toEmail, String fullName, String reason)
+            throws MessagingException {
+        String subject = "ÉPCINE — Thông báo tài khoản bị khóa";
+        String body = """
+                Xin chào %s,
+
+                Tài khoản ÉPCINE của bạn đã bị khóa bởi quản trị viên hệ thống.
+
+                Lý do:
+                %s
+
+                Bạn sẽ không thể đăng nhập cho đến khi tài khoản được mở khóa.
+                Nếu có thắc mắc, vui lòng liên hệ bộ phận hỗ trợ của rạp.
+
+                Trân trọng,
+                ÉPCINE
+                """.formatted(fullName, reason);
+        sendPlainTextEmail(toEmail, subject, body);
+    }
+
+    private static void sendPlainTextEmail(String toEmail, String subject, String body)
+            throws MessagingException {
+        Properties props = requireProperties();
+        String fromEmail = props.getProperty("mail.from", props.getProperty("mail.smtp.username"));
+        String fromName = props.getProperty("mail.from.name", "ÉPCINE");
+
+        Properties mailProps = buildMailSessionProperties(props);
+        Session session = Session.getInstance(mailProps, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(
+                        props.getProperty("mail.smtp.username"),
+                        props.getProperty("mail.smtp.password"));
+            }
+        });
 
         MimeMessage message = new MimeMessage(session);
         try {
@@ -83,7 +107,6 @@ public final class EmailUtil {
             throw new MessagingException("Không thể mã hóa nội dung email", ex);
         }
         message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
-
         Transport.send(message);
     }
 

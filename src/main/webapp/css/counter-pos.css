@@ -375,6 +375,12 @@
   justify-content: center;
 }
 
+.pos-seat-gap {
+  width: 34px;
+  height: 30px;
+  flex-shrink: 0;
+}
+
 /* Seat buttons */
 .pos-seat-btn {
   width: 34px; height: 30px;
