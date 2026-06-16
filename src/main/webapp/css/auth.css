@@ -81,6 +81,20 @@
   color: #a5d6a7;
 }
 
+.auth-lock-reason {
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(229, 57, 53, 0.25);
+  font-size: 13px;
+  line-height: 1.5;
+  color: #ffcdd2;
+}
+
+.auth-lock-reason-label {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
 /* ── Form ─────────────────────────────────────────────────── */
 .auth-form {
   display: flex;
