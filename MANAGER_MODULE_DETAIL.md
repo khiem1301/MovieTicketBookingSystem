@@ -37,15 +37,15 @@ Module Manager dành cho người dùng có role **MANAGER** — người vận 
 | Khóa phim/phòng/giờ khi suất đã có booking | FR-25 | ✅ |
 | Xóa phòng chiếu | FR-26 | ❌ Chưa có |
 | Quản lý khuyến mãi (voucher) | FR-21 | ❌ Chưa có |
-| Dashboard thống kê | FR-30 | ❌ Chưa có |
-| Báo cáo doanh thu | FR-31 | ❌ Chưa có |
-| Báo cáo bán vé | FR-32 | ❌ Chưa có |
+| Dashboard thống kê | FR-30 | 🟡 Một phần — Admin dashboard có thống kê tháng |
+| Báo cáo doanh thu | FR-31 | 🟡 Phase 1 tại Admin `/admin/reports` (chưa UI Manager; chưa tách VAT) |
+| Báo cáo bán vé | FR-32 | 🟡 Phase 1 tại Admin `/admin/reports` — theo phim/suất + CSV (chưa theo loại ghế) |
 | Quản lý điểm tích lũy | FR-45 | ❌ Chưa có |
 | Quản lý sự cố suất chiếu | FR-46 | ❌ Chưa có |
 | Quản lý quy tắc giá (pricing rules) | FR-49 | ❌ Chưa có |
 | Cấu hình hệ thống / thông tin rạp | — | ❌ Chưa có |
 
-> **Ghi chú:** `package-info.java` ghi phạm vi FR-21 – FR-32, FR-45 – FR-49; đã có code cho FR-23, FR-24, **FR-25 (CRUD suất chiếu)**, **FR-26 (CRUD phòng + layout ghế)**, và **FR-27 (CRUD loại ghế)**.
+> **Ghi chú:** `package-info.java` ghi phạm vi FR-21 – FR-32, FR-45 – FR-49; đã có code cho FR-23, FR-24, **FR-25 (CRUD suất chiếu)**, **FR-26 (CRUD phòng + layout ghế)**, và **FR-27 (CRUD loại ghế)**. FR-30/31/32 (báo cáo) triển khai **Phase 1 ở module Admin** (`/admin/reports`), không có màn hình riêng dưới `/manager/*`.
 
 ---
 
@@ -1195,9 +1195,9 @@ Dựa trên `project_summary_final.md` (Nhóm Manager):
 | FR-25 | Showtime Management | `Showtimes` | ✅ CRUD suất, overlap check, booking lock |
 | FR-26 | Cinema Room Management | `CinemaRooms`, `Seats` | 🟡 Tạo/rename/toggle ✅; save layout ✅; xóa phòng ❌ |
 | FR-27 | Seat Type & Pricing | `SeatTypes` | ✅ Hoàn thành (CRUD + delete guard) |
-| FR-30 | Dashboard Statistics | aggregate | ❌ Chưa có |
-| FR-31 | Revenue Report | `Payments`, `Bookings` | ❌ Chưa có |
-| FR-32 | Ticket Sales Report | `Bookings`, `BookingSeats` | ❌ Chưa có |
+| FR-30 | Dashboard Statistics | aggregate | 🟡 Admin dashboard — thống kê tháng |
+| FR-31 | Revenue Report | `Payments`, `Bookings` | 🟡 Admin `/admin/reports` + CSV (Phase 1) |
+| FR-32 | Ticket Sales Report | `Bookings`, `BookingSeats` | 🟡 Admin `/admin/reports` — phim/suất + CSV (Phase 1) |
 | FR-45 | Loyalty Points Management | `LoyaltyPointsLog`, `SystemConfig` | ❌ Chưa có |
 | FR-46 | Showtime Incident | `ShowtimeIncidents` | ❌ Chưa có |
 | FR-49 | Pricing Rule Management | `PricingRules` | ❌ Chưa có |
