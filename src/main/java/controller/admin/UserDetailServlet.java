@@ -1,13 +1,16 @@
 package controller.admin;
 
 import dal.UserDAO;
+import dal.UserStatusLogDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import model.entity.User;
+import model.entity.UserStatusLog;
 import utils.AdminAuthUtil;
+import utils.EmailUtil;
 import utils.SessionUtil;
 
 import java.io.IOException;
@@ -43,8 +46,23 @@ public class UserDetailServlet extends HttpServlet {
         User user = found.get();
         String currentUserId = SessionUtil.getLoggedUser(req).getId();
 
+        boolean userHasEmail = user.getEmail() != null && !user.getEmail().isBlank();
+        boolean emailConfigured = EmailUtil.isConfigured();
+        UserStatusLog latestLock = null;
+        if ("BANNED".equals(user.getStatus())) {
+            try {
+                latestLock = new UserStatusLogDAO().findLatestLockByUserId(userId).orElse(null);
+            } catch (RuntimeException ignored) {
+                // Bảng UserStatusLog chưa có — bỏ qua
+            }
+        }
+
         req.setAttribute("user", user);
         req.setAttribute("isSelf", userId.equals(currentUserId));
+        req.setAttribute("userHasEmail", userHasEmail);
+        req.setAttribute("emailConfigured", emailConfigured);
+        req.setAttribute("canSendLockEmail", userHasEmail && emailConfigured);
+        req.setAttribute("latestLock", latestLock);
         req.setAttribute("flashSuccess", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_SUCCESS));
         req.setAttribute("flashError", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_ERROR));
 
