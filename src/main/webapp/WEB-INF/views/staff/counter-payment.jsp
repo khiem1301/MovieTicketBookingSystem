@@ -105,11 +105,11 @@
           <div class="payment-section-title">Phương thức thanh toán</div>
           <div class="payment-method-tabs">
             <button class="pay-method-btn pay-method-btn--active" id="btnCash"
-                    onclick="setPayMethod('cash')">
+                    onclick="setPayMethod('CASH')">
               💵 Tiền mặt
             </button>
             <button class="pay-method-btn" id="btnCard"
-                    onclick="setPayMethod('card')">
+                    onclick="setPayMethod('CARD')">
               💳 Thẻ / Chuyển khoản
             </button>
           </div>
@@ -173,11 +173,14 @@
         </div>
 
         <%-- Nút xác nhận thanh toán --%>
-        <form method="post"
+        <form method="post" id="paymentForm"
               action="${pageContext.request.contextPath}/staff/counter?action=payment">
-          <input type="hidden" name="bookingId" value="${detail.bookingId}"/>
-          <button type="submit" class="pos-proceed-btn pos-proceed-btn--green"
-                  id="markSuccessBtn">
+          <input type="hidden" name="bookingId"     value="${detail.bookingId}"/>
+          <input type="hidden" name="paymentMethod" id="hiddenPayMethod"  value="CASH"/>
+          <input type="hidden" name="cashReceived"  id="hiddenCashRecv"   value="0"/>
+          <input type="hidden" name="changeAmount"  id="hiddenChangAmt"   value="0"/>
+          <button type="button" class="pos-proceed-btn pos-proceed-btn--green"
+                  id="markSuccessBtn" onclick="submitPayment()">
             ✓ Xác nhận thanh toán thành công
           </button>
         </form>
@@ -199,13 +202,13 @@
 <script>
   const TOTAL_DUE = <fmt:formatNumber value="${detail.finalAmount}" type="number" groupingUsed="false"/>;
   let receivedRaw = '';
-  let payMethod   = 'cash';
+  let payMethod   = 'CASH';
 
   function setPayMethod(method) {
     payMethod = method;
-    document.getElementById('btnCash').classList.toggle('pay-method-btn--active', method === 'cash');
-    document.getElementById('btnCard').classList.toggle('pay-method-btn--active', method === 'card');
-    document.getElementById('cashSection').style.display = (method === 'cash') ? 'block' : 'none';
+    document.getElementById('btnCash').classList.toggle('pay-method-btn--active', method === 'CASH');
+    document.getElementById('btnCard').classList.toggle('pay-method-btn--active', method === 'CARD');
+    document.getElementById('cashSection').style.display = (method === 'CASH') ? 'block' : 'none';
   }
 
   function numpadPress(digit) {
@@ -237,6 +240,21 @@
     const changeEl = document.getElementById('changeDisplay');
     changeEl.textContent  = change >= 0 ? formatVnd(change) : '—';
     changeEl.style.color  = change >= 0 ? '#4fc3f7' : '#ef5350';
+  }
+
+  function submitPayment() {
+    const received = parseInt(receivedRaw || '0', 10);
+    const change   = Math.max(0, received - TOTAL_DUE);
+
+    if (payMethod === 'CASH' && received < TOTAL_DUE) {
+      alert('Tiền nhận chưa đủ. Vui lòng nhập đúng số tiền.');
+      return;
+    }
+
+    document.getElementById('hiddenPayMethod').value = payMethod;
+    document.getElementById('hiddenCashRecv').value  = payMethod === 'CASH' ? received : 0;
+    document.getElementById('hiddenChangAmt').value  = payMethod === 'CASH' ? change   : 0;
+    document.getElementById('paymentForm').submit();
   }
 
   function formatVnd(n) {

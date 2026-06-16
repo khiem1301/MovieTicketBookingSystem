@@ -68,8 +68,8 @@
         <c:choose>
           <c:when test="${empty movies}">
             <div class="pos-empty">
-              Chưa có lịch chiếu nào.<br/>
-              <small>Quản lý cần tạo lịch chiếu trước.</small>
+              Chưa có phim nào.<br/>
+              <small>Quản lý cần thêm phim vào hệ thống.</small>
             </div>
           </c:when>
           <c:otherwise>
@@ -178,8 +178,20 @@
         </div>
       </div>
 
-      <%-- Thông tin khách hàng --%>
+      <%-- FR-42: Tra cứu thành viên theo SĐT --%>
       <div class="pos-customer-section">
+        <div class="pos-section-label">Tra cứu thành viên (tuỳ chọn)</div>
+        <div class="pos-lookup-row">
+          <input type="tel" id="lookupPhone" class="pos-form-input pos-lookup-input"
+                 placeholder="Nhập SĐT thành viên..."
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();lookupMember();}"/>
+          <button type="button" class="pos-lookup-btn" onclick="lookupMember()">Tìm</button>
+        </div>
+        <div id="memberResult" class="pos-member-result" style="display:none"></div>
+      </div>
+
+      <%-- Thông tin khách hàng --%>
+      <div class="pos-customer-section" style="margin-top:8px">
         <div class="pos-section-label">Thông tin khách hàng</div>
         <input type="text" id="custName"
                class="pos-form-input"
@@ -209,7 +221,7 @@
         <input type="hidden" name="showtimeId"    id="formShowtimeId"/>
         <input type="hidden" name="customerName"  id="formCustName"/>
         <input type="hidden" name="customerPhone" id="formCustPhone"/>
-        <input type="hidden" name="customerType"  value="walkin"/>
+        <input type="hidden" name="memberId"      id="formMemberId" value=""/>
       </form>
 
     </div><%-- /pos-right --%>

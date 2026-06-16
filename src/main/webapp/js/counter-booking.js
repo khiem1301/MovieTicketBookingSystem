@@ -90,8 +90,13 @@
 
     const dates = Object.keys(dateMap).sort();
     if (dates.length === 0) {
-      document.getElementById('dateTabs').innerHTML =
-        '<div class="pos-empty-small">Không có suất nào.</div>';
+      document.getElementById('showtimePicker').style.display = 'none';
+      const area = document.getElementById('seatArea');
+      area.innerHTML =
+        '<div class="pos-seat-placeholder">' +
+        '<div class="placeholder-icon">📅</div>' +
+        '<div>Phim này chưa có lịch chiếu.<br/>' +
+        '<small>Quản lý cần tạo lịch chiếu trước.</small></div></div>';
       return;
     }
 
@@ -284,6 +289,42 @@
     const total = selectedSeats.reduce((sum, s) => sum + s.price, 0);
     document.getElementById('totalDisplay').textContent = formatVnd(total);
   }
+
+  // ── FR-42: Member Lookup ────────────────────────────────────────
+  window.lookupMember = function () {
+    const phone = (document.getElementById('lookupPhone')?.value ?? '').trim();
+    const resultEl = document.getElementById('memberResult');
+    if (!phone) return;
+
+    resultEl.style.display = 'block';
+    resultEl.className = 'pos-member-result pos-member-result--loading';
+    resultEl.textContent = 'Đang tra cứu...';
+
+    fetch(`${CTX}/staff/counter?action=lookup&phone=${encodeURIComponent(phone)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.found) {
+          document.getElementById('custName').value  = data.fullName;
+          document.getElementById('custPhone').value = phone;
+          document.getElementById('formMemberId').value = data.userId;
+          resultEl.className = 'pos-member-result pos-member-result--found';
+          resultEl.innerHTML =
+            `<span class="member-badge">&#9733; THÀNH VIÊN</span> ` +
+            `<strong>${escHtml(data.fullName)}</strong> — ` +
+            `${data.loyaltyPoints.toLocaleString('vi-VN')} điểm tích luỹ`;
+        } else {
+          document.getElementById('formMemberId').value = '';
+          resultEl.className = 'pos-member-result pos-member-result--notfound';
+          resultEl.textContent = 'Không tìm thấy thành viên với SĐT này.';
+          document.getElementById('custPhone').value = phone;
+        }
+        checkProceedBtn();
+      })
+      .catch(() => {
+        resultEl.className = 'pos-member-result pos-member-result--notfound';
+        resultEl.textContent = 'Lỗi tra cứu. Vui lòng nhập tay thông tin khách.';
+      });
+  };
 
   // ── Proceed to payment ─────────────────────────────────────────
   window.checkProceedBtn = function () {

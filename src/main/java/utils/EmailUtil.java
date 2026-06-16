@@ -1,8 +1,11 @@
 package utils;
 
+import model.dto.BookingDetailDTO;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.text.SimpleDateFormat;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -82,6 +85,85 @@ public final class EmailUtil {
         message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
 
         Transport.send(message);
+    }
+
+    /**
+     * FR-19 — Gửi email xác nhận đặt vé kèm mã vé điện tử.
+     * Chỉ gửi nếu SMTP đã cấu hình; thất bại sẽ log cảnh báo thay vì ném exception.
+     */
+    public static void sendBookingConfirmationEmail(String toEmail, String customerName,
+                                                    BookingDetailDTO detail) {
+        if (!isConfigured() || toEmail == null || toEmail.isBlank()) return;
+        try {
+            Properties props = requireProperties();
+            String fromEmail = props.getProperty("mail.from", props.getProperty("mail.smtp.username"));
+            String fromName  = props.getProperty("mail.from.name", "ÉPCINE");
+
+            Properties mailProps = buildMailSessionProperties(props);
+            Session session = Session.getInstance(mailProps, new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(
+                            props.getProperty("mail.smtp.username"),
+                            props.getProperty("mail.smtp.password"));
+                }
+            });
+
+            SimpleDateFormat dtFmt = new SimpleDateFormat("HH:mm  dd/MM/yyyy");
+            String showDate = detail.getStartTime() != null
+                    ? dtFmt.format(detail.getStartTime()) : "—";
+
+            StringBuilder seatLines = new StringBuilder();
+            if (detail.getTickets() != null) {
+                for (BookingDetailDTO.TicketItem t : detail.getTickets()) {
+                    seatLines.append("  Ghế ").append(t.getSeatCode())
+                             .append("  |  Mã vé: ").append(t.getTicketCode()).append("\n");
+                }
+            } else if (detail.getSeats() != null) {
+                for (BookingDetailDTO.SeatItem s : detail.getSeats()) {
+                    seatLines.append("  ").append(s.getSeatCode()).append("\n");
+                }
+            }
+
+            String body = """
+                    Xin chào %s,
+
+                    Đặt vé của bạn tại quầy ÉPCINE đã được xác nhận thành công.
+
+                    ─────────────────────────────
+                    Mã đặt vé : %s
+                    Phim      : %s
+                    Phòng     : %s
+                    Suất chiếu: %s
+                    ─────────────────────────────
+                    Danh sách vé:
+                    %s
+                    Tổng tiền : %,.0f ₫
+                    ─────────────────────────────
+
+                    Vui lòng xuất trình mã vé tại quầy khi vào rạp.
+
+                    Trân trọng,
+                    ÉPCINE
+                    """.formatted(
+                    customerName,
+                    detail.getBookingCode(),
+                    detail.getMovieTitle(),
+                    detail.getRoomName(),
+                    showDate,
+                    seatLines,
+                    detail.getFinalAmount() != null ? detail.getFinalAmount().doubleValue() : 0.0);
+
+            MimeMessage message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(fromEmail, fromName, "UTF-8"));
+            message.setSubject("ÉPCINE — Xác nhận đặt vé " + detail.getBookingCode(), "UTF-8");
+            message.setText(body, "UTF-8");
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
+            Transport.send(message);
+
+        } catch (Exception e) {
+            LOG.log(Level.WARNING, "sendBookingConfirmationEmail failed to " + toEmail, e);
+        }
     }
 
     public static String buildVerifyUrl(String contextPath, String token) {

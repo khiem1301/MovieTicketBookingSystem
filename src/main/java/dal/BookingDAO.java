@@ -2,30 +2,20 @@ package dal;
 
 import model.dto.BookingDetailDTO;
 import model.entity.Booking;
+import utils.ConfigKeys;
+import utils.ConfigUtil;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * FR-39 — Booking Source Management
- * DAO xử lý tạo và truy vấn booking, gắn flag ONLINE/OFFLINE vào mỗi đơn.
- */
 public class BookingDAO {
 
     /**
      * FR-35 / FR-38 — Tạo booking tại quầy (OFFLINE).
-     * Hỗ trợ cả khách vãng lai (userId = null) và khách có tài khoản.
-     *
-     * @param showtimeId      ID suất chiếu
-     * @param staffId         ID nhân viên tạo đơn
-     * @param userId          ID tài khoản khách (null nếu khách vãng lai — FR-38)
-     * @param customerName    Tên khách (bắt buộc cho OFFLINE)
-     * @param customerPhone   SĐT khách (bắt buộc cho OFFLINE)
-     * @param seatIds         Danh sách seat ID đã chọn
-     * @param seatPrices      Giá tương ứng từng ghế (cùng thứ tự với seatIds)
-     * @return bookingId vừa tạo
+     * Hỗ trợ khách vãng lai (userId = null) và khách có tài khoản.
      */
     public String createOfflineBooking(String showtimeId, String staffId,
                                        String userId, String customerName, String customerPhone,
@@ -70,7 +60,6 @@ public class BookingDAO {
                 ps.setBigDecimal(9, finalAmount);
                 ps.executeUpdate();
 
-                // SQL Server: lấy ID vừa insert qua SELECT SCOPE_IDENTITY()
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (!rs.next()) throw new SQLException("Không lấy được booking ID");
                     bookingId = rs.getString(1);
@@ -116,13 +105,14 @@ public class BookingDAO {
     }
 
     /**
-     * Lấy booking kèm thông tin showtime + danh sách ghế để hiển thị trang payment/print.
+     * Lấy booking kèm showtime + ghế + vé (nếu đã tạo) để hiển thị trang payment/print.
      */
     public BookingDetailDTO getDetailById(String bookingId) {
         String sql = """
                 SELECT b.id, b.booking_code, b.customer_name, b.customer_phone,
                        b.booking_status, b.payment_status,
                        b.total_amount, b.final_amount, b.vat_rate_snapshot,
+                       b.user_id,
                        m.title AS movie_title, m.poster_url AS movie_poster_url,
                        cr.room_name, s.start_time
                 FROM Bookings b
@@ -139,8 +129,17 @@ public class BookingDAO {
                 WHERE bs.booking_id = ?
                 ORDER BY se.seat_row, se.seat_column
                 """;
+        String ticketSql = """
+                SELECT t.ticket_code, t.qr_code, se.seat_code
+                FROM Tickets t
+                JOIN BookingSeats bs ON bs.id = t.booking_seat_id
+                JOIN Seats se        ON se.id = bs.seat_id
+                WHERE bs.booking_id = ?
+                ORDER BY se.seat_row, se.seat_column
+                """;
         try (Connection conn = DBContext.getConnection()) {
             BookingDetailDTO dto = null;
+
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, bookingId);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -159,6 +158,7 @@ public class BookingDAO {
                         dto.setMoviePosterUrl(rs.getString("movie_poster_url"));
                         dto.setRoomName(rs.getString("room_name"));
                         dto.setStartTime(rs.getTimestamp("start_time"));
+                        dto.setLinkedUserId(rs.getString("user_id"));
                     }
                 }
             }
@@ -177,6 +177,22 @@ public class BookingDAO {
                 }
             }
             dto.setSeats(seats);
+
+            // Tickets (chỉ có sau khi thanh toán)
+            List<BookingDetailDTO.TicketItem> tickets = new ArrayList<>();
+            try (PreparedStatement ps = conn.prepareStatement(ticketSql)) {
+                ps.setString(1, bookingId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        tickets.add(new BookingDetailDTO.TicketItem(
+                                rs.getString("ticket_code"),
+                                rs.getString("qr_code"),
+                                rs.getString("seat_code")));
+                    }
+                }
+            }
+            dto.setTickets(tickets);
+
             return dto;
         } catch (SQLException e) {
             throw new RuntimeException("getDetailById failed", e);
@@ -184,26 +200,185 @@ public class BookingDAO {
     }
 
     /**
-     * Xác nhận thanh toán: cập nhật booking_status → CONFIRMED, payment_status → PAID.
+     * FR-36 — Xác nhận thanh toán tại quầy: lưu Payment record, tạo vé, tích điểm.
+     *
+     * @param bookingId     ID booking
+     * @param paymentMethod "CASH" hoặc "CARD"
+     * @param cashReceived  Tiền nhận (chỉ có khi CASH)
+     * @param changeAmount  Tiền thừa (chỉ có khi CASH)
      */
-    public void confirmPayment(String bookingId) {
+    public void confirmPaymentWithDetails(String bookingId, String paymentMethod,
+                                          BigDecimal cashReceived, BigDecimal changeAmount) {
+        String method = "CARD".equalsIgnoreCase(paymentMethod) ? "CARD" : "CASH";
+
+        try (Connection conn = DBContext.getConnection()) {
+            conn.setAutoCommit(false);
+
+            // Lấy finalAmount và userId
+            BigDecimal finalAmount = BigDecimal.ZERO;
+            String userId = null;
+            String bookingCode = "";
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT final_amount, user_id, booking_code FROM Bookings WHERE id = ?")) {
+                ps.setString(1, bookingId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        finalAmount = rs.getBigDecimal("final_amount");
+                        userId = rs.getString("user_id");
+                        bookingCode = rs.getString("booking_code");
+                    }
+                }
+            }
+
+            // 1. Cập nhật Bookings
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE Bookings SET booking_status='CONFIRMED', payment_status='PAID' WHERE id=?")) {
+                ps.setString(1, bookingId);
+                ps.executeUpdate();
+            }
+
+            // 2. Tạo Payment record (idempotent)
+            boolean paymentExists = false;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT COUNT(1) FROM Payments WHERE booking_id = ?")) {
+                ps.setString(1, bookingId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) paymentExists = rs.getInt(1) > 0;
+                }
+            }
+            if (!paymentExists) {
+                String paymentSql = """
+                        INSERT INTO Payments
+                            (booking_id, payment_method, payment_source, amount,
+                             cash_received, change_amount, payment_status, paid_at)
+                        VALUES (?, ?, 'OFFLINE', ?, ?, ?, 'SUCCESS', GETDATE())
+                        """;
+                try (PreparedStatement ps = conn.prepareStatement(paymentSql)) {
+                    ps.setString(1, bookingId);
+                    ps.setString(2, method);
+                    ps.setBigDecimal(3, finalAmount);
+                    if ("CASH".equals(method) && cashReceived != null) {
+                        ps.setBigDecimal(4, cashReceived);
+                    } else {
+                        ps.setNull(4, Types.DECIMAL);
+                    }
+                    if ("CASH".equals(method) && changeAmount != null) {
+                        ps.setBigDecimal(5, changeAmount);
+                    } else {
+                        ps.setNull(5, Types.DECIMAL);
+                    }
+                    ps.executeUpdate();
+                }
+            }
+
+            // 3. FR-18 — Tạo Tickets (idempotent — chỉ tạo cho ghế chưa có vé)
+            generateTicketsInTransaction(conn, bookingId, bookingCode);
+
+            // 4. FR-42 — Tích điểm loyalty nếu khách là thành viên
+            if (userId != null) {
+                addLoyaltyPoints(conn, userId, bookingId, finalAmount);
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("confirmPaymentWithDetails failed", e);
+        }
+    }
+
+    /**
+     * FR-37 — Đánh dấu tất cả vé của booking đã được in.
+     */
+    public void markTicketsPrinted(String bookingId) {
         String sql = """
-                UPDATE Bookings
-                SET booking_status = 'CONFIRMED', payment_status = 'PAID'
-                WHERE id = ?
+                UPDATE t SET t.is_printed = 1
+                FROM Tickets t
+                JOIN BookingSeats bs ON bs.id = t.booking_seat_id
+                WHERE bs.booking_id = ?
                 """;
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, bookingId);
             ps.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException("confirmPayment failed", e);
+            throw new RuntimeException("markTicketsPrinted failed", e);
         }
     }
 
-    /** Lấy VAT rate hiện hành từ VatRules; fallback 8% nếu chưa cấu hình. */
     public BigDecimal getCurrentVatRate() {
         return new VatRuleDAO().findCurrentActiveRate();
+    }
+
+    // ── Private helpers ───────────────────────────────────────────
+
+    /**
+     * FR-18 — Tạo Ticket record cho từng ghế chưa có vé.
+     * ticket_code = "{bookingCode}-{seatCode}", lưu vào qr_code để JS render QR.
+     */
+    private void generateTicketsInTransaction(Connection conn, String bookingId,
+                                              String bookingCode) throws SQLException {
+        String seatsSql = """
+                SELECT bs.id, se.seat_code
+                FROM BookingSeats bs
+                JOIN Seats se ON se.id = bs.seat_id
+                WHERE bs.booking_id = ?
+                  AND NOT EXISTS (SELECT 1 FROM Tickets t WHERE t.booking_seat_id = bs.id)
+                """;
+        List<String[]> pending = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(seatsSql)) {
+            ps.setString(1, bookingId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    pending.add(new String[]{rs.getString(1), rs.getString(2)});
+                }
+            }
+        }
+        if (pending.isEmpty()) return;
+
+        String insertSql = "INSERT INTO Tickets (booking_seat_id, ticket_code, qr_code) VALUES (?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+            for (String[] row : pending) {
+                String code = bookingCode + "-" + row[1];
+                ps.setString(1, row[0]);
+                ps.setString(2, code);
+                ps.setString(3, code);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        }
+    }
+
+    /**
+     * FR-42 — Cộng điểm loyalty và ghi log.
+     * Công thức: points = floor(finalAmount / 1000) * loyaltyEarnRate.
+     */
+    private void addLoyaltyPoints(Connection conn, String userId, String bookingId,
+                                   BigDecimal finalAmount) throws SQLException {
+        int earnRate = ConfigUtil.getInt(ConfigKeys.LOYALTY_EARN_RATE, 1);
+        if (earnRate <= 0) return;
+
+        int pointsEarned = finalAmount
+                .divide(new BigDecimal("1000"), 0, RoundingMode.DOWN)
+                .multiply(BigDecimal.valueOf(earnRate))
+                .intValue();
+        if (pointsEarned <= 0) return;
+
+        try (PreparedStatement ps = conn.prepareStatement(
+                "UPDATE Users SET loyalty_points = loyalty_points + ? WHERE id = ?")) {
+            ps.setInt(1, pointsEarned);
+            ps.setString(2, userId);
+            ps.executeUpdate();
+        }
+
+        String logSql = """
+                INSERT INTO LoyaltyPointsLog (user_id, booking_id, points_change, reason)
+                VALUES (?, ?, ?, N'Tích điểm từ đặt vé tại quầy')
+                """;
+        try (PreparedStatement ps = conn.prepareStatement(logSql)) {
+            ps.setString(1, userId);
+            ps.setString(2, bookingId);
+            ps.setInt(3, pointsEarned);
+            ps.executeUpdate();
+        }
     }
 
     private String generateBookingCode() {
