@@ -315,18 +315,45 @@
       .then(r => r.json())
       .then(data => {
         if (data.found) {
-          document.getElementById('custName').value  = data.fullName;
-          document.getElementById('custPhone').value = phone;
+          document.getElementById('custName').value     = data.fullName;
+          document.getElementById('custPhone').value    = data.phone || phone;
           document.getElementById('formMemberId').value = data.userId;
+
+          const isLocked  = data.status === 'LOCKED' || data.status === 'INACTIVE';
+          const statusBadge = isLocked
+            ? `<span class="member-status-badge member-status-badge--locked">Tạm khóa</span>`
+            : `<span class="member-status-badge member-status-badge--active">Hoạt động</span>`;
+
           resultEl.className = 'pos-member-result pos-member-result--found';
-          resultEl.innerHTML =
-            `<span class="member-badge">&#9733; THÀNH VIÊN</span> ` +
-            `<strong>${escHtml(data.fullName)}</strong> — ` +
-            `${data.loyaltyPoints.toLocaleString('vi-VN')} điểm tích luỹ`;
+          resultEl.innerHTML = `
+            <div class="member-card">
+              <div class="member-card-avatar">${escHtml(data.fullName.charAt(0).toUpperCase())}</div>
+              <div class="member-card-info">
+                <div class="member-card-name">
+                  <span class="member-badge">&#9733; THÀNH VIÊN</span>
+                  <strong>${escHtml(data.fullName)}</strong>
+                  ${statusBadge}
+                </div>
+                ${data.email ? `<div class="member-card-row"><span class="member-card-icon">✉</span>${escHtml(data.email)}</div>` : ''}
+                <div class="member-card-row"><span class="member-card-icon">📱</span>${escHtml(data.phone || phone)}</div>
+                <div class="member-card-row member-card-points">
+                  <span class="member-card-icon">★</span>
+                  <strong>${data.loyaltyPoints.toLocaleString('vi-VN')}</strong>&nbsp;điểm tích luỹ
+                </div>
+                ${data.joinedDate ? `<div class="member-card-row member-card-joined">Tham gia: ${escHtml(data.joinedDate)}</div>` : ''}
+              </div>
+            </div>`;
         } else {
           document.getElementById('formMemberId').value = '';
           resultEl.className = 'pos-member-result pos-member-result--notfound';
-          resultEl.textContent = 'Không tìm thấy thành viên với SĐT này.';
+          resultEl.innerHTML = `
+            <div class="member-notfound">
+              <span class="member-notfound-icon">?</span>
+              <div>
+                <div style="font-weight:600;color:#ef9a9a">Không tìm thấy thành viên</div>
+                <div style="font-size:12px;color:#888;margin-top:2px">SĐT <strong>${escHtml(phone)}</strong> chưa đăng ký tài khoản</div>
+              </div>
+            </div>`;
           document.getElementById('custPhone').value = phone;
         }
         checkProceedBtn();

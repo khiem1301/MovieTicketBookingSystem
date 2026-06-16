@@ -108,9 +108,9 @@
                     onclick="setPayMethod('CASH')">
               💵 Tiền mặt
             </button>
-            <button class="pay-method-btn" id="btnCard"
-                    onclick="setPayMethod('CARD')">
-              💳 Thẻ / Chuyển khoản
+            <button class="pay-method-btn" id="btnVietqr"
+                    onclick="setPayMethod('VIETQR')">
+              📱 Chuyển khoản
             </button>
           </div>
         </div>
@@ -172,6 +172,58 @@
           </div>
         </div>
 
+        <%-- VietQR / Chuyển khoản --%>
+        <div id="vietqrSection" style="display:none">
+          <c:choose>
+            <c:when test="${vietqrConfigured and not empty vietqrQrUrl}">
+              <div class="vietqr-qr-block">
+                <div style="text-align:center;margin-bottom:10px">
+                  <img src="<c:out value='${vietqrQrUrl}'/>"
+                       alt="Mã QR VietQR" class="vietqr-qr-img"
+                       style="width:200px;height:200px;border-radius:8px;border:2px solid #333"/>
+                </div>
+                <div class="vietqr-bank-info">
+                  <div class="vietqr-bank-row">
+                    <span class="vietqr-bank-label">Ngân hàng</span>
+                    <span class="vietqr-bank-val"><c:out value="${vietqrBankName}"/></span>
+                  </div>
+                  <div class="vietqr-bank-row">
+                    <span class="vietqr-bank-label">Số tài khoản</span>
+                    <strong class="vietqr-bank-val"><c:out value="${vietqrAccountNo}"/></strong>
+                  </div>
+                  <div class="vietqr-bank-row">
+                    <span class="vietqr-bank-label">Chủ tài khoản</span>
+                    <span class="vietqr-bank-val"><c:out value="${vietqrAccountName}"/></span>
+                  </div>
+                  <div class="vietqr-bank-row vietqr-bank-row--hl">
+                    <span class="vietqr-bank-label">Nội dung CK</span>
+                    <strong class="vietqr-bank-val"><c:out value="${vietqrTransferContent}"/></strong>
+                  </div>
+                  <div class="vietqr-bank-row vietqr-bank-row--hl">
+                    <span class="vietqr-bank-label">Số tiền</span>
+                    <strong class="vietqr-bank-val">
+                      <fmt:formatNumber value="${detail.finalAmount}" type="number" groupingUsed="true"/> ₫
+                    </strong>
+                  </div>
+                </div>
+                <p style="font-size:12px;color:#aaa;margin-top:8px;text-align:center">
+                  Hướng màn hình QR về phía khách → khách quét app ngân hàng → xác nhận sau khi nhận CK.
+                </p>
+              </div>
+            </c:when>
+            <c:otherwise>
+              <div style="padding:16px;background:#1e1e1e;border-radius:8px;text-align:center;color:#aaa">
+                <div style="font-size:32px;margin-bottom:8px">🏦</div>
+                <div style="font-weight:600;color:#fff;margin-bottom:4px">Thanh toán chuyển khoản</div>
+                <p style="font-size:13px">Chưa cấu hình VietQR.<br/>
+                  Sao chép <code>vietqr.properties.example</code> → <code>vietqr.properties</code>
+                  và điền thông tin ngân hàng để hiển thị QR tự động.</p>
+                <p style="font-size:12px;margin-top:8px">Nhân viên xác nhận thủ công sau khi khách chuyển khoản.</p>
+              </div>
+            </c:otherwise>
+          </c:choose>
+        </div>
+
         <%-- Nút xác nhận thanh toán --%>
         <form method="post" id="paymentForm"
               action="${pageContext.request.contextPath}/staff/counter?action=payment">
@@ -207,8 +259,13 @@
   function setPayMethod(method) {
     payMethod = method;
     document.getElementById('btnCash').classList.toggle('pay-method-btn--active', method === 'CASH');
-    document.getElementById('btnCard').classList.toggle('pay-method-btn--active', method === 'CARD');
-    document.getElementById('cashSection').style.display = (method === 'CASH') ? 'block' : 'none';
+    document.getElementById('btnVietqr').classList.toggle('pay-method-btn--active', method === 'VIETQR');
+    document.getElementById('cashSection').style.display   = (method === 'CASH')   ? 'block' : 'none';
+    document.getElementById('vietqrSection').style.display = (method === 'VIETQR') ? 'block' : 'none';
+    const btn = document.getElementById('markSuccessBtn');
+    btn.textContent = method === 'VIETQR'
+        ? '✓ Xác nhận đã nhận chuyển khoản'
+        : '✓ Xác nhận thanh toán thành công';
   }
 
   function numpadPress(digit) {
@@ -254,6 +311,7 @@
     document.getElementById('hiddenPayMethod').value = payMethod;
     document.getElementById('hiddenCashRecv').value  = payMethod === 'CASH' ? received : 0;
     document.getElementById('hiddenChangAmt').value  = payMethod === 'CASH' ? change   : 0;
+    // VIETQR không cần tiền mặt/tiền thừa — giữ 0 là đúng
     document.getElementById('paymentForm').submit();
   }
 

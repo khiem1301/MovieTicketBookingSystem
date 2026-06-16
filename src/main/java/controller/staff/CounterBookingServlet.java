@@ -18,6 +18,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import utils.EmailUtil;
 import utils.SessionUtil;
+import utils.VietQRConfig;
+import utils.VietQRUtil;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -83,6 +85,18 @@ public class CounterBookingServlet extends HttpServlet {
                     return;
                 }
                 req.setAttribute("detail", detail);
+                req.setAttribute("vietqrConfigured", VietQRConfig.isConfigured());
+                if (VietQRConfig.isConfigured()
+                        && detail.getFinalAmount() != null
+                        && detail.getFinalAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
+                    String tc = VietQRUtil.transferContent(detail.getBookingCode());
+                    req.setAttribute("vietqrQrUrl",
+                            VietQRUtil.qrImageUrl(detail.getFinalAmount(), tc));
+                    req.setAttribute("vietqrTransferContent", tc);
+                    req.setAttribute("vietqrBankName",    VietQRConfig.bankName());
+                    req.setAttribute("vietqrAccountNo",   VietQRConfig.accountNumber());
+                    req.setAttribute("vietqrAccountName", VietQRConfig.accountName());
+                }
                 req.getRequestDispatcher(VIEW_PAYMENT).forward(req, resp);
 
             } else if ("print".equals(step) && !isBlank(bookingId)) {
@@ -210,9 +224,13 @@ public class CounterBookingServlet extends HttpServlet {
                 JSONObject obj = new JSONObject();
                 obj.put("found",         true);
                 obj.put("userId",        u.getId());
-                obj.put("fullName",      u.getFullName());
+                obj.put("fullName",      u.getFullName() != null ? u.getFullName() : "");
                 obj.put("email",         u.getEmail() != null ? u.getEmail() : "");
+                obj.put("phone",         u.getPhoneNumber() != null ? u.getPhoneNumber() : phone.trim());
                 obj.put("loyaltyPoints", u.getLoyaltyPoints());
+                obj.put("status",        u.getStatus() != null ? u.getStatus() : "ACTIVE");
+                obj.put("joinedDate",    u.getCreatedAt() != null
+                        ? new java.text.SimpleDateFormat("dd/MM/yyyy").format(u.getCreatedAt()) : "");
                 resp.getWriter().write(obj.toString());
             } else {
                 resp.getWriter().write("{\"found\":false}");
@@ -299,8 +317,9 @@ public class CounterBookingServlet extends HttpServlet {
     /** FR-37 — Đánh dấu vé đã in xong, trả JSON để JS biết kết quả. */
     private void handleMarkPrinted(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
-        String bookingId = req.getParameter("bookingId");
         resp.setContentType("application/json; charset=UTF-8");
+        resp.setStatus(200);
+        String bookingId = req.getParameter("bookingId");
         if (isBlank(bookingId)) {
             resp.getWriter().write("{\"ok\":false,\"error\":\"Missing bookingId\"}");
             return;
@@ -308,9 +327,11 @@ public class CounterBookingServlet extends HttpServlet {
         try {
             new BookingDAO().markTicketsPrinted(bookingId);
             resp.getWriter().write("{\"ok\":true}");
-        } catch (RuntimeException e) {
-            resp.setStatus(500);
-            resp.getWriter().write("{\"ok\":false,\"error\":\"" + e.getMessage() + "\"}");
+        } catch (Exception e) {
+            log("markTicketsPrinted error for " + bookingId, e);
+            String msg = e.getMessage() == null ? "Unknown error" : e.getMessage()
+                    .replace("\\", "\\\\").replace("\"", "\\\"");
+            resp.getWriter().write("{\"ok\":false,\"error\":\"" + msg + "\"}");
         }
     }
 
@@ -320,9 +341,9 @@ public class CounterBookingServlet extends HttpServlet {
         new Thread(() -> {
             try {
                 BookingDetailDTO detail = new BookingDAO().getDetailById(bookingId);
-                if (detail == null || isBlank(detail.getLinkedUserId())) return;
+                if (detail == null || isBlank(detail.getUserId())) return;
 
-                String email = new dal.UserDAO().findById(detail.getLinkedUserId())
+                String email = new dal.UserDAO().findById(detail.getUserId())
                         .map(u -> u.getEmail()).orElse(null);
                 if (email == null) return;
 
