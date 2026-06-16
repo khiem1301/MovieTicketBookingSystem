@@ -6,7 +6,7 @@
 -- Khong can chay them migration_*.sql
 --
 -- Bao gom:
---   - 27 bang (PascalCase)
+--   - 28 bang (PascalCase)
 --   - Seed: Roles, Users, Config, Cinema, Chatbot
 --   - Seed homepage: Genres (is_active, description), CinemaRooms, 8 Movies, MovieGenres
 --
@@ -55,6 +55,7 @@ IF OBJECT_ID('CinemaRooms',           'U') IS NOT NULL DROP TABLE CinemaRooms;
 IF OBJECT_ID('CinemaInfo',            'U') IS NOT NULL DROP TABLE CinemaInfo;
 IF OBJECT_ID('VatRules',              'U') IS NOT NULL DROP TABLE VatRules;
 IF OBJECT_ID('SystemConfigLog',       'U') IS NOT NULL DROP TABLE SystemConfigLog;
+IF OBJECT_ID('UserStatusLog',         'U') IS NOT NULL DROP TABLE UserStatusLog;
 IF OBJECT_ID('SystemConfig',          'U') IS NOT NULL DROP TABLE SystemConfig;
 IF OBJECT_ID('PasswordResetTokens',  'U') IS NOT NULL DROP TABLE PasswordResetTokens;
 IF OBJECT_ID('Users',                 'U') IS NOT NULL DROP TABLE Users;
@@ -164,6 +165,30 @@ CREATE TABLE SystemConfigLog (
 
     CONSTRAINT PK_SystemConfigLog      PRIMARY KEY (id),
     CONSTRAINT FK_SystemConfigLog_User FOREIGN KEY (updated_by) REFERENCES Users(id)
+);
+GO
+
+-- ------------------------------------------------------------
+-- 4c. UserStatusLog — lịch sử khóa / mở khóa tài khoản
+-- ------------------------------------------------------------
+CREATE TABLE UserStatusLog (
+    id              UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    user_id         UNIQUEIDENTIFIER NOT NULL,
+    action          NVARCHAR(20)     NOT NULL,
+    previous_status NVARCHAR(20)     NOT NULL,
+    new_status      NVARCHAR(20)     NOT NULL,
+    reason          NVARCHAR(500)    NULL,
+    email_sent      BIT              NOT NULL DEFAULT 0,
+    email_error     NVARCHAR(255)    NULL,
+    performed_by    UNIQUEIDENTIFIER NULL,
+    performed_at    DATETIME2        NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT PK_UserStatusLog           PRIMARY KEY (id),
+    CONSTRAINT FK_UserStatusLog_User        FOREIGN KEY (user_id)      REFERENCES Users(id),
+    CONSTRAINT FK_UserStatusLog_PerformedBy FOREIGN KEY (performed_by) REFERENCES Users(id),
+    CONSTRAINT CK_UserStatusLog_Action      CHECK (action IN ('LOCK','UNLOCK','DEACTIVATE')),
+    CONSTRAINT CK_UserStatusLog_PrevStatus  CHECK (previous_status IN ('ACTIVE','INACTIVE','BANNED')),
+    CONSTRAINT CK_UserStatusLog_NewStatus   CHECK (new_status IN ('ACTIVE','INACTIVE','BANNED'))
 );
 GO
 
@@ -705,6 +730,8 @@ CREATE INDEX IX_MovieReviews_Movie  ON MovieReviews(movie_id);
 
 CREATE INDEX IX_SystemConfigLog_UpdatedAt ON SystemConfigLog(updated_at DESC);
 
+CREATE INDEX IX_UserStatusLog_User ON UserStatusLog(user_id, performed_at DESC);
+
 CREATE INDEX IX_LoyaltyPointsLog_User ON LoyaltyPointsLog(user_id, created_at);
 CREATE INDEX IX_LoyaltyPointsLog_Booking ON LoyaltyPointsLog(booking_id);
 
@@ -981,6 +1008,77 @@ INSERT INTO MovieGenres (movie_id, genre_id) VALUES
 GO
 
 -- ============================================================
+-- SEED DATA: Suat chieu, ghe, don dat ve mau — test Admin bao cao
+-- Ky vong thang 6/2026: 4 don PAID, 9 ve, doanh thu 1.166.000 VND
+-- Top phim: Avengers (5 ve) > Mission (2 ve) > Housemaid (2 ve)
+-- SEED-STATS-007 (PENDING) khong tinh vao thong ke
+-- ============================================================
+
+DECLARE @StatsRegularType UNIQUEIDENTIFIER = (SELECT TOP 1 id FROM SeatTypes WHERE type_name = N'REGULAR');
+DECLARE @StatsVipType     UNIQUEIDENTIFIER = (SELECT TOP 1 id FROM SeatTypes WHERE type_name = N'VIP');
+DECLARE @StatsManagerId   UNIQUEIDENTIFIER = '22222222-2222-2222-2222-222222222202';
+DECLARE @StatsStaffId     UNIQUEIDENTIFIER = '22222222-2222-2222-2222-222222222203';
+DECLARE @StatsCustomerId  UNIQUEIDENTIFIER = '22222222-2222-2222-2222-222222222204';
+DECLARE @StatsRoom1       UNIQUEIDENTIFIER = 'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCC01';
+DECLARE @StatsRoom2       UNIQUEIDENTIFIER = 'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCC02';
+DECLARE @StatsRoom3       UNIQUEIDENTIFIER = 'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCC03';
+
+INSERT INTO Seats (id, room_id, seat_type_id, seat_row, seat_column, seat_code, status) VALUES
+    ('66666666-6666-6666-6666-666666666601', @StatsRoom1, @StatsRegularType, N'A', 1, N'A1', 'ACTIVE'),
+    ('66666666-6666-6666-6666-666666666602', @StatsRoom1, @StatsRegularType, N'A', 2, N'A2', 'ACTIVE'),
+    ('66666666-6666-6666-6666-666666666603', @StatsRoom1, @StatsRegularType, N'A', 3, N'A3', 'ACTIVE'),
+    ('66666666-6666-6666-6666-666666666604', @StatsRoom1, @StatsRegularType, N'B', 1, N'B1', 'ACTIVE'),
+    ('66666666-6666-6666-6666-666666666605', @StatsRoom1, @StatsRegularType, N'B', 2, N'B2', 'ACTIVE'),
+    ('66666666-6666-6666-6666-666666666606', @StatsRoom2, @StatsVipType,     N'A', 1, N'A1', 'ACTIVE'),
+    ('66666666-6666-6666-6666-666666666607', @StatsRoom2, @StatsVipType,     N'A', 2, N'A2', 'ACTIVE'),
+    ('66666666-6666-6666-6666-666666666608', @StatsRoom2, @StatsRegularType, N'A', 3, N'A3', 'ACTIVE'),
+    ('66666666-6666-6666-6666-666666666609', @StatsRoom3, @StatsRegularType, N'A', 1, N'A1', 'ACTIVE');
+
+INSERT INTO Showtimes (id, movie_id, room_id, start_time, end_time, base_price, status, created_by) VALUES
+    ('55555555-5555-5555-5555-555555555501', 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA101', @StatsRoom1, '2026-06-05 18:00:00', '2026-06-05 20:30:00', 100000, 'OPEN',     @StatsManagerId),
+    ('55555555-5555-5555-5555-555555555502', 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA101', @StatsRoom1, '2026-06-08 20:00:00', '2026-06-08 22:30:00', 100000, 'OPEN',     @StatsManagerId),
+    ('55555555-5555-5555-5555-555555555503', 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA102', @StatsRoom2, '2026-06-07 19:00:00', '2026-06-07 21:43:00', 120000, 'OPEN',     @StatsManagerId),
+    ('55555555-5555-5555-5555-555555555504', 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA103', @StatsRoom3, '2026-05-28 14:00:00', '2026-05-28 15:48:00',  80000,  'FINISHED', @StatsManagerId),
+    ('55555555-5555-5555-5555-555555555505', 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA104', @StatsRoom1, '2026-06-03 21:00:00', '2026-06-03 22:58:00', 100000, 'OPEN',     @StatsManagerId),
+    ('55555555-5555-5555-5555-555555555506', 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA102', @StatsRoom2, '2026-05-15 18:00:00', '2026-05-15 20:43:00', 100000, 'FINISHED', @StatsManagerId);
+
+INSERT INTO Bookings (
+    id, booking_code, user_id, showtime_id, booking_source,
+    created_by_staff_id, customer_name, customer_phone,
+    vat_rate_snapshot, total_amount, discount_amount, final_amount,
+    booking_status, payment_status, booked_at
+) VALUES
+    ('77777777-7777-7777-7777-777777777701', 'SEED-STATS-001', NULL, '55555555-5555-5555-5555-555555555501', 'OFFLINE',
+     @StatsStaffId, N'Nguyen Van A', '0903000001', 10.00, 300000, 0, 330000, 'CONFIRMED', 'PAID', '2026-06-05 18:05:00'),
+    ('77777777-7777-7777-7777-777777777702', 'SEED-STATS-002', @StatsCustomerId, '55555555-5555-5555-5555-555555555502', 'ONLINE',
+     NULL, NULL, NULL, 10.00, 200000, 0, 220000, 'CONFIRMED', 'PAID', '2026-06-08 20:10:00'),
+    ('77777777-7777-7777-7777-777777777703', 'SEED-STATS-003', NULL, '55555555-5555-5555-5555-555555555503', 'OFFLINE',
+     @StatsStaffId, N'Tran Thi B', '0903000002', 10.00, 360000, 0, 396000, 'CONFIRMED', 'PAID', '2026-06-07 19:15:00'),
+    ('77777777-7777-7777-7777-777777777704', 'SEED-STATS-004', @StatsCustomerId, '55555555-5555-5555-5555-555555555504', 'ONLINE',
+     NULL, NULL, NULL, 10.00, 80000, 0, 88000, 'CONFIRMED', 'PAID', '2026-05-28 14:05:00'),
+    ('77777777-7777-7777-7777-777777777705', 'SEED-STATS-005', NULL, '55555555-5555-5555-5555-555555555505', 'OFFLINE',
+     @StatsStaffId, N'Le Van C', '0903000003', 10.00, 200000, 0, 220000, 'CONFIRMED', 'PAID', '2026-06-03 21:05:00'),
+    ('77777777-7777-7777-7777-777777777706', 'SEED-STATS-006', @StatsCustomerId, '55555555-5555-5555-5555-555555555506', 'ONLINE',
+     NULL, NULL, NULL, 10.00, 180000, 0, 198000, 'CONFIRMED', 'PAID', '2026-05-15 18:10:00'),
+    ('77777777-7777-7777-7777-777777777707', 'SEED-STATS-007', @StatsCustomerId, '55555555-5555-5555-5555-555555555501', 'ONLINE',
+     NULL, NULL, NULL, 10.00, 100000, 0, 110000, 'PENDING', 'UNPAID', '2026-06-09 10:00:00');
+
+INSERT INTO BookingSeats (id, booking_id, seat_id, ticket_price) VALUES
+    ('88888888-8888-8888-8888-888888888801', '77777777-7777-7777-7777-777777777701', '66666666-6666-6666-6666-666666666601', 100000),
+    ('88888888-8888-8888-8888-888888888802', '77777777-7777-7777-7777-777777777701', '66666666-6666-6666-6666-666666666602', 100000),
+    ('88888888-8888-8888-8888-888888888803', '77777777-7777-7777-7777-777777777701', '66666666-6666-6666-6666-666666666603', 100000),
+    ('88888888-8888-8888-8888-888888888804', '77777777-7777-7777-7777-777777777702', '66666666-6666-6666-6666-666666666604', 100000),
+    ('88888888-8888-8888-8888-888888888805', '77777777-7777-7777-7777-777777777702', '66666666-6666-6666-6666-666666666605', 100000),
+    ('88888888-8888-8888-8888-888888888806', '77777777-7777-7777-7777-777777777703', '66666666-6666-6666-6666-666666666606', 180000),
+    ('88888888-8888-8888-8888-888888888807', '77777777-7777-7777-7777-777777777703', '66666666-6666-6666-6666-666666666607', 180000),
+    ('88888888-8888-8888-8888-888888888808', '77777777-7777-7777-7777-777777777704', '66666666-6666-6666-6666-666666666609', 80000),
+    ('88888888-8888-8888-8888-888888888809', '77777777-7777-7777-7777-777777777705', '66666666-6666-6666-6666-666666666601', 100000),
+    ('88888888-8888-8888-8888-888888888810', '77777777-7777-7777-7777-777777777705', '66666666-6666-6666-6666-666666666602', 100000),
+    ('88888888-8888-8888-8888-888888888811', '77777777-7777-7777-7777-777777777706', '66666666-6666-6666-6666-666666666608', 180000),
+    ('88888888-8888-8888-8888-888888888812', '77777777-7777-7777-7777-777777777707', '66666666-6666-6666-6666-666666666603', 100000);
+GO
+
+-- ============================================================
 -- KIEM TRA KET QUA
 -- ============================================================
 PRINT N'';
@@ -1009,7 +1107,25 @@ GROUP BY m.id, m.title, m.status, m.average_rating, m.backdrop_url
 ORDER BY m.average_rating DESC;
 GO
 
-PRINT N'=== Hoan tat: 27 bang + day du seed data ===';
+PRINT N'';
+PRINT N'=== SEED STATS (don SEED-STATS-*) ===';
+
+SELECT
+    b.booking_code,
+    m.title AS movie,
+    b.booking_status,
+    b.payment_status,
+    b.final_amount,
+    (SELECT COUNT(*) FROM BookingSeats bs WHERE bs.booking_id = b.id) AS seats
+FROM Bookings b
+JOIN Showtimes s ON s.id = b.showtime_id
+JOIN Movies m ON m.id = s.movie_id
+WHERE b.booking_code LIKE 'SEED-STATS-%'
+ORDER BY b.booked_at;
+GO
+
+PRINT N'=== Hoan tat: 28 bang + day du seed data ===';
 PRINT N'=== Tai khoan seed: mat khau mac dinh Password@123 (BCrypt) ===';
 PRINT N'=== Phim mau: 4 dang chieu + 4 sap chieu ===';
+PRINT N'=== Thong ke test: 6 don PAID + 1 PENDING (SEED-STATS-*) ===';
 GO

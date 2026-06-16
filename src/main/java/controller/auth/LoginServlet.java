@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import model.entity.User;
+import utils.AccountLockUtil;
 import utils.AuthPageUtil;
 import utils.AuthRedirectUtil;
 import utils.PasswordUtil;
@@ -43,6 +44,13 @@ public class LoginServlet extends HttpServlet {
         }
 
         AuthPageUtil.prepareOAuthAttributes(req, req.getParameter("redirect"));
+        if ("banned".equals(req.getParameter("google"))) {
+            req.setAttribute("errorMessage", AccountLockUtil.BANNED_LOGIN_MESSAGE);
+            String lockReason = AccountLockUtil.consumeLockReason(req);
+            if (lockReason != null) {
+                req.setAttribute("lockReason", lockReason);
+            }
+        }
         req.getRequestDispatcher(VIEW).forward(req, resp);
     }
 
@@ -80,7 +88,9 @@ public class LoginServlet extends HttpServlet {
             User user = found.get();
 
             if ("BANNED".equals(user.getStatus())) {
-                forwardView(req, resp, "Tài khoản đã bị khóa. Vui lòng liên hệ rạp để được hỗ trợ.");
+                AccountLockUtil.findLockReason(user.getId())
+                        .ifPresent(reason -> req.setAttribute("lockReason", reason));
+                forwardView(req, resp, AccountLockUtil.BANNED_LOGIN_MESSAGE);
                 return;
             }
             if ("INACTIVE".equals(user.getStatus())) {
