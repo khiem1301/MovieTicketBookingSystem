@@ -937,6 +937,83 @@
 .qr-canvas { display: flex; justify-content: center; align-items: center; }
 .qr-canvas canvas, .qr-canvas img { border-radius: 4px; }
 
+/* ── Member card (lookup result) ─────────────────────────── */
+.member-card {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  background: #111;
+  border-radius: 8px;
+}
+.member-card-avatar {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: #e53935;
+  color: #fff;
+  font-size: 18px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.member-card-info { flex: 1; min-width: 0; }
+.member-card-name {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 6px; margin-bottom: 6px;
+}
+.member-card-name strong { color: #fff; font-size: 14px; }
+.member-status-badge {
+  font-size: 10px; font-weight: 700;
+  padding: 2px 6px; border-radius: 4px;
+}
+.member-status-badge--active { background: #1b5e20; color: #a5d6a7; }
+.member-status-badge--locked { background: #4e2020; color: #ef9a9a; }
+.member-card-row {
+  font-size: 12px; color: #aaa;
+  display: flex; align-items: center; gap: 5px;
+  margin-top: 3px;
+}
+.member-card-icon { font-size: 11px; flex-shrink: 0; }
+.member-card-points { color: #ffb300 !important; margin-top: 5px; }
+.member-card-points strong { font-size: 14px; }
+.member-card-joined { color: #666 !important; }
+
+.member-notfound {
+  display: flex; gap: 10px; align-items: center;
+  padding: 8px 12px;
+  background: #1a1010; border-radius: 8px;
+}
+.member-notfound-icon {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #3e1f1f; color: #ef9a9a;
+  font-size: 18px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ── VietQR counter panel ─────────────────────────────────── */
+.vietqr-qr-block {
+  margin-top: 12px;
+}
+.vietqr-bank-info {
+  background: #161616;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 10px;
+  font-size: 13px;
+}
+.vietqr-bank-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid #1e1e1e;
+}
+.vietqr-bank-row:last-child { border-bottom: none; }
+.vietqr-bank-label { color: #888; flex-shrink: 0; margin-right: 8px; }
+.vietqr-bank-val   { color: #e0e0e0; text-align: right; word-break: break-all; }
+.vietqr-bank-row--hl .vietqr-bank-val { color: #ffb300; }
+
 /* ── Scrollbar ────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track  { background: transparent; }

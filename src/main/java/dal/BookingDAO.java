@@ -407,7 +407,7 @@ public class BookingDAO {
      */
     public void confirmPaymentWithDetails(String bookingId, String paymentMethod,
                                           BigDecimal cashReceived, BigDecimal changeAmount) {
-        String method = "CARD".equalsIgnoreCase(paymentMethod) ? "CARD" : "CASH";
+        String method = "VIETQR".equalsIgnoreCase(paymentMethod) ? "VIETQR" : "CASH";
 
         try (Connection conn = DBContext.getConnection()) {
             conn.setAutoCommit(false);
@@ -954,8 +954,8 @@ public class BookingDAO {
         }
 
         String logSql = """
-                INSERT INTO LoyaltyPointsLog (user_id, booking_id, points_change, reason)
-                VALUES (?, ?, ?, N'Tích điểm từ đặt vé tại quầy')
+                INSERT INTO LoyaltyPointsLog (user_id, booking_id, points_delta, transaction_type, note)
+                VALUES (?, ?, ?, 'EARN', N'Tích điểm từ đặt vé tại quầy')
                 """;
         try (PreparedStatement ps = conn.prepareStatement(logSql)) {
             ps.setString(1, userId);
