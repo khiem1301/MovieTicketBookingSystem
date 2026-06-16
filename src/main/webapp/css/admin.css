@@ -69,6 +69,10 @@
   margin-bottom: 20px;
 }
 
+.admin-btn--export {
+  white-space: nowrap;
+}
+
 .admin-field {
   display: flex;
   flex-direction: column;

@@ -7,10 +7,12 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import model.dto.BookingOverviewStatsDTO;
+import model.dto.RevenuePeriodStatsDTO;
 import model.dto.TopMovieStatsDTO;
 import utils.AdminAuthUtil;
 import utils.AdminPaginationUtil;
 import utils.ReportDateUtil;
+import utils.ReportExportUtil;
 
 import java.io.IOException;
 import java.util.List;
@@ -32,6 +34,7 @@ public class AdminReportServlet extends HttpServlet {
         String range = req.getParameter("range");
         String from = req.getParameter("from");
         String to = req.getParameter("to");
+        String groupBy = ReportExportUtil.normalizeGroupBy(req.getParameter("groupBy"));
 
         ReportDateUtil.ResolveResult resolved = ReportDateUtil.resolve(range, from, to);
         ReportDateUtil.DateRange dateRange = resolved.range();
@@ -40,6 +43,8 @@ public class AdminReportServlet extends HttpServlet {
         BookingStatsDAO statsDAO = new BookingStatsDAO();
         BookingOverviewStatsDTO overview = statsDAO.getOverviewStats(
                 dateRange.fromInclusive(), dateRange.toExclusive());
+        List<RevenuePeriodStatsDTO> periodStats = statsDAO.findRevenueByPeriod(
+                dateRange.fromInclusive(), dateRange.toExclusive(), groupBy);
 
         int topMoviesTotal = statsDAO.countTopMovies(
                 dateRange.fromInclusive(), dateRange.toExclusive());
@@ -51,9 +56,17 @@ public class AdminReportServlet extends HttpServlet {
 
         String pgQueryExtra = AdminPaginationUtil.queryParam("range", dateRange.rangeKey())
                 + AdminPaginationUtil.queryParam("from", from)
-                + AdminPaginationUtil.queryParam("to", to);
+                + AdminPaginationUtil.queryParam("to", to)
+                + AdminPaginationUtil.queryParam("groupBy", groupBy);
+
+        String exportQuery = ReportExportUtil.buildExportQuery(
+                dateRange.rangeKey(), from, to, groupBy);
 
         req.setAttribute("overview", overview);
+        req.setAttribute("periodStats", periodStats);
+        req.setAttribute("filterGroupBy", groupBy);
+        req.setAttribute("periodColumnLabel", ReportExportUtil.periodColumnLabel(groupBy));
+        req.setAttribute("exportQuery", exportQuery);
         req.setAttribute("topMovies", topMovies);
         req.setAttribute("topMoviesTotal", topMoviesTotal);
         req.setAttribute("currentPage", page);

@@ -62,8 +62,20 @@
           <input type="date" id="to" name="to" class="admin-input"
                  value="<c:out value='${filterTo}'/>"/>
         </div>
+        <div class="admin-field">
+          <label class="admin-label" for="groupBy">Nhóm theo</label>
+          <select id="groupBy" name="groupBy" class="admin-select">
+            <option value="day"   <c:if test="${filterGroupBy == 'day'}">selected</c:if>>Ngày</option>
+            <option value="month" <c:if test="${filterGroupBy == 'month'}">selected</c:if>>Tháng</option>
+            <option value="year"  <c:if test="${filterGroupBy == 'year'}">selected</c:if>>Năm</option>
+          </select>
+        </div>
         <button type="submit" class="admin-btn admin-btn--primary">Áp dụng</button>
         <a href="${pageContext.request.contextPath}/admin/reports" class="admin-btn admin-btn--ghost">Xóa lọc</a>
+        <a href="${pageContext.request.contextPath}/admin/reports/export?${exportQuery}"
+           class="admin-btn admin-btn--ghost admin-btn--export">
+          Xuất CSV
+        </a>
       </form>
       <p class="admin-stats" style="margin-top:12px;margin-bottom:0;">
         Chỉ tính đơn đã thanh toán (<strong>CONFIRMED</strong> + <strong>PAID</strong>).
@@ -86,6 +98,46 @@
         <span class="admin-stat-value"><c:out value="${overview.bookingCount}"/></span>
         <span class="admin-stat-label">Đơn đã thanh toán</span>
       </div>
+    </div>
+
+    <div class="admin-card" style="margin-top:24px;">
+      <h2 class="admin-section-title">Doanh thu theo kỳ</h2>
+      <p class="admin-stats">
+        Chi tiết nhóm theo <strong><c:out value="${periodColumnLabel}"/></strong>
+        — <c:out value="${rangeLabel}"/>.
+        Bấm <strong>Xuất CSV</strong> để tải file.
+      </p>
+      <c:choose>
+        <c:when test="${not empty periodStats}">
+          <div class="admin-table-wrap">
+            <table class="admin-table admin-table--revenue-period">
+              <thead>
+                <tr>
+                  <th><c:out value="${periodColumnLabel}"/></th>
+                  <th>Doanh thu</th>
+                  <th>Số đơn</th>
+                  <th>Số vé</th>
+                </tr>
+              </thead>
+              <tbody>
+                <c:forEach var="row" items="${periodStats}">
+                  <tr>
+                    <td><strong><c:out value="${row.periodLabel}"/></strong></td>
+                    <td>
+                      <fmt:formatNumber value="${row.revenue}" type="number" groupingUsed="true" maxFractionDigits="0"/>đ
+                    </td>
+                    <td><c:out value="${row.bookingCount}"/></td>
+                    <td><c:out value="${row.ticketCount}"/></td>
+                  </tr>
+                </c:forEach>
+              </tbody>
+            </table>
+          </div>
+        </c:when>
+        <c:otherwise>
+          <p class="admin-empty">Chưa có doanh thu trong khoảng thời gian này.</p>
+        </c:otherwise>
+      </c:choose>
     </div>
 
     <div class="admin-card" style="margin-top:24px;">
