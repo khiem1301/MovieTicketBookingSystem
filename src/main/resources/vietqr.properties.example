@@ -1,0 +1,22 @@
+# Sao chép file này thành vietqr.properties và điền thông tin tài khoản nhận tiền.
+# VietQR dùng dịch vụ img.vietqr.io — không cần đăng ký merchant như MoMo/VNPay.
+#
+# Tra mã BIN ngân hàng: https://vietqr.io/ hoặc https://api.vietqr.io/v2/banks
+
+# Mã BIN Napas (ví dụ: 970422 = MB, 970436 = Vietcombank, 970415 = VietinBank)
+vietqr.bank.bin=970422
+
+# Tên hiển thị trên trang thanh toán
+vietqr.bank.name=MB Bank
+
+# Số tài khoản nhận tiền (chỉ số, không dấu cách)
+vietqr.account.number=0123456789
+
+# Tên chủ tài khoản (viết hoa, không dấu — theo chuẩn ngân hàng)
+vietqr.account.name=NGUYEN VAN A
+
+# Kiểu QR: compact | compact2 | qr_only | print
+vietqr.template=compact2
+
+# (Tuỳ chọn) Base URL img.vietqr.io — để trống dùng mặc định
+# vietqr.image.base.url=https://img.vietqr.io/image

@@ -50,15 +50,33 @@ public class SystemConfigLogDAO {
         }
     }
 
-    public List<SystemConfigLog> findLoyaltyHistory(int limit) {
+    public int countLoyaltyHistory() {
+        String sql = "SELECT COUNT(*) AS total FROM SystemConfigLog";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt("total");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("countLoyaltyHistory failed", e);
+        }
+        return 0;
+    }
+
+    public List<SystemConfigLog> findLoyaltyHistory(int offset, int limit) {
+        if (limit <= 0) {
+            return List.of();
+        }
         String sql = SELECT_COLUMNS + """
                 ORDER BY l.updated_at DESC
-                OFFSET 0 ROWS FETCH NEXT ? ROWS ONLY
+                OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
                 """;
         List<SystemConfigLog> result = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, Math.max(1, limit));
+            ps.setInt(1, Math.max(0, offset));
+            ps.setInt(2, limit);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     result.add(mapRow(rs));
@@ -68,6 +86,11 @@ public class SystemConfigLogDAO {
             throw new RuntimeException("findLoyaltyHistory failed", e);
         }
         return result;
+    }
+
+    /** @deprecated use {@link #findLoyaltyHistory(int, int)} */
+    public List<SystemConfigLog> findLoyaltyHistory(int limit) {
+        return findLoyaltyHistory(0, limit);
     }
 
     private SystemConfigLog mapRow(ResultSet rs) throws SQLException {

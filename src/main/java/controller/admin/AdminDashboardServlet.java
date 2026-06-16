@@ -1,11 +1,13 @@
 package controller.admin;
 
+import dal.BookingStatsDAO;
 import dal.UserDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import model.dto.BookingOverviewStatsDTO;
 import utils.AdminAuthUtil;
 import utils.SessionUtil;
 
@@ -25,11 +27,14 @@ public class AdminDashboardServlet extends HttpServlet {
         }
 
         UserDAO userDAO = new UserDAO();
+        BookingOverviewStatsDTO monthStats = new BookingStatsDAO().getCurrentMonthOverview();
+
         req.setAttribute("adminName", SessionUtil.getLoggedUser(req).getFullName());
         req.setAttribute("totalUsers",   userDAO.countAll(null, null, null));
         req.setAttribute("activeUsers",  userDAO.countAll(null, null, "ACTIVE"));
         req.setAttribute("staffCount",   userDAO.countAll(null, "STAFF", null));
         req.setAttribute("managerCount", userDAO.countAll(null, "MANAGER", null));
+        req.setAttribute("monthStats", monthStats);
         req.setAttribute("flashSuccess", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_SUCCESS));
         req.setAttribute("flashError",   AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_ERROR));
 

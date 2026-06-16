@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import model.entity.Role;
 import model.entity.User;
 import utils.AdminAuthUtil;
+import utils.AdminPaginationUtil;
 
 import java.io.IOException;
 import java.util.List;
@@ -18,7 +19,7 @@ import java.util.List;
 public class UserListServlet extends HttpServlet {
 
     private static final String VIEW = "/WEB-INF/views/admin/user-list.jsp";
-    private static final int PAGE_SIZE = 10;
+    private static final int PAGE_SIZE = AdminPaginationUtil.DEFAULT_PAGE_SIZE;
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -31,16 +32,14 @@ public class UserListServlet extends HttpServlet {
         String keyword  = trim(req.getParameter("q"));
         String roleName = trim(req.getParameter("role"));
         String status   = trim(req.getParameter("status"));
-        int page = parsePage(req.getParameter("page"));
+        int page = AdminPaginationUtil.parsePage(req.getParameter("page"));
 
         UserDAO userDAO = new UserDAO();
         int total = userDAO.countAll(keyword, roleName, status);
-        int totalPages = Math.max(1, (int) Math.ceil((double) total / PAGE_SIZE));
-        if (page > totalPages) {
-            page = totalPages;
-        }
+        int totalPages = AdminPaginationUtil.totalPages(total, PAGE_SIZE);
+        page = AdminPaginationUtil.clampPage(page, totalPages);
 
-        int offset = (page - 1) * PAGE_SIZE;
+        int offset = AdminPaginationUtil.offset(page, PAGE_SIZE);
         List<User> users = userDAO.findAll(keyword, roleName, status, offset, PAGE_SIZE);
         List<Role> roles = new RoleDAO().findAll();
 
@@ -52,21 +51,18 @@ public class UserListServlet extends HttpServlet {
         req.setAttribute("currentPage", page);
         req.setAttribute("totalPages", totalPages);
         req.setAttribute("totalUsers", total);
+        req.setAttribute("pgCurrent", page);
+        req.setAttribute("pgTotal", totalPages);
+        req.setAttribute("pgTotalItems", total);
+        req.setAttribute("pgPath", req.getContextPath() + "/admin/users");
+        req.setAttribute("pgQueryExtra",
+                AdminPaginationUtil.queryParam("q", keyword)
+                        + AdminPaginationUtil.queryParam("role", roleName)
+                        + AdminPaginationUtil.queryParam("status", status));
         req.setAttribute("flashSuccess", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_SUCCESS));
         req.setAttribute("flashError", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_ERROR));
 
         req.getRequestDispatcher(VIEW).forward(req, resp);
-    }
-
-    private int parsePage(String raw) {
-        if (raw == null || raw.isBlank()) {
-            return 1;
-        }
-        try {
-            return Math.max(1, Integer.parseInt(raw.trim()));
-        } catch (NumberFormatException ex) {
-            return 1;
-        }
     }
 
     private String trim(String value) {

@@ -137,25 +137,10 @@
             </table>
           </div>
 
-          <c:if test="${totalPages > 1}">
-            <div class="admin-pagination">
-              <span>Trang <c:out value="${currentPage}"/> / <c:out value="${totalPages}"/></span>
-              <div class="admin-btn-group">
-                <c:if test="${currentPage > 1}">
-                  <a class="admin-btn admin-btn--ghost admin-btn--sm"
-                     href="${pageContext.request.contextPath}/admin/users?page=${currentPage - 1}&q=${filterQ}&role=${filterRole}&status=${filterStatus}">
-                    ← Trước
-                  </a>
-                </c:if>
-                <c:if test="${currentPage < totalPages}">
-                  <a class="admin-btn admin-btn--ghost admin-btn--sm"
-                     href="${pageContext.request.contextPath}/admin/users?page=${currentPage + 1}&q=${filterQ}&role=${filterRole}&status=${filterStatus}">
-                    Sau →
-                  </a>
-                </c:if>
-              </div>
-            </div>
-          </c:if>
+          <c:set var="pgCurrent" value="${currentPage}"/>
+          <c:set var="pgTotal" value="${totalPages}"/>
+          <c:set var="pgTotalItems" value="${totalUsers}"/>
+          <%@ include file="/WEB-INF/views/admin/pagination.jspf" %>
         </c:when>
         <c:otherwise>
           <div class="admin-empty">Không tìm thấy người dùng nào.</div>
