@@ -4,7 +4,7 @@
 > **Stack:** Java 17 · Jakarta Servlet 6 · JSP/JSTL · JDBC · SQL Server · Maven WAR · Tomcat 10  
 > **Phạm vi tài liệu:** Toàn bộ source code **đã triển khai** trong repo (không bao gồm `target/`, `.git/`)
 
-Tài liệu nghiệp vụ đầy đủ (27 bảng, 50 FR): [`project_summary_final.md`](project_summary_final.md)  
+Tài liệu nghiệp vụ đầy đủ (28 bảng, 50 FR): [`project_summary_final.md`](project_summary_final.md)  
 Hướng dẫn cài đặt & chạy: [`README.md`](README.md)  
 Hướng dẫn Database & migration: [`Database/README.md`](Database/README.md)  
 Chi tiết module Admin: [`ADMIN_MODULE_DETAIL.md`](ADMIN_MODULE_DETAIL.md)  
@@ -198,7 +198,9 @@ MovieTicketBookingSystem/
 | `/admin/promotions/save` | `PromotionSaveServlet` | POST | Tạo / sửa promotion |
 | `/admin/promotions/delete` | `PromotionDeleteServlet` | POST | Xóa promotion |
 | `/admin/promotions/toggle` | `PromotionToggleServlet` | POST | Bật/tắt trạng thái promotion |
-| `/admin/reports` | `AdminReportServlet` | GET | Báo cáo doanh thu / top phim (ADMIN) |
+| `/admin/reports` | `AdminReportServlet` | GET | Báo cáo: overview, doanh thu theo kỳ, vé theo phim/suất |
+| `/admin/reports/export` | `AdminReportExportServlet` | GET | Xuất CSV doanh thu (`groupBy=day\|month\|year`) |
+| `/admin/reports/export-tickets` | `AdminReportExportTicketsServlet` | GET | Xuất CSV vé bán (`viewBy=movie\|showtime`) |
 
 > Chi tiết module Admin → [`ADMIN_MODULE_DETAIL.md`](ADMIN_MODULE_DETAIL.md)
 
@@ -303,7 +305,7 @@ MovieTicketBookingSystem/
 | `UserListServlet` | Danh sách user + lọc + phân trang |
 | `UserDetailServlet` | Chi tiết user |
 | `UserCreateServlet` | Tạo Staff/Manager |
-| `UserStatusServlet` | Lock/unlock/deactivate user |
+| `UserStatusServlet` | Lock/unlock/deactivate user (+ lý do, email, `UserStatusLog`) |
 | `UserResetPasswordServlet` | Đặt lại mật khẩu user |
 | `SystemConfigListServlet` | Cấu hình loyalty (4 key SystemConfig) |
 | `SystemConfigUpdateServlet` | Lưu cấu hình loyalty + audit log |
@@ -315,7 +317,9 @@ MovieTicketBookingSystem/
 | `PromotionSaveServlet` | Tạo/sửa promotion (code, discount, date range, usage limit) |
 | `PromotionDeleteServlet` | Xóa promotion |
 | `PromotionToggleServlet` | Toggle status ACTIVE/INACTIVE |
-| `AdminReportServlet` | Báo cáo booking: overview stats + top movies theo khoảng ngày |
+| `AdminReportServlet` | Báo cáo: overview, nhóm doanh thu, top phim / vé theo suất, phân trang |
+| `AdminReportExportServlet` | Xuất CSV doanh thu theo ngày/tháng/năm |
+| `AdminReportExportTicketsServlet` | Xuất CSV vé bán theo phim hoặc suất chiếu |
 
 ### 5.4 `controller.manager`
 
@@ -413,7 +417,8 @@ MovieTicketBookingSystem/
 | `PaymentDAO` | `Payments` | FR-16: **`insertPendingOnlineVietQR`**, **`findLatestPendingVietQR`**, **`findByTransferCode`**, `markSuccess`, `markFailed` |
 | `TicketDAO` | `Tickets`, `BookingSeats` | FR-17: **`issueTicketsForBooking`**, `findBookingSeats` |
 | `BookingPromotionDAO` | `BookingPromotions` | FR-22: find/insert/delete junction đơn–voucher |
-| `BookingStatsDAO` | `Bookings`, `BookingSeats`, `Showtimes`, `Movies` | Thống kê báo cáo admin: overview + top movies theo date range |
+| `BookingStatsDAO` | `Bookings`, `BookingSeats`, `Showtimes`, `Movies` | Overview, top phim, doanh thu theo kỳ, vé theo suất |
+| `UserStatusLogDAO` | `UserStatusLog` | insert, findLatestLockByUserId |
 | `PromotionDAO` | `Promotions` | CRUD (admin `/admin/promotions`, MANAGER truy cập được); FR-22: **`findByCode`**, **`validateForApply`**, **`findByCodeForApply`**, **`incrementUsedCountIfAvailable`**, **`decrementUsedCount`** |
 | `PasswordResetTokenDAO` | `PasswordResetTokens` | insert, find valid, mark used, invalidate |
 | `SystemConfigDAO` | `SystemConfig` | findAll, findByKeys, findByKey, updateValue (JOINs Users cho `updated_by_name`) |
@@ -444,6 +449,7 @@ MovieTicketBookingSystem/
 | `SystemConfigLog` | `SystemConfigLog` | Audit log: earn/redeem rates + previous values + updatedBy |
 | `VatRule` | `VatRules` | id, ruleName, vatRate, startDate, endDate, status (ACTIVE/INACTIVE), createdAt |
 | `Promotion` | `Promotions` | code, discountType/Value, date range, usageLimit; `isExpired()`, **`isScheduled()`**, `isCurrentlyValid()` |
+| `UserStatusLog` | `UserStatusLog` | action, previous/new status, reason, emailSent, performedBy |
 
 ### 7.2 DTO (`model.dto`)
 
@@ -455,7 +461,9 @@ MovieTicketBookingSystem/
 | `GoogleSignupInfo` | Pending Google signup trong session |
 | `BookingDetailDTO` | Chi tiết booking staff counter + customer payment (`userId`, `showtimeId`, `expiredAt`, `bookingSource`, `discountAmount`, `vatAmount`, `appliedPromoCode`, `appliedPromoTitle`; inner `SeatItem`) |
 | `BookingOverviewStatsDTO` | Tổng quan báo cáo admin: revenue, booking count, ticket count |
-| `TopMovieStatsDTO` | Top phim theo doanh thu / số vé trong báo cáo admin |
+| `TopMovieStatsDTO` | Top phim theo số vé / doanh thu trong báo cáo admin |
+| `RevenuePeriodStatsDTO` | Doanh thu theo kỳ (ngày/tháng/năm) |
+| `TopShowtimeStatsDTO` | Vé bán theo suất chiếu (phim, phòng, giờ chiếu) |
 | `VatRuleForm` | Form tạo/sửa quy tắc VAT (ruleId, ruleName, vatRate, startDate) |
 
 ### 7.3 Enum (`model.enums`)
@@ -500,7 +508,7 @@ MovieTicketBookingSystem/
 | `AuthConstants` | Hằng số session/cookie keys, role names, status names, expiry times |
 | `PasswordUtil` | BCrypt hash/verify (`$2b$` → `$2a$`) |
 | `RegisterValidator` | Validate form đăng ký + sinh username |
-| `EmailUtil` | Gmail SMTP; gửi email xác thực; `buildVerifyUrl` |
+| `EmailUtil` | Gmail SMTP; gửi email xác thực; `sendAccountLockedEmail`; `buildVerifyUrl` |
 | `RememberMeUtil` | Cookie remember-me HMAC-signed, 30 ngày |
 | `GoogleOAuthUtil` | OAuth authorize URL, token exchange, userinfo |
 | `GoogleOAuthSession` | OAuth state, redirect, pending signup attrs |
@@ -516,6 +524,10 @@ MovieTicketBookingSystem/
 | `SeatHoldException` | FR-13: ngoại lệ conflict khi giữ ghế (race / ghế đã bị chọn) |
 | `AdminPaginationUtil` | Parse page number, `DEFAULT_PAGE_SIZE` cho admin list/report |
 | `ReportDateUtil` | Resolve date range (preset `range` hoặc custom `from`/`to`) cho báo cáo |
+| `ReportExportUtil` | Build CSV doanh thu + vé bán (UTF-8 BOM) |
+| `TicketStatsViewUtil` | Chuẩn hóa `viewBy` movie/showtime |
+| `UserLockValidator` | Validate lý do khóa (10–500 ký tự) |
+| `AccountLockUtil` | Hiển thị lý do khóa trên login |
 | `VietQRConfig` | FR-16: đọc `vietqr.properties` — BIN, STK, tên chủ TK, template QR |
 | `VietQRUtil` | FR-16: `transferContent(bookingCode)`, `qrImageUrl(amount, content)` → URL img.vietqr.io |
 
@@ -536,7 +548,7 @@ MovieTicketBookingSystem/
 
 | File | Mô tả |
 |------|-------|
-| `login.jsp` | Form login + remember-me + Google button |
+| `login.jsp` | Form login + remember-me + Google button; hiển thị lý do khi BANNED |
 | `register.jsp` | Form đăng ký customer |
 | `register-pending.jsp` | Chờ xác thực email |
 | `google-complete.jsp` | Hoàn tất đăng ký Google (DOB/phone) |
@@ -548,12 +560,13 @@ MovieTicketBookingSystem/
 |------|-------|
 | `dashboard.jsp` | Thống kê + module grid |
 | `user-list.jsp` | Bảng user có filter + phân trang |
-| `user-detail.jsp` | Chi tiết + form lock/reset password |
+| `user-detail.jsp` | Chi tiết + form lock (lý do, email) / reset password |
 | `user-create.jsp` | Form tạo Staff/Manager |
 | `config-list.jsp` | Cấu hình loyalty (4 keys SystemConfig) |
 | `vat-list.jsp` | Quản lý quy tắc VAT: current rule, scheduled list, history, form tạo/sửa/hủy |
 | `promotion-list.jsp` | CRUD khuyến mãi: filter, phân trang, modal tạo/sửa; badge **SCHEDULED** khi chưa đến start_date (ADMIN + MANAGER) |
-| `reports.jsp` | Báo cáo doanh thu + top phim theo khoảng ngày |
+| `reports.jsp` | Báo cáo: overview, nhóm doanh thu, vé theo phim/suất, nút xuất CSV |
+| `pagination.jspf` | Fragment phân trang admin (user list, báo cáo) |
 
 ### 10.4 Manager (`views/manager/`)
 
@@ -643,14 +656,14 @@ MovieTicketBookingSystem/
 
 ## 11. Database
 
-**Script:** `Database/create_database.sql` (~990 dòng) — chạy một lần trên SSMS/Azure Data Studio.  
-**Migration bổ sung:** `Database/migrations/add_vietqr_payment_method.sql` — thêm `VIETQR` vào `CK_Payments_Method` (DB đã tạo trước khi có VietQR).
+**Script:** `Database/create_database.sql` (~1168 dòng) — chạy một lần trên SSMS/Azure Data Studio.  
+**Migration bổ sung:** `Database/migrations/` — `add_user_status_log.sql`, `add_vietqr_payment_method.sql` (DB đã tạo trước khi schema gộp vào `create_database.sql`).
 
-### 11.1 26 bảng
+### 11.1 28 bảng
 
 | Nhóm | Bảng |
 |------|------|
-| Auth | `Roles`, `Users`, `PasswordResetTokens` |
+| Auth | `Roles`, `Users`, `PasswordResetTokens`, `UserStatusLog` |
 | Config | `SystemConfig`, `SystemConfigLog`, `VatRules` |
 | Cinema | `CinemaInfo`, `CinemaRooms`, `SeatTypes`, `Seats` |
 | Movie | `Movies`, `Genres`, `MovieGenres`, `MovieReviews` |
@@ -707,10 +720,11 @@ MovieTicketBookingSystem/
 | Đăng nhập / Đăng ký / Google OAuth | ✅ Hoàn thành | Email verify, remember-me |
 | Trang chủ + Danh sách phim | ✅ Hoàn thành | Filter, search, early showtimes |
 | Admin — Quản lý user | ✅ Hoàn thành | Xem [`ADMIN_MODULE_DETAIL.md`](ADMIN_MODULE_DETAIL.md) |
+| Admin — Khóa user + audit | ✅ Hoàn thành | Lý do khóa, email, `UserStatusLog`, hiển thị trên login |
 | Admin — Cấu hình loyalty | ✅ Hoàn thành | 4 key SystemConfig + audit log |
 | Admin — Quản lý VAT | ✅ Hoàn thành | CRUD quy tắc VAT (effective/scheduled/history) |
 | Admin — Quản lý khuyến mãi | ✅ Hoàn thành | CRUD promotion; MANAGER truy cập qua `AccessControl.MANAGER_ADMIN_PATHS` |
-| Admin — Báo cáo | ✅ Hoàn thành | `/admin/reports` — overview + top movies |
+| Admin — Báo cáo | ✅ Hoàn thành | `/admin/reports` — overview, doanh thu theo kỳ, vé phim/suất, xuất CSV |
 | Manager — Phim | ✅ Hoàn thành | CRUD + upload ảnh + soft delete |
 | Manager — Thể loại | ✅ Hoàn thành | CRUD + delete (FK guard) + toggle status |
 | Manager — Phòng chiếu | 🟡 Gần hoàn thành | Tạo, rename, toggle status ✅; save layout + lối đi ✅; xóa phòng ❌ |
@@ -728,7 +742,6 @@ MovieTicketBookingSystem/
 | Loyalty / Điểm tích lũy | ❌ Chưa làm | Schema + seed config |
 | Reviews | ❌ Chưa làm | Nav link có, chưa servlet |
 | Profile | ❌ Chưa làm | Path reserve trong AccessControl |
-| Báo cáo / Thống kê | ❌ Chưa làm | Placeholder trên admin dashboard |
 | Unit tests | ❌ Chưa có | Chỉ `.gitkeep` trong `src/test` |
 
 ---

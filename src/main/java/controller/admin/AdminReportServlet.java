@@ -7,12 +7,17 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import model.dto.BookingOverviewStatsDTO;
+import model.dto.RevenuePeriodStatsDTO;
 import model.dto.TopMovieStatsDTO;
+import model.dto.TopShowtimeStatsDTO;
 import utils.AdminAuthUtil;
 import utils.AdminPaginationUtil;
 import utils.ReportDateUtil;
+import utils.ReportExportUtil;
+import utils.TicketStatsViewUtil;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
 @WebServlet(urlPatterns = {"/admin/reports"})
@@ -32,6 +37,8 @@ public class AdminReportServlet extends HttpServlet {
         String range = req.getParameter("range");
         String from = req.getParameter("from");
         String to = req.getParameter("to");
+        String groupBy = ReportExportUtil.normalizeGroupBy(req.getParameter("groupBy"));
+        String viewBy = TicketStatsViewUtil.normalizeViewBy(req.getParameter("viewBy"));
 
         ReportDateUtil.ResolveResult resolved = ReportDateUtil.resolve(range, from, to);
         ReportDateUtil.DateRange dateRange = resolved.range();
@@ -40,28 +47,59 @@ public class AdminReportServlet extends HttpServlet {
         BookingStatsDAO statsDAO = new BookingStatsDAO();
         BookingOverviewStatsDTO overview = statsDAO.getOverviewStats(
                 dateRange.fromInclusive(), dateRange.toExclusive());
+        List<RevenuePeriodStatsDTO> periodStats = statsDAO.findRevenueByPeriod(
+                dateRange.fromInclusive(), dateRange.toExclusive(), groupBy);
 
-        int topMoviesTotal = statsDAO.countTopMovies(
-                dateRange.fromInclusive(), dateRange.toExclusive());
-        int totalPages = AdminPaginationUtil.totalPages(topMoviesTotal, PAGE_SIZE);
-        page = AdminPaginationUtil.clampPage(page, totalPages);
-        List<TopMovieStatsDTO> topMovies = statsDAO.findTopMoviesByTickets(
-                dateRange.fromInclusive(), dateRange.toExclusive(),
-                AdminPaginationUtil.offset(page, PAGE_SIZE), PAGE_SIZE);
+        List<TopMovieStatsDTO> topMovies = Collections.emptyList();
+        List<TopShowtimeStatsDTO> showtimeStats = Collections.emptyList();
+        int ticketStatsTotal = 0;
+        int totalPages = 0;
+
+        if (TicketStatsViewUtil.isShowtimeView(viewBy)) {
+            ticketStatsTotal = statsDAO.countShowtimesWithTickets(
+                    dateRange.fromInclusive(), dateRange.toExclusive());
+            totalPages = AdminPaginationUtil.totalPages(ticketStatsTotal, PAGE_SIZE);
+            page = AdminPaginationUtil.clampPage(page, totalPages);
+            showtimeStats = statsDAO.findTicketStatsByShowtime(
+                    dateRange.fromInclusive(), dateRange.toExclusive(),
+                    AdminPaginationUtil.offset(page, PAGE_SIZE), PAGE_SIZE);
+        } else {
+            ticketStatsTotal = statsDAO.countTopMovies(
+                    dateRange.fromInclusive(), dateRange.toExclusive());
+            totalPages = AdminPaginationUtil.totalPages(ticketStatsTotal, PAGE_SIZE);
+            page = AdminPaginationUtil.clampPage(page, totalPages);
+            topMovies = statsDAO.findTopMoviesByTickets(
+                    dateRange.fromInclusive(), dateRange.toExclusive(),
+                    AdminPaginationUtil.offset(page, PAGE_SIZE), PAGE_SIZE);
+        }
 
         String pgQueryExtra = AdminPaginationUtil.queryParam("range", dateRange.rangeKey())
                 + AdminPaginationUtil.queryParam("from", from)
-                + AdminPaginationUtil.queryParam("to", to);
+                + AdminPaginationUtil.queryParam("to", to)
+                + AdminPaginationUtil.queryParam("groupBy", groupBy)
+                + AdminPaginationUtil.queryParam("viewBy", viewBy);
+
+        String exportQuery = ReportExportUtil.buildExportQuery(
+                dateRange.rangeKey(), from, to, groupBy);
+        String ticketExportQuery = ReportExportUtil.buildTicketExportQuery(
+                dateRange.rangeKey(), from, to, viewBy);
 
         req.setAttribute("overview", overview);
+        req.setAttribute("periodStats", periodStats);
+        req.setAttribute("filterGroupBy", groupBy);
+        req.setAttribute("filterViewBy", viewBy);
+        req.setAttribute("periodColumnLabel", ReportExportUtil.periodColumnLabel(groupBy));
+        req.setAttribute("exportQuery", exportQuery);
+        req.setAttribute("ticketExportQuery", ticketExportQuery);
         req.setAttribute("topMovies", topMovies);
-        req.setAttribute("topMoviesTotal", topMoviesTotal);
+        req.setAttribute("showtimeStats", showtimeStats);
+        req.setAttribute("ticketStatsTotal", ticketStatsTotal);
         req.setAttribute("currentPage", page);
         req.setAttribute("totalPages", totalPages);
         req.setAttribute("rankStart", AdminPaginationUtil.rankStart(page, PAGE_SIZE));
         req.setAttribute("pgCurrent", page);
         req.setAttribute("pgTotal", totalPages);
-        req.setAttribute("pgTotalItems", topMoviesTotal);
+        req.setAttribute("pgTotalItems", ticketStatsTotal);
         req.setAttribute("pgPath", req.getContextPath() + "/admin/reports");
         req.setAttribute("pgQueryExtra", pgQueryExtra);
         req.setAttribute("filterRange", dateRange.rangeKey());
