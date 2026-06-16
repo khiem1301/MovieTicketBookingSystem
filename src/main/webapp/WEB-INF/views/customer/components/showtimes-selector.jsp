@@ -55,22 +55,34 @@
                   <div class="st-time-chips">
                     <c:forEach var="st" items="${roomEntry.value}">
                       <c:set var="soldOut" value="${st.status == 'SOLD_OUT'}"/>
-                      <c:set var="price" value="${st.effectivePrice != null ? st.effectivePrice : st.basePrice}"/>
+                      <c:set var="basePrice" value="${st.basePrice}"/>
+                      <c:set var="effPrice" value="${st.effectivePrice != null ? st.effectivePrice : st.basePrice}"/>
+                      <c:set var="hasDynamicPrice" value="${st.effectivePrice != null and st.basePrice != null and st.effectivePrice ne st.basePrice}"/>
                       <c:choose>
                         <c:when test="${soldOut}">
                           <span class="st-chip st-chip--disabled" title="Hết vé">
                             <fmt:formatDate value="${st.startTime}" pattern="HH:mm"/>
                             <span class="st-chip-sep">|</span>
-                            <fmt:formatNumber value="${price}" pattern="#,##0"/> đ
+                            <span class="st-chip-prices">
+                              <fmt:formatNumber value="${effPrice}" pattern="#,##0"/> đ
+                              <c:if test="${hasDynamicPrice}">
+                                <span class="st-price-original"><fmt:formatNumber value="${basePrice}" pattern="#,##0"/>đ</span>
+                              </c:if>
+                            </span>
                           </span>
                         </c:when>
                         <c:otherwise>
-                          <a class="st-chip"
+                          <a class="st-chip${hasDynamicPrice ? ' st-chip--dynamic' : ''}"
                              href="${ctx}/checkout?showtimeId=<c:out value='${st.id}'/>"
                              title="Đặt vé suất <fmt:formatDate value='${st.startTime}' pattern='HH:mm'/>">
                             <fmt:formatDate value="${st.startTime}" pattern="HH:mm"/>
                             <span class="st-chip-sep">|</span>
-                            <fmt:formatNumber value="${price}" pattern="#,##0"/> đ
+                            <span class="st-chip-prices">
+                              <fmt:formatNumber value="${effPrice}" pattern="#,##0"/> đ
+                              <c:if test="${hasDynamicPrice}">
+                                <span class="st-price-original"><fmt:formatNumber value="${basePrice}" pattern="#,##0"/>đ</span>
+                              </c:if>
+                            </span>
                           </a>
                         </c:otherwise>
                       </c:choose>

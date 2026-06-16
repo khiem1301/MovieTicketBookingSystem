@@ -657,7 +657,7 @@ ul { list-style: none; }
 .age-badge {
   position: absolute;
   top: 10px;
-  right: 10px;
+  left: 10px;
   padding: 3px 8px;
   background: rgba(0,0,0,0.75);
   border: 1px solid rgba(255,255,255,0.25);
@@ -668,8 +668,52 @@ ul { list-style: none; }
   backdrop-filter: blur(4px);
 }
 
+/* Status badge (top-right: HOT / SẮP CHIẾU / SUẤT SỚM) */
+.status-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 5px 9px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 0.5px;
+  border-bottom-left-radius: var(--radius);
+}
+.status-hot    { background: var(--accent); }
+.status-coming { background: #1565c0; }
+.status-early  { background: #6a1b9a; }
+
+/* Play button overlay (click poster → trailer) */
+.play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  transition: background 0.3s ease;
+  cursor: pointer;
+}
+.movie-card:hover .play-overlay { background: rgba(0,0,0,0.38); }
+.play-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.75);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+.play-circle svg { width: 22px; height: 22px; fill: var(--accent); margin-left: 3px; }
+.movie-card:hover .play-circle { opacity: 1; transform: scale(1); }
+
 /* Card info */
-.card-info { padding: 14px 14px 18px; }
+.card-info { padding: 14px 14px 8px; }
 .card-title {
   font-size: 15px;
   font-weight: 600;
@@ -724,6 +768,97 @@ ul { list-style: none; }
   color: var(--text-dim);
 }
 .more-card:hover { transform: translateY(-6px); background: rgba(255,255,255,0.05); }
+
+/* Card footer — buy-ticket button */
+.card-footer { padding: 0 14px 14px; }
+.btn-buy-ticket {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 10px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 7px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  transition: background var(--transition);
+}
+.btn-buy-ticket:hover { background: var(--accent-hover); }
+.btn-buy-ticket svg { width: 16px; height: 16px; fill: currentColor; flex-shrink: 0; }
+
+/* Card detail rows (Thể loại / Thời lượng) */
+.card-detail-row {
+  display: flex;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+  align-items: baseline;
+}
+.detail-label { color: var(--text-dim); white-space: nowrap; font-size: 12px; }
+.detail-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Trailer modal */
+.trailer-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9500;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.trailer-modal.open { display: flex; }
+.trailer-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.88);
+  cursor: pointer;
+}
+.trailer-wrapper {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 900px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0d0d0d;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.8);
+}
+.trailer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.trailer-movie-title { font-size: 15px; font-weight: 600; }
+.trailer-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  font-size: 18px;
+  color: var(--text-muted);
+  transition: color 0.2s, background 0.2s;
+}
+.trailer-close:hover { color: #fff; background: rgba(255,255,255,0.1); }
+.trailer-video-wrap {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+}
+.trailer-video-wrap iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
 
 
 /* ════════════════════════════════════════════════════════════

@@ -52,3 +52,5 @@ build/
 !**/email.properties.example
 **/google.properties
 !**/google.properties.example
+**/vietqr.properties
+!**/vietqr.properties.example
