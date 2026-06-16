@@ -11,8 +11,10 @@ import java.util.List;
 public class ShowtimeDAO {
 
     /**
-     * FR-35 — Lấy danh sách phim đang có lịch chiếu active (cho bước chọn phim tại quầy).
-     * Chỉ trả phim có ít nhất 1 suất OPEN/SCHEDULED từ hiện tại trở đi.
+     * FR-35 — Lấy danh sách phim cho trang POS tại quầy.
+     * Trả về phim NOW_SHOWING + phim COMING_SOON có lịch chiếu tương lai.
+     * Không bắt buộc phải có showtime để phim hiện ra — staff sẽ thấy
+     * "Chưa có suất" khi chọn phim chưa có lịch.
      */
     public List<Movie> getMoviesWithActiveShowtimes() {
         String sql = """
@@ -20,9 +22,14 @@ public class ShowtimeDAO {
                        m.duration_minutes, m.age_rating, m.status, m.average_rating, m.created_at,
                        NULL AS genre_names
                 FROM Movies m
-                JOIN Showtimes s ON m.id = s.movie_id
-                WHERE s.status IN ('SCHEDULED', 'OPEN', 'SOLD_OUT')
-                ORDER BY m.title
+                WHERE m.status = 'NOW_SHOWING'
+                   OR EXISTS (
+                       SELECT 1 FROM Showtimes s
+                       WHERE s.movie_id = m.id
+                         AND s.status IN ('SCHEDULED', 'OPEN', 'SOLD_OUT')
+                         AND s.start_time > SYSDATETIME()
+                   )
+                ORDER BY m.status DESC, m.title
                 """;
         List<Movie> result = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
@@ -79,6 +86,7 @@ public class ShowtimeDAO {
                 JOIN CinemaRooms cr ON cr.id = s.room_id
                 WHERE s.movie_id = ?
                   AND s.status IN ('SCHEDULED', 'OPEN', 'SOLD_OUT')
+                  AND s.start_time > SYSDATETIME()
                 ORDER BY s.start_time
                 """;
         List<Showtime> result = new ArrayList<>();

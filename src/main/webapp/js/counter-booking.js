@@ -90,8 +90,13 @@
 
     const dates = Object.keys(dateMap).sort();
     if (dates.length === 0) {
-      document.getElementById('dateTabs').innerHTML =
-        '<div class="pos-empty-small">Không có suất nào.</div>';
+      document.getElementById('showtimePicker').style.display = 'none';
+      const area = document.getElementById('seatArea');
+      area.innerHTML =
+        '<div class="pos-seat-placeholder">' +
+        '<div class="placeholder-icon">📅</div>' +
+        '<div>Phim này chưa có lịch chiếu.<br/>' +
+        '<small>Quản lý cần tạo lịch chiếu trước.</small></div></div>';
       return;
     }
 
@@ -295,6 +300,69 @@
     const total = selectedSeats.reduce((sum, s) => sum + s.price, 0);
     document.getElementById('totalDisplay').textContent = formatVnd(total);
   }
+
+  // ── FR-42: Member Lookup ────────────────────────────────────────
+  window.lookupMember = function () {
+    const phone = (document.getElementById('lookupPhone')?.value ?? '').trim();
+    const resultEl = document.getElementById('memberResult');
+    if (!phone) return;
+
+    resultEl.style.display = 'block';
+    resultEl.className = 'pos-member-result pos-member-result--loading';
+    resultEl.textContent = 'Đang tra cứu...';
+
+    fetch(`${CTX}/staff/counter?action=lookup&phone=${encodeURIComponent(phone)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.found) {
+          document.getElementById('custName').value     = data.fullName;
+          document.getElementById('custPhone').value    = data.phone || phone;
+          document.getElementById('formMemberId').value = data.userId;
+
+          const isLocked  = data.status === 'LOCKED' || data.status === 'INACTIVE';
+          const statusBadge = isLocked
+            ? `<span class="member-status-badge member-status-badge--locked">Tạm khóa</span>`
+            : `<span class="member-status-badge member-status-badge--active">Hoạt động</span>`;
+
+          resultEl.className = 'pos-member-result pos-member-result--found';
+          resultEl.innerHTML = `
+            <div class="member-card">
+              <div class="member-card-avatar">${escHtml(data.fullName.charAt(0).toUpperCase())}</div>
+              <div class="member-card-info">
+                <div class="member-card-name">
+                  <span class="member-badge">&#9733; THÀNH VIÊN</span>
+                  <strong>${escHtml(data.fullName)}</strong>
+                  ${statusBadge}
+                </div>
+                ${data.email ? `<div class="member-card-row"><span class="member-card-icon">✉</span>${escHtml(data.email)}</div>` : ''}
+                <div class="member-card-row"><span class="member-card-icon">📱</span>${escHtml(data.phone || phone)}</div>
+                <div class="member-card-row member-card-points">
+                  <span class="member-card-icon">★</span>
+                  <strong>${data.loyaltyPoints.toLocaleString('vi-VN')}</strong>&nbsp;điểm tích luỹ
+                </div>
+                ${data.joinedDate ? `<div class="member-card-row member-card-joined">Tham gia: ${escHtml(data.joinedDate)}</div>` : ''}
+              </div>
+            </div>`;
+        } else {
+          document.getElementById('formMemberId').value = '';
+          resultEl.className = 'pos-member-result pos-member-result--notfound';
+          resultEl.innerHTML = `
+            <div class="member-notfound">
+              <span class="member-notfound-icon">?</span>
+              <div>
+                <div style="font-weight:600;color:#ef9a9a">Không tìm thấy thành viên</div>
+                <div style="font-size:12px;color:#888;margin-top:2px">SĐT <strong>${escHtml(phone)}</strong> chưa đăng ký tài khoản</div>
+              </div>
+            </div>`;
+          document.getElementById('custPhone').value = phone;
+        }
+        checkProceedBtn();
+      })
+      .catch(() => {
+        resultEl.className = 'pos-member-result pos-member-result--notfound';
+        resultEl.textContent = 'Lỗi tra cứu. Vui lòng nhập tay thông tin khách.';
+      });
+  };
 
   // ── Proceed to payment ─────────────────────────────────────────
   window.checkProceedBtn = function () {

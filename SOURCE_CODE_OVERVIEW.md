@@ -9,7 +9,8 @@ Hướng dẫn cài đặt & chạy: [`README.md`](README.md)
 Hướng dẫn Database & migration: [`Database/README.md`](Database/README.md)  
 Chi tiết module Admin: [`ADMIN_MODULE_DETAIL.md`](ADMIN_MODULE_DETAIL.md)  
 Chi tiết module Manager: [`MANAGER_MODULE_DETAIL.md`](MANAGER_MODULE_DETAIL.md)  
-Chi tiết module Customer: [`CUSTOMER_MODULE_DETAIL.md`](CUSTOMER_MODULE_DETAIL.md)
+Chi tiết module Customer: [`CUSTOMER_MODULE_DETAIL.md`](CUSTOMER_MODULE_DETAIL.md)  
+Chi tiết module Staff: [`STAFF_MODULE_DETAIL.md`](STAFF_MODULE_DETAIL.md)
 
 ---
 
@@ -71,6 +72,7 @@ MovieTicketBookingSystem/
 ├── ADMIN_MODULE_DETAIL.md           # Chi tiết Admin
 ├── MANAGER_MODULE_DETAIL.md         # Chi tiết Manager
 ├── CUSTOMER_MODULE_DETAIL.md        # Chi tiết Customer
+├── STAFF_MODULE_DETAIL.md           # Chi tiết Staff (Counter POS Sprint 2)
 ├── implementation_plan.md           # Kế hoạch triển khai FR (spec nội bộ)
 ├── implementation_plan_fr-11.md     # Kế hoạch FR-11 (lịch chiếu khách hàng)
 ├── fr-12_seat_selection_2f514b7b.plan.md  # Kế hoạch FR-12 (chọn ghế online)

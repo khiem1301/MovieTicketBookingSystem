@@ -25,6 +25,8 @@ public class BookingDetailDTO {
     private String roomName;
     private Timestamp startTime;
     private List<SeatItem> seats;
+    private List<TicketItem> tickets;
+    private String linkedUserEmail;
     private String appliedPromoCode;
     private String appliedPromoTitle;
 
@@ -42,6 +44,23 @@ public class BookingDetailDTO {
         public String getSeatCode()  { return seatCode; }
         public String getSeatType()  { return seatType; }
         public BigDecimal getPrice() { return price; }
+    }
+
+    /** FR-18 — Thông tin vé điện tử sau khi xác nhận thanh toán. */
+    public static class TicketItem {
+        private final String ticketCode;
+        private final String qrCode;
+        private final String seatCode;
+
+        public TicketItem(String ticketCode, String qrCode, String seatCode) {
+            this.ticketCode = ticketCode;
+            this.qrCode = qrCode;
+            this.seatCode = seatCode;
+        }
+
+        public String getTicketCode() { return ticketCode; }
+        public String getQrCode()     { return qrCode; }
+        public String getSeatCode()   { return seatCode; }
     }
 
     public String getBookingId()     { return bookingId; }
@@ -103,6 +122,12 @@ public class BookingDetailDTO {
 
     public List<SeatItem> getSeats() { return seats; }
     public void setSeats(List<SeatItem> v){ this.seats = v; }
+
+    public List<TicketItem> getTickets() { return tickets; }
+    public void setTickets(List<TicketItem> v){ this.tickets = v; }
+
+    public String getLinkedUserEmail() { return linkedUserEmail; }
+    public void setLinkedUserEmail(String v){ this.linkedUserEmail = v; }
 
     public String getAppliedPromoCode() { return appliedPromoCode; }
     public void setAppliedPromoCode(String v) { this.appliedPromoCode = v; }

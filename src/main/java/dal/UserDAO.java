@@ -60,6 +60,22 @@ public class UserDAO {
         return Optional.empty();
     }
 
+    /** FR-42 — Tìm thành viên theo số điện thoại để tra cứu tại quầy. */
+    public Optional<User> findByPhone(String phone) {
+        if (phone == null || phone.isBlank()) return Optional.empty();
+        String sql = SELECT_WITH_ROLE + " WHERE u.phone_number = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, phone.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return Optional.of(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findByPhone failed", e);
+        }
+        return Optional.empty();
+    }
+
     public Optional<User> findById(String userId) {
         String sql = SELECT_WITH_ROLE + " WHERE u.id = ?";
         try (Connection conn = DBContext.getConnection();
