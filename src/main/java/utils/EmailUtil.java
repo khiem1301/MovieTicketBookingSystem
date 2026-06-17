@@ -79,6 +79,22 @@ public final class EmailUtil {
         sendPlainTextEmail(toEmail, subject, body);
     }
 
+    public static void sendAccountUnlockedEmail(String toEmail, String fullName)
+            throws MessagingException {
+        String subject = "ÉPCINE — Tài khoản đã được mở khóa";
+        String body = """
+                Xin chào %s,
+
+                Tài khoản ÉPCINE của bạn đã được mở khóa bởi quản trị viên hệ thống.
+
+                Bạn có thể đăng nhập lại bình thường. Nếu có thắc mắc, vui lòng liên hệ bộ phận hỗ trợ của rạp.
+
+                Trân trọng,
+                ÉPCINE
+                """.formatted(fullName);
+        sendPlainTextEmail(toEmail, subject, body);
+    }
+
     private static void sendPlainTextEmail(String toEmail, String subject, String body)
             throws MessagingException {
         Properties props = requireProperties();

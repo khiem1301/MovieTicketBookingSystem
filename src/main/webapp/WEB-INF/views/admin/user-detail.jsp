@@ -157,14 +157,44 @@
           </form>
         </c:if>
 
-        <div class="admin-btn-group" style="margin-bottom:24px;">
-          <c:if test="${user.status == 'BANNED' || user.status == 'INACTIVE'}">
-            <form method="post" action="${pageContext.request.contextPath}/admin/users/status">
-              <input type="hidden" name="userId" value="${user.id}"/>
-              <input type="hidden" name="action" value="unlock"/>
+        <c:if test="${user.status == 'BANNED' || user.status == 'INACTIVE'}">
+          <h3 class="admin-section-title" style="font-size:15px;border:none;padding:0;margin-bottom:12px;">
+            Kích hoạt lại tài khoản
+          </h3>
+          <form class="admin-form admin-form--wide" method="post"
+                action="${pageContext.request.contextPath}/admin/users/status"
+                onsubmit="return confirm('Kích hoạt lại tài khoản này?');"
+                style="margin-bottom:24px;">
+            <input type="hidden" name="userId" value="${user.id}"/>
+            <input type="hidden" name="action" value="unlock"/>
+
+            <div class="admin-field">
+              <label class="admin-checkbox">
+                <input type="checkbox" name="sendEmail" value="on"
+                       <c:if test="${canSendLockEmail}">checked</c:if>
+                       <c:if test="${!canSendLockEmail}">disabled</c:if>/>
+                Gửi email thông báo mở khóa đến người dùng
+              </label>
+              <c:choose>
+                <c:when test="${!userHasEmail}">
+                  <p class="admin-field-hint">Tài khoản không có email — không thể gửi thông báo.</p>
+                </c:when>
+                <c:when test="${!emailConfigured}">
+                  <p class="admin-field-hint">Chưa cấu hình <code>email.properties</code> — chỉ mở khóa, không gửi mail.</p>
+                </c:when>
+                <c:otherwise>
+                  <p class="admin-field-hint">Email gửi tới: <c:out value="${user.email}"/></p>
+                </c:otherwise>
+              </c:choose>
+            </div>
+
+            <div class="admin-form-actions">
               <button type="submit" class="admin-btn admin-btn--success">Kích hoạt lại</button>
-            </form>
-          </c:if>
+            </div>
+          </form>
+        </c:if>
+
+        <div class="admin-btn-group" style="margin-bottom:24px;">
           <c:if test="${user.status == 'ACTIVE'}">
             <form method="post" action="${pageContext.request.contextPath}/admin/users/status"
                   onsubmit="return confirm('Vô hiệu hóa tài khoản? Người dùng cần xác thực lại trước khi đăng nhập.');">
