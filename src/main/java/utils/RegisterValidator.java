@@ -52,14 +52,7 @@ public final class RegisterValidator {
             form.setPhoneNumber(normalizePhone(form.getPhoneNumber().trim()));
         }
 
-        if (form.getPassword() == null || form.getPassword().length() < 8) {
-            errors.add("Mật khẩu phải có ít nhất 8 ký tự.");
-        }
-        if (form.getConfirmPassword() == null || form.getConfirmPassword().isBlank()) {
-            errors.add("Xác nhận mật khẩu không được để trống.");
-        } else if (!form.getConfirmPassword().equals(form.getPassword())) {
-            errors.add("Xác nhận mật khẩu không khớp.");
-        }
+        errors.addAll(PasswordValidator.validate(form.getPassword(), form.getConfirmPassword()));
 
         return errors;
     }

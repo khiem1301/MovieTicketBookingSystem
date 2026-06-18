@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import model.dto.RegisterForm;
 import model.entity.Role;
 import model.entity.User;
+import utils.AuthConstants;
 import utils.AuthPageUtil;
 import utils.EmailUtil;
 import utils.PasswordUtil;
@@ -99,8 +100,9 @@ public class RegisterServlet extends HttpServlet {
     private void handleEmailVerification(HttpServletRequest req, HttpServletResponse resp,
                                          String userId, RegisterForm form) throws IOException {
         PasswordResetTokenDAO tokenDAO = new PasswordResetTokenDAO();
-        tokenDAO.invalidateUnusedForUser(userId);
-        String token = tokenDAO.insert(userId, EmailUtil.verificationExpiryMinutes());
+        tokenDAO.invalidateUnusedForUser(userId, AuthConstants.TOKEN_PURPOSE_REGISTER);
+        String token = tokenDAO.insert(userId, EmailUtil.verificationExpiryMinutes(),
+                AuthConstants.TOKEN_PURPOSE_REGISTER);
         String verifyUrl = EmailUtil.buildVerifyUrl(req.getContextPath(), token);
 
         boolean emailSent = false;

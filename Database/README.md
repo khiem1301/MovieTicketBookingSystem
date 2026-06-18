@@ -63,6 +63,7 @@ Nếu muốn giữ data: chạy script trong `Database/migrations/` tương ứn
 |------|----------|
 | `add_user_status_log.sql` | Thêm bảng `UserStatusLog` — audit khóa tài khoản |
 | `add_vietqr_payment_method.sql` | Thêm `VIETQR` vào `CK_Payments_Method` |
+| `add_token_purpose.sql` | FR-04 — cột `purpose` trên `PasswordResetTokens` (REGISTER_VERIFY / PASSWORD_RESET / PROFILE_SECURITY) |
 
 > `SystemConfigLog` chỉ có trong `create_database.sql` (không có file migration riêng).
 
@@ -75,6 +76,7 @@ Nếu muốn giữ data: chạy script trong `Database/migrations/` tương ứn
 | `Movies.status` — thêm giá trị `EARLY_SHOWING` | Suất chiếu sớm (Early Showing) |
 | Bảng `SystemConfigLog` | Lịch sử chỉnh sửa cấu hình loyalty |
 | Bảng `UserStatusLog` | Lịch sử khóa/mở khóa user (lý do, email_sent) |
+| `PasswordResetTokens.purpose` | FR-04 — phân loại token đăng ký / quên MK / xác minh profile |
 | Seed `SEED-STATS-*` | Đơn PAID mẫu cho báo cáo admin tháng 6/2026 |
 
 ---

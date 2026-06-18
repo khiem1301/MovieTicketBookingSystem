@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import model.entity.User;
 import utils.AdminAuthUtil;
 import utils.PasswordUtil;
+import utils.PasswordValidator;
 import utils.SessionUtil;
 
 import java.io.IOException;
@@ -42,8 +43,9 @@ public class UserResetPasswordServlet extends HttpServlet {
             return;
         }
 
-        if (newPassword == null || newPassword.length() < 8) {
-            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, "Mật khẩu mới phải có ít nhất 8 ký tự.");
+        Optional<String> passwordError = PasswordValidator.validateSingle(newPassword);
+        if (passwordError.isPresent()) {
+            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, passwordError.get());
             resp.sendRedirect(req.getContextPath() + "/admin/users/detail?id=" + userId);
             return;
         }

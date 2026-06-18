@@ -46,6 +46,18 @@
         </div>
       </c:if>
 
+      <c:if test="${param.reset == 'success'}">
+        <div class="auth-alert auth-alert--success" role="status">
+          Mật khẩu đã được đặt lại. Bạn có thể đăng nhập bằng mật khẩu mới.
+        </div>
+      </c:if>
+
+      <c:if test="${param.reset == 'invalid'}">
+        <div class="auth-alert auth-alert--error" role="alert">
+          Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.
+        </div>
+      </c:if>
+
       <c:if test="${param.verified == '1'}">
         <div class="auth-alert auth-alert--success" role="status">
           Email đã được xác thực. Bạn có thể đăng nhập ngay.

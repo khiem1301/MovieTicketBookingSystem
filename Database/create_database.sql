@@ -118,13 +118,16 @@ CREATE TABLE PasswordResetTokens (
     id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     user_id    UNIQUEIDENTIFIER NOT NULL,
     token      NVARCHAR(255)     NOT NULL,
+    purpose    NVARCHAR(30)      NOT NULL DEFAULT 'REGISTER_VERIFY',
     expired_at DATETIME2        NOT NULL,
     used_at    DATETIME2        NULL,
     created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT PK_PasswordResetTokens       PRIMARY KEY (id),
     CONSTRAINT FK_PasswordResetTokens_User  FOREIGN KEY (user_id) REFERENCES Users(id),
-    CONSTRAINT UK_PasswordResetTokens_Token UNIQUE (token)
+    CONSTRAINT UK_PasswordResetTokens_Token UNIQUE (token),
+    CONSTRAINT CK_PasswordResetTokens_Purpose CHECK (purpose IN (
+        'REGISTER_VERIFY', 'PASSWORD_RESET', 'PROFILE_SECURITY'))
 );
 GO
 

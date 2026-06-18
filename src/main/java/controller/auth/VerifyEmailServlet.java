@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import model.entity.User;
+import utils.AuthConstants;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -30,7 +31,8 @@ public class VerifyEmailServlet extends HttpServlet {
 
         try {
             PasswordResetTokenDAO tokenDAO = new PasswordResetTokenDAO();
-            Optional<PasswordResetTokenDAO.TokenRecord> found = tokenDAO.findValidByToken(token);
+            Optional<PasswordResetTokenDAO.TokenRecord> found =
+                    tokenDAO.findValidByToken(token, AuthConstants.TOKEN_PURPOSE_REGISTER);
             if (found.isEmpty()) {
                 resp.sendRedirect(req.getContextPath() + "/login?verify=invalid");
                 return;
