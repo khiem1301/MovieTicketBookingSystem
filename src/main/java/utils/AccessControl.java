@@ -26,6 +26,8 @@ public final class AccessControl {
             "/auth/google/callback",
             "/logout",
             "/session-expired",
+            "/forgot-password",
+            "/reset-password",
             "/index.jsp"
     );
 

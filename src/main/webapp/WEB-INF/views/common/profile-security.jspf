@@ -1,0 +1,38 @@
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+
+<section class="profile-card profile-card--security">
+  <h2 class="profile-card-title">Bảo mật tài khoản</h2>
+
+  <c:choose>
+    <c:when test="${securityVerified}">
+      <p class="profile-security-hint">
+        Bạn đã xác minh danh tính. Nhập mật khẩu mới bên dưới (hiệu lực 15 phút).
+      </p>
+
+      <form class="profile-form" action="${pageContext.request.contextPath}/profile/password" method="post" novalidate>
+        <div class="profile-field">
+          <label for="newPassword">Mật khẩu mới</label>
+          <input type="password" id="newPassword" name="newPassword"
+                 autocomplete="new-password" required/>
+        </div>
+        <div class="profile-field">
+          <label for="confirmPassword">Xác nhận mật khẩu</label>
+          <input type="password" id="confirmPassword" name="confirmPassword"
+                 autocomplete="new-password" required/>
+        </div>
+        <p class="profile-password-hint">8–16 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.</p>
+        <button type="submit" class="profile-btn profile-btn--primary">Đổi mật khẩu</button>
+      </form>
+    </c:when>
+    <c:otherwise>
+      <p class="profile-security-hint">
+        Để bảo vệ tài khoản, bạn cần xác minh danh tính trước khi đổi mật khẩu.
+      </p>
+      <a href="${pageContext.request.contextPath}/profile/security-verify"
+         class="profile-btn profile-btn--primary">
+        Xác minh tài khoản
+      </a>
+    </c:otherwise>
+  </c:choose>
+</section>

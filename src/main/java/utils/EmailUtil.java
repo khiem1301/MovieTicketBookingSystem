@@ -36,11 +36,57 @@ public final class EmailUtil {
         String pass = props.getProperty("mail.smtp.password", "").trim();
         return !user.isBlank()
                 && !pass.isBlank()
-                && !user.contains("your.email");
+                && !user.contains("your.email")
+                && !pass.contains("<app-password");
     }
 
     public static int verificationExpiryMinutes() {
         return VERIFY_TOKEN_MINUTES;
+    }
+
+    public static void requireConfigured() throws MessagingException {
+        if (!isConfigured()) {
+            throw new MessagingException(
+                    "Chưa cấu hình email SMTP. Sao chép email.properties.example và điền thông tin Gmail.");
+        }
+    }
+
+    public static void sendPasswordResetEmail(String toEmail, String fullName, String resetUrl)
+            throws MessagingException {
+        String subject = "ÉPCINE — Đặt lại mật khẩu";
+        String body = """
+                Xin chào %s,
+
+                Bạn (hoặc ai đó) đã yêu cầu đặt lại mật khẩu tài khoản ÉPCINE.
+
+                Bấm vào liên kết sau (hiệu lực %d phút):
+                %s
+
+                Nếu bạn không yêu cầu, hãy bỏ qua email này.
+
+                Trân trọng,
+                ÉPCINE
+                """.formatted(fullName, AuthConstants.PASSWORD_RESET_EXPIRY_MINUTES, resetUrl);
+        sendPlainTextEmail(toEmail, subject, body);
+    }
+
+    public static void sendProfileSecurityEmail(String toEmail, String fullName, String confirmUrl)
+            throws MessagingException {
+        String subject = "ÉPCINE — Xác minh bảo mật tài khoản";
+        String body = """
+                Xin chào %s,
+
+                Bạn đã yêu cầu xác minh danh tính để đổi mật khẩu trên ÉPCINE.
+
+                Bấm vào liên kết sau (hiệu lực %d phút):
+                %s
+
+                Nếu bạn không thực hiện, hãy bỏ qua email này.
+
+                Trân trọng,
+                ÉPCINE
+                """.formatted(fullName, AuthConstants.PROFILE_SECURITY_VERIFY_MINUTES, confirmUrl);
+        sendPlainTextEmail(toEmail, subject, body);
     }
 
     public static void sendVerificationEmail(String toEmail, String fullName, String verifyUrl)
@@ -206,6 +252,18 @@ public final class EmailUtil {
     }
 
     public static String buildVerifyUrl(String contextPath, String token) {
+        return buildActionUrl(contextPath, "/verify-email", token);
+    }
+
+    public static String buildResetPasswordUrl(String contextPath, String token) {
+        return buildActionUrl(contextPath, "/reset-password", token);
+    }
+
+    public static String buildProfileSecurityUrl(String contextPath, String token) {
+        return buildActionUrl(contextPath, "/profile/security-verify/confirm", token);
+    }
+
+    private static String buildActionUrl(String contextPath, String path, String token) {
         Properties props = loadProperties();
         String base = props != null
                 ? props.getProperty("app.base.url", "").trim()
@@ -216,7 +274,7 @@ public final class EmailUtil {
         if (base.endsWith("/")) {
             base = base.substring(0, base.length() - 1);
         }
-        return base + "/verify-email?token=" + token;
+        return base + path + "?token=" + token;
     }
 
     private static Properties requireProperties() throws MessagingException {
