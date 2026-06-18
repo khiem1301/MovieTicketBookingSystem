@@ -990,4 +990,23 @@ public class BookingDAO {
         b.setExpiredAt(rs.getTimestamp("expired_at"));
         return b;
     }
+
+    /** Số vé đã xác nhận của khách (hiển thị sidebar profile). */
+    public int countConfirmedByUserId(String userId) {
+        String sql = """
+                SELECT COUNT(*) AS cnt
+                FROM Bookings
+                WHERE user_id = ? AND booking_status = 'CONFIRMED'
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt("cnt");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("countConfirmedByUserId failed", e);
+        }
+        return 0;
+    }
 }

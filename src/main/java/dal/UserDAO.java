@@ -150,6 +150,46 @@ public class UserDAO {
         return existsByColumn("phone_number", phone);
     }
 
+    public boolean existsByPhoneExceptUserId(String phone, String excludeUserId) {
+        if (phone == null || phone.isBlank() || excludeUserId == null || excludeUserId.isBlank()) {
+            return false;
+        }
+        String sql = "SELECT 1 FROM Users WHERE phone_number = ? AND id <> ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, phone.trim());
+            ps.setString(2, excludeUserId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("existsByPhoneExceptUserId failed", e);
+        }
+    }
+
+    public void updateProfile(String userId, String fullName, String phone,
+                              Date dateOfBirth, String avatarUrl) {
+        String sql = """
+                UPDATE Users
+                SET full_name = ?,
+                    phone_number = ?,
+                    date_of_birth = ?,
+                    avatar_url = ?
+                WHERE id = ?
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, fullName);
+            ps.setString(2, phone);
+            ps.setDate(3, dateOfBirth);
+            ps.setString(4, avatarUrl);
+            ps.setString(5, userId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("updateProfile failed", e);
+        }
+    }
+
     public String insert(User user) {
         String id = UUID.randomUUID().toString();
         String sql = """

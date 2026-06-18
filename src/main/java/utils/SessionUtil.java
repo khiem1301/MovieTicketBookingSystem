@@ -22,6 +22,18 @@ public final class SessionUtil {
         session.setAttribute(ATTR_USER_ROLE, user.getRoleName());
     }
 
+    /** FR-05 — Cập nhật session sau khi user sửa profile (header hiển thị tên/avatar mới). */
+    public static void refreshLoggedUser(HttpServletRequest request, User user) {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return;
+        }
+        session.setAttribute(ATTR_LOGGED_USER, SessionUser.from(user));
+        if (user.getRoleName() != null) {
+            session.setAttribute(ATTR_USER_ROLE, user.getRoleName());
+        }
+    }
+
     public static void logout(HttpServletRequest request, HttpServletResponse response) {
         HttpSession session = request.getSession(false);
         if (session != null) {

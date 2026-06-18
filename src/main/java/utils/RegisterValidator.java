@@ -57,11 +57,11 @@ public final class RegisterValidator {
         return errors;
     }
 
-    /**
-     * Validates phone number: required, format, and duplicate check.
-     * Returns normalized phone via the mutable holder when valid.
-     */
     public static Optional<String> validatePhone(String rawPhone, UserDAO userDAO) {
+        return validatePhone(rawPhone, userDAO, null);
+    }
+
+    public static Optional<String> validatePhone(String rawPhone, UserDAO userDAO, String excludeUserId) {
         if (isBlank(rawPhone)) {
             return Optional.of("Số điện thoại không được để trống.");
         }
@@ -69,7 +69,11 @@ public final class RegisterValidator {
         if (!PHONE_PATTERN.matcher(phone).matches()) {
             return Optional.of("Số điện thoại không hợp lệ (VD: 0901234567).");
         }
-        if (userDAO.existsByPhone(phone)) {
+        if (excludeUserId != null && !excludeUserId.isBlank()) {
+            if (userDAO.existsByPhoneExceptUserId(phone, excludeUserId)) {
+                return Optional.of("Số điện thoại đã được sử dụng.");
+            }
+        } else if (userDAO.existsByPhone(phone)) {
             return Optional.of("Số điện thoại đã được sử dụng.");
         }
         return Optional.empty();
