@@ -72,15 +72,67 @@ public class UserStatusServlet extends HttpServlet {
             return;
         }
 
+        if ("unlock".equals(action)) {
+            handleUnlock(req, resp, user, currentUserId, userDAO);
+            return;
+        }
+
         String previousStatus = user.getStatus();
-        String newStatus = "deactivate".equals(action) ? "INACTIVE" : "ACTIVE";
+        String newStatus = "INACTIVE";
         userDAO.updateStatus(userId, newStatus);
-        saveStatusLog(userId, mapAction(action), previousStatus, newStatus, null,
+        saveStatusLog(userId, "DEACTIVATE", previousStatus, newStatus, null,
                 false, null, currentUserId);
 
-        String message = "deactivate".equals(action)
-                ? "Đã vô hiệu hóa tài khoản " + user.getFullName() + "."
-                : "Đã kích hoạt lại tài khoản " + user.getFullName() + ".";
+        AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_SUCCESS,
+                "Đã vô hiệu hóa tài khoản " + user.getFullName() + ".");
+        redirectAfterAction(req, resp, userId);
+    }
+
+    private void handleUnlock(HttpServletRequest req, HttpServletResponse resp,
+                              User user, String adminId, UserDAO userDAO)
+            throws IOException {
+
+        String userId = user.getId();
+
+        if ("ACTIVE".equals(user.getStatus())) {
+            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, "Tài khoản đã đang hoạt động.");
+            redirectAfterAction(req, resp, userId);
+            return;
+        }
+
+        boolean wantsEmail = UserLockValidator.wantsSendEmail(req.getParameter("sendEmail"));
+        String userEmail = trim(user.getEmail());
+        boolean canSendEmail = wantsEmail
+                && userEmail != null
+                && EmailUtil.isConfigured();
+
+        boolean emailSent = false;
+        String emailError = null;
+
+        if (canSendEmail) {
+            try {
+                EmailUtil.sendAccountUnlockedEmail(userEmail, user.getFullName());
+                emailSent = true;
+            } catch (MessagingException ex) {
+                emailError = truncate(ex.getMessage(), 255);
+                LOG.log(Level.WARNING, "Failed to send unlock notification to " + userEmail, ex);
+            }
+        } else if (wantsEmail && userEmail == null) {
+            emailError = "User không có email";
+        } else if (wantsEmail) {
+            emailError = "Chưa cấu hình SMTP";
+        }
+
+        userDAO.updateStatus(userId, "ACTIVE");
+        saveStatusLog(userId, "UNLOCK", user.getStatus(), "ACTIVE", null,
+                emailSent, emailError, adminId);
+
+        String message = "Đã kích hoạt lại tài khoản " + user.getFullName() + ".";
+        if (emailSent) {
+            message += " Đã gửi email thông báo.";
+        } else if (wantsEmail && emailError != null) {
+            message += " Không gửi được email: " + emailError + ".";
+        }
         AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_SUCCESS, message);
         redirectAfterAction(req, resp, userId);
     }
@@ -157,14 +209,6 @@ public class UserStatusServlet extends HttpServlet {
         } catch (RuntimeException ex) {
             LOG.log(Level.WARNING, "UserStatusLog insert failed — status still updated", ex);
         }
-    }
-
-    private static String mapAction(String action) {
-        return switch (action) {
-            case "lock" -> "LOCK";
-            case "deactivate" -> "DEACTIVATE";
-            default -> "UNLOCK";
-        };
     }
 
     private void redirectAfterAction(HttpServletRequest req, HttpServletResponse resp, String userId)
