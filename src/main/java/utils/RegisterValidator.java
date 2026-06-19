@@ -14,7 +14,9 @@ public final class RegisterValidator {
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
     private static final Pattern PHONE_PATTERN =
-            Pattern.compile("^(0|\\+84)[0-9]{8,10}$");
+            Pattern.compile("^0[0-9]{9}$");
+    private static final Pattern USERNAME_PATTERN =
+            Pattern.compile("^[a-zA-Z0-9_]{3,100}$");
 
     private RegisterValidator() {}
 
@@ -67,7 +69,7 @@ public final class RegisterValidator {
         }
         String phone = normalizePhone(rawPhone.trim());
         if (!PHONE_PATTERN.matcher(phone).matches()) {
-            return Optional.of("Số điện thoại không hợp lệ (VD: 0901234567).");
+            return Optional.of("Số điện thoại phải gồm 10 chữ số (VD: 0901234567).");
         }
         if (excludeUserId != null && !excludeUserId.isBlank()) {
             if (userDAO.existsByPhoneExceptUserId(phone, excludeUserId)) {
@@ -75,6 +77,28 @@ public final class RegisterValidator {
             }
         } else if (userDAO.existsByPhone(phone)) {
             return Optional.of("Số điện thoại đã được sử dụng.");
+        }
+        return Optional.empty();
+    }
+
+    public static Optional<String> validateUsername(String rawUsername, UserDAO userDAO) {
+        return validateUsername(rawUsername, userDAO, null);
+    }
+
+    public static Optional<String> validateUsername(String rawUsername, UserDAO userDAO, String excludeUserId) {
+        if (isBlank(rawUsername)) {
+            return Optional.of("Tên đăng nhập không được để trống.");
+        }
+        String username = rawUsername.trim().toLowerCase();
+        if (!USERNAME_PATTERN.matcher(username).matches()) {
+            return Optional.of("Tên đăng nhập gồm 3–100 ký tự chữ, số hoặc dấu gạch dưới.");
+        }
+        if (excludeUserId != null && !excludeUserId.isBlank()) {
+            if (userDAO.existsByUsernameExceptUserId(username, excludeUserId)) {
+                return Optional.of("Tên đăng nhập đã được sử dụng.");
+            }
+        } else if (userDAO.existsByUsername(username)) {
+            return Optional.of("Tên đăng nhập đã được sử dụng.");
         }
         return Optional.empty();
     }

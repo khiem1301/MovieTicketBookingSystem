@@ -2,8 +2,6 @@ package utils;
 
 import dal.UserDAO;
 
-import java.sql.Date;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,7 +12,7 @@ public final class ProfileValidator {
 
     private ProfileValidator() {}
 
-    public static List<String> validate(String fullName, String phoneNumber, Date dateOfBirth,
+    public static List<String> validate(String fullName, String phoneNumber, String username,
                                         String excludeUserId, UserDAO userDAO) {
         List<String> errors = new ArrayList<>();
 
@@ -25,12 +23,7 @@ public final class ProfileValidator {
         }
 
         RegisterValidator.validatePhone(phoneNumber, userDAO, excludeUserId).ifPresent(errors::add);
-
-        if (dateOfBirth == null) {
-            errors.add("Ngày sinh không được để trống.");
-        } else if (dateOfBirth.toLocalDate().isAfter(LocalDate.now())) {
-            errors.add("Ngày sinh không được là ngày trong tương lai.");
-        }
+        RegisterValidator.validateUsername(username, userDAO, excludeUserId).ifPresent(errors::add);
 
         return errors;
     }

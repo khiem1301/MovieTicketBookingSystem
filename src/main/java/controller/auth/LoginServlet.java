@@ -78,7 +78,8 @@ public class LoginServlet extends HttpServlet {
 
         try {
             UserDAO userDAO = new UserDAO();
-            Optional<User> found = userDAO.findByEmailOrUsername(identifier);
+            String lookupId = identifier.contains("@") ? identifier.toLowerCase() : identifier;
+            Optional<User> found = userDAO.findByEmailOrUsername(lookupId);
 
             if (found.isEmpty() || !PasswordUtil.verify(password, found.get().getPasswordHash())) {
                 forwardView(req, resp, "Email/tên đăng nhập hoặc mật khẩu không đúng.");
