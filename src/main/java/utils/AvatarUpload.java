@@ -17,7 +17,7 @@ public final class AvatarUpload {
     private static final Set<String> ALLOWED_TYPES = Set.of(
             "image/jpeg", "image/jpg", "image/png"
     );
-    private static final long MAX_BYTES = 2 * 1024 * 1024;
+    private static final long MAX_BYTES = 1024 * 1024;
 
     private AvatarUpload() {}
 
@@ -31,7 +31,7 @@ public final class AvatarUpload {
             throw new IllegalArgumentException("Ảnh đại diện phải là JPG hoặc PNG.");
         }
         if (part.getSize() > MAX_BYTES) {
-            throw new IllegalArgumentException("Ảnh đại diện không được vượt quá 2 MB.");
+            throw new IllegalArgumentException("Ảnh đại diện không được vượt quá 1 MB.");
         }
 
         String ext = extensionFor(contentType);

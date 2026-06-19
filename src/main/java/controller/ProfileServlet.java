@@ -17,7 +17,6 @@ import utils.RegisterValidator;
 import utils.SessionUtil;
 
 import java.io.IOException;
-import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -28,8 +27,8 @@ import java.util.Optional;
 @WebServlet(urlPatterns = {"/profile"})
 @MultipartConfig(
         fileSizeThreshold = 512 * 1024,
-        maxFileSize = 2 * 1024 * 1024,
-        maxRequestSize = 4 * 1024 * 1024
+        maxFileSize = 1024 * 1024,
+        maxRequestSize = 2 * 1024 * 1024
 )
 public class ProfileServlet extends HttpServlet {
 
@@ -62,27 +61,18 @@ public class ProfileServlet extends HttpServlet {
 
         String fullName = trim(req.getParameter("fullName"));
         String phoneRaw = trim(req.getParameter("phoneNumber"));
-        String dobRaw = trim(req.getParameter("dateOfBirth"));
+        String usernameRaw = trim(req.getParameter("username"));
 
-        Date dateOfBirth = null;
-        List<String> errors = new ArrayList<>();
-        if (dobRaw == null || dobRaw.isBlank()) {
-            errors.add("Ngày sinh không được để trống.");
-        } else {
-            try {
-                dateOfBirth = Date.valueOf(dobRaw);
-            } catch (IllegalArgumentException ex) {
-                errors.add("Ngày sinh không hợp lệ.");
-            }
-        }
-
-        if (errors.isEmpty()) {
-            errors.addAll(ProfileValidator.validate(fullName, phoneRaw, dateOfBirth, userId, userDAO));
-        }
+        List<String> errors = new ArrayList<>(ProfileValidator.validate(
+                fullName, phoneRaw, usernameRaw, userId, userDAO));
 
         String normalizedPhone = phoneRaw != null && !phoneRaw.isBlank()
                 ? RegisterValidator.normalizePhone(phoneRaw)
                 : phoneRaw;
+
+        String normalizedUsername = usernameRaw != null && !usernameRaw.isBlank()
+                ? usernameRaw.trim().toLowerCase()
+                : usernameRaw;
 
         String avatarUrl = current.get().getAvatarUrl();
         Part avatarPart = req.getPart("avatar");
@@ -101,13 +91,15 @@ public class ProfileServlet extends HttpServlet {
         }
 
         if (!errors.isEmpty()) {
-            User formUser = cloneForForm(current.get(), fullName, normalizedPhone, dateOfBirth, avatarUrl);
+            User formUser = cloneForForm(current.get(), fullName, normalizedPhone,
+                    normalizedUsername, avatarUrl);
             forwardProfileView(req, resp, formUser, errors);
             return;
         }
 
         try {
-            userDAO.updateProfile(userId, fullName.trim(), normalizedPhone, dateOfBirth, avatarUrl);
+            userDAO.updateProfile(userId, fullName.trim(), normalizedPhone,
+                    normalizedUsername, avatarUrl);
             Optional<User> updated = userDAO.findById(userId);
             if (updated.isEmpty()) {
                 throw new IllegalStateException("User not found after update");
@@ -116,7 +108,8 @@ public class ProfileServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/profile?saved=1");
         } catch (RuntimeException ex) {
             log("ProfileServlet: update failed", ex);
-            User formUser = cloneForForm(current.get(), fullName, normalizedPhone, dateOfBirth, avatarUrl);
+            User formUser = cloneForForm(current.get(), fullName, normalizedPhone,
+                    normalizedUsername, avatarUrl);
             forwardProfileView(req, resp, formUser,
                     List.of("Không thể cập nhật thông tin. Vui lòng thử lại sau."));
         }
@@ -166,16 +159,16 @@ public class ProfileServlet extends HttpServlet {
         req.getRequestDispatcher(VIEW).forward(req, resp);
     }
 
-    private User cloneForForm(User base, String fullName, String phone, Date dob, String avatarUrl) {
+    private User cloneForForm(User base, String fullName, String phone, String username, String avatarUrl) {
         User u = new User();
         u.setId(base.getId());
         u.setRoleId(base.getRoleId());
         u.setRoleName(base.getRoleName());
         u.setEmail(base.getEmail());
-        u.setUsername(base.getUsername());
+        u.setUsername(username != null ? username : base.getUsername());
         u.setFullName(fullName != null ? fullName : base.getFullName());
         u.setPhoneNumber(phone != null ? phone : base.getPhoneNumber());
-        u.setDateOfBirth(dob != null ? dob : base.getDateOfBirth());
+        u.setDateOfBirth(base.getDateOfBirth());
         u.setAvatarUrl(avatarUrl != null ? avatarUrl : base.getAvatarUrl());
         u.setLoyaltyPoints(base.getLoyaltyPoints());
         u.setStatus(base.getStatus());

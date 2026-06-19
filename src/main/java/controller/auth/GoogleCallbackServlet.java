@@ -92,7 +92,8 @@ public class GoogleCallbackServlet extends HttpServlet {
         userDAO.updateGoogleProfile(user.getId(), profile.name(), profile.picture());
         userDAO.updateLastLoginAt(user.getId());
 
-        SessionUtil.setLoggedIn(req, user);
+        User loginUser = userDAO.findById(user.getId()).orElse(user);
+        SessionUtil.setLoggedIn(req, loginUser);
         SessionUtil.markHadLogin(resp);
         RememberMeUtil.clearToken(resp);
         SessionUtil.clearRememberCookie(resp);

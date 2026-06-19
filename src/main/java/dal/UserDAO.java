@@ -146,6 +146,23 @@ public class UserDAO {
         return existsByColumn("username", username);
     }
 
+    public boolean existsByUsernameExceptUserId(String username, String excludeUserId) {
+        if (username == null || username.isBlank() || excludeUserId == null || excludeUserId.isBlank()) {
+            return false;
+        }
+        String sql = "SELECT 1 FROM Users WHERE username = ? AND id <> ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, username.trim());
+            ps.setString(2, excludeUserId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("existsByUsernameExceptUserId failed", e);
+        }
+    }
+
     public boolean existsByPhone(String phone) {
         return existsByColumn("phone_number", phone);
     }
@@ -168,22 +185,27 @@ public class UserDAO {
     }
 
     public void updateProfile(String userId, String fullName, String phone,
-                              Date dateOfBirth, String avatarUrl) {
+                              String username, String avatarUrl) {
         String sql = """
                 UPDATE Users
                 SET full_name = ?,
                     phone_number = ?,
-                    date_of_birth = ?,
-                    avatar_url = ?
+                    username = ?,
+                    avatar_url = CASE
+                        WHEN ? IS NOT NULL AND LTRIM(RTRIM(?)) <> '' THEN ?
+                        ELSE avatar_url
+                    END
                 WHERE id = ?
                 """;
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, fullName);
             ps.setString(2, phone);
-            ps.setDate(3, dateOfBirth);
+            ps.setString(3, username);
             ps.setString(4, avatarUrl);
-            ps.setString(5, userId);
+            ps.setString(5, avatarUrl);
+            ps.setString(6, avatarUrl);
+            ps.setString(7, userId);
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("updateProfile failed", e);
@@ -216,11 +238,26 @@ public class UserDAO {
         }
     }
 
-    public void updateGoogleProfile(String userId, String fullName, String avatarUrl) {
+    /**
+     * Đồng bộ họ tên từ Google khi đăng nhập.
+     * Không ghi đè avatar đã có (upload FR-05 hoặc ảnh Google trước đó).
+     */
+    public void updateGoogleProfile(String userId, String fullName, String googlePictureUrl) {
+        Optional<User> existing = findById(userId);
+        if (existing.isEmpty()) {
+            return;
+        }
+
+        String currentAvatar = existing.get().getAvatarUrl();
+        String avatarToSave = currentAvatar;
+        if (currentAvatar == null || currentAvatar.isBlank()) {
+            avatarToSave = blankToNull(googlePictureUrl);
+        }
+
         String sql = """
                 UPDATE Users
                 SET full_name = CASE WHEN ? IS NOT NULL AND LTRIM(RTRIM(?)) <> '' THEN ? ELSE full_name END,
-                    avatar_url = CASE WHEN ? IS NOT NULL AND LTRIM(RTRIM(?)) <> '' THEN ? ELSE avatar_url END
+                    avatar_url = ?
                 WHERE id = ?
                 """;
         try (Connection conn = DBContext.getConnection();
@@ -228,10 +265,8 @@ public class UserDAO {
             ps.setString(1, fullName);
             ps.setString(2, fullName);
             ps.setString(3, fullName);
-            ps.setString(4, avatarUrl);
-            ps.setString(5, avatarUrl);
-            ps.setString(6, avatarUrl);
-            ps.setString(7, userId);
+            ps.setString(4, avatarToSave);
+            ps.setString(5, userId);
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("updateGoogleProfile failed", e);
