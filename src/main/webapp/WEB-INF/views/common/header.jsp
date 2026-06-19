@@ -13,6 +13,18 @@ uri="jakarta.tags.functions" %>
       rel="stylesheet"
       href="${pageContext.request.contextPath}/css/main.css"
     />
+    <c:if test="${not empty extraCss}">
+      <link
+        rel="stylesheet"
+        href="${pageContext.request.contextPath}/css/${extraCss}.css"
+      />
+    </c:if>
+    <c:if test="${not empty extraCss2}">
+      <link
+        rel="stylesheet"
+        href="${pageContext.request.contextPath}/css/${extraCss2}.css"
+      />
+    </c:if>
   </head>
   <body>
     <header class="site-header">
@@ -239,5 +251,3 @@ uri="jakarta.tags.functions" %>
         </div>
       </div>
     </header>
-  </body>
-</html>
