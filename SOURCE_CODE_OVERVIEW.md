@@ -251,7 +251,7 @@ MovieTicketBookingSystem/
 | `/payment` | `PaymentServlet` | POST `action=confirmVietQR` | ✅ CUSTOMER | Xác nhận chuyển khoản → phát vé (FR-17) |
 | `/payment/success?bookingId=` | `PaymentSuccessServlet` | GET | ✅ CUSTOMER | Trang xác nhận thanh toán thành công (FR-17) |
 | `/payment/status?bookingId=` | `PaymentStatusServlet` | GET | ✅ CUSTOMER | JSON poll trạng thái đơn (dự phòng webhook) |
-| `/booking-history` | — | — | ❌ Chưa có | Lịch sử đặt vé |
+| `/booking-history` | `BookingHistoryServlet` | `booking-history.jsp` | ✅ FR-15 | Lịch sử đặt vé |
 | `/loyalty` | — | — | ❌ Chưa có | Điểm tích lũy |
 | `/reviews/mine` | — | — | ❌ Chưa có | Đánh giá của tôi |
 

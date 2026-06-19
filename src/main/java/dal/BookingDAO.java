@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import model.dto.BookingDetailDTO;
+import model.dto.BookingSummaryDTO;
 import model.entity.Booking;
 import model.entity.PricingRule;
 import model.entity.Seat;
@@ -989,6 +990,155 @@ public class BookingDAO {
         b.setBookedAt(rs.getTimestamp("booked_at"));
         b.setExpiredAt(rs.getTimestamp("expired_at"));
         return b;
+    }
+
+    private static final java.util.Set<String> SUMMARY_STATUS_FILTERS = java.util.Set.of(
+            "ALL", "PENDING", "CONFIRMED", "CANCELLED", "EXPIRED", "REFUNDED");
+
+    /** FR-15 — Đếm đơn của khách (ONLINE + OFFLINE), lọc status + tìm kiếm. */
+    public int countByUserId(String userId, String statusFilter, String searchQuery) {
+        StringBuilder sql = new StringBuilder("""
+                SELECT COUNT(*) AS cnt
+                FROM Bookings b
+                JOIN Showtimes s ON s.id = b.showtime_id
+                JOIN Movies m ON m.id = s.movie_id
+                WHERE b.user_id = ?
+                """);
+        List<Object> params = new ArrayList<>();
+        params.add(userId);
+        appendSummaryFilters(sql, params, statusFilter, searchQuery);
+
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            bindParams(ps, params);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("cnt");
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("countByUserId failed", e);
+        }
+        return 0;
+    }
+
+    /** FR-15 — Danh sách tóm tắt đơn, phân trang. */
+    public List<BookingSummaryDTO> findSummariesByUserId(String userId, String statusFilter,
+                                                         String searchQuery, int offset, int limit) {
+        String sql = """
+                SELECT b.id, b.booking_code, b.booking_source, b.booking_status, b.payment_status,
+                       b.booked_at, b.expired_at, b.final_amount,
+                       m.title AS movie_title, m.poster_url AS movie_poster_url,
+                       cr.room_name, s.start_time,
+                       (SELECT COUNT(*) FROM BookingSeats bs WHERE bs.booking_id = b.id) AS seat_count,
+                       (SELECT TOP 1 st.type_name
+                        FROM BookingSeats bs
+                        JOIN Seats se ON se.id = bs.seat_id
+                        JOIN SeatTypes st ON st.id = se.seat_type_id
+                        WHERE bs.booking_id = b.id
+                        ORDER BY se.seat_row, se.seat_column) AS primary_seat_type,
+                       (SELECT STRING_AGG(se.seat_code, ', ') WITHIN GROUP (ORDER BY se.seat_row, se.seat_column)
+                        FROM BookingSeats bs
+                        JOIN Seats se ON se.id = bs.seat_id
+                        WHERE bs.booking_id = b.id) AS seat_codes
+                FROM Bookings b
+                JOIN Showtimes s ON s.id = b.showtime_id
+                JOIN Movies m ON m.id = s.movie_id
+                JOIN CinemaRooms cr ON cr.id = s.room_id
+                WHERE b.user_id = ?
+                """ + buildSummaryFilterClause(statusFilter, searchQuery) + """
+                ORDER BY b.booked_at DESC
+                OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                """;
+
+        List<Object> params = new ArrayList<>();
+        params.add(userId);
+        addSummaryFilterParams(params, statusFilter, searchQuery);
+        params.add(offset);
+        params.add(limit);
+
+        List<BookingSummaryDTO> list = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            bindParams(ps, params);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapSummaryRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findSummariesByUserId failed", e);
+        }
+        return list;
+    }
+
+    public static boolean isValidSummaryStatusFilter(String statusFilter) {
+        return statusFilter != null && SUMMARY_STATUS_FILTERS.contains(statusFilter);
+    }
+
+    private void appendSummaryFilters(StringBuilder sql, List<Object> params,
+                                      String statusFilter, String searchQuery) {
+        sql.append(buildSummaryFilterClause(statusFilter, searchQuery));
+        addSummaryFilterParams(params, statusFilter, searchQuery);
+    }
+
+    private String buildSummaryFilterClause(String statusFilter, String searchQuery) {
+        StringBuilder clause = new StringBuilder();
+        if (statusFilter != null && !"ALL".equals(statusFilter)) {
+            clause.append(" AND b.booking_status = ?");
+        }
+        if (searchQuery != null && !searchQuery.isBlank()) {
+            clause.append(" AND (m.title LIKE ? OR b.booking_code LIKE ?)");
+        }
+        return clause.toString();
+    }
+
+    private void addSummaryFilterParams(List<Object> params, String statusFilter, String searchQuery) {
+        if (statusFilter != null && !"ALL".equals(statusFilter)) {
+            params.add(statusFilter);
+        }
+        if (searchQuery != null && !searchQuery.isBlank()) {
+            String pattern = "%" + searchQuery.trim() + "%";
+            params.add(pattern);
+            params.add(pattern);
+        }
+    }
+
+    private void bindParams(PreparedStatement ps, List<Object> params) throws SQLException {
+        for (int i = 0; i < params.size(); i++) {
+            Object value = params.get(i);
+            if (value instanceof Integer n) {
+                ps.setInt(i + 1, n);
+            } else {
+                ps.setString(i + 1, String.valueOf(value));
+            }
+        }
+    }
+
+    private BookingSummaryDTO mapSummaryRow(ResultSet rs) throws SQLException {
+        BookingSummaryDTO dto = new BookingSummaryDTO();
+        dto.setBookingId(rs.getString("id"));
+        dto.setBookingCode(rs.getString("booking_code"));
+        dto.setBookingSource(rs.getString("booking_source"));
+        dto.setBookingStatus(rs.getString("booking_status"));
+        dto.setPaymentStatus(rs.getString("payment_status"));
+        dto.setBookedAt(rs.getTimestamp("booked_at"));
+        dto.setExpiredAt(rs.getTimestamp("expired_at"));
+        dto.setStartTime(rs.getTimestamp("start_time"));
+        dto.setMovieTitle(rs.getString("movie_title"));
+        dto.setMoviePosterUrl(rs.getString("movie_poster_url"));
+        dto.setRoomName(rs.getString("room_name"));
+        dto.setFinalAmount(rs.getBigDecimal("final_amount"));
+        dto.setSeatCount(rs.getInt("seat_count"));
+
+        String seatType = rs.getString("primary_seat_type");
+        String seatCodes = rs.getString("seat_codes");
+        if (seatType != null && !seatType.isBlank() && seatCodes != null && !seatCodes.isBlank()) {
+            dto.setSeatCodesSummary(seatType + " • " + seatCodes);
+        } else if (seatCodes != null) {
+            dto.setSeatCodesSummary(seatCodes);
+        }
+        return dto;
     }
 
     /** Số vé đã xác nhận của khách (hiển thị sidebar profile). */
