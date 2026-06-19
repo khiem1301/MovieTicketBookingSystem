@@ -48,7 +48,7 @@ public final class AccessControl {
 
     private static final Map<String, Set<String>> ROLE_PREFIXES = Map.of(
             "/admin/", Set.of("ADMIN"),
-            "/manager/", Set.of("MANAGER"),
+            "/manager/", Set.of("MANAGER", "ADMIN"),
             "/staff/", Set.of("STAFF")
     );
 

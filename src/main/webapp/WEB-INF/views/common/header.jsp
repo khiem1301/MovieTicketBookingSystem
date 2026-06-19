@@ -74,8 +74,10 @@ uri="jakarta.tags.functions" %>
         <%-- Main Nav --%>
         <nav class="main-nav">
           <%-- Phim: click thẳng, KHÔNG dropdown --%>
+          <c:set var="onMoviesPage" value="${fn:endsWith(pageContext.request.requestURI, '/movies')}"/>
           <div class="nav-item">
-            <a href="${pageContext.request.contextPath}/movies" class="nav-link"
+            <a href="${pageContext.request.contextPath}/movies"
+               class="nav-link${onMoviesPage ? ' nav-link--active' : ''}"
               >Phim</a
             >
           </div>
@@ -92,11 +94,13 @@ uri="jakarta.tags.functions" %>
               <c:choose>
                 <c:when test="${not empty genreList}">
                   <c:forEach var="genre" items="${genreList}">
-                    <a
-                      href="${pageContext.request.contextPath}/movies?genre=${genre.id}"
-                    >
-                      <c:out value="${genre.genreName}" />
-                    </a>
+                    <c:if test="${genre.active}">
+                      <a
+                        href="${pageContext.request.contextPath}/movies?genre=${genre.id}"
+                      >
+                        <c:out value="${genre.genreName}" />
+                      </a>
+                    </c:if>
                   </c:forEach>
                 </c:when>
                 <c:otherwise>
@@ -137,12 +141,12 @@ uri="jakarta.tags.functions" %>
             </div>
           </div>
 
-          <%-- Đánh giá: click dropdown --%>
-          <div class="nav-item nav-item--click">
-            <a href="#" class="nav-link" data-toggle="reviews-dropdown">
-              Đánh giá <span class="nav-arrow" id="reviews-arrow">▾</span>
+          <%-- Đánh giá: hover dropdown --%>
+          <div class="nav-item">
+            <a href="${pageContext.request.contextPath}/reviews" class="nav-link">
+              Đánh giá <span class="nav-arrow">▾</span>
             </a>
-            <div class="dropdown-menu" id="reviews-dropdown">
+            <div class="dropdown-menu">
               <a href="${pageContext.request.contextPath}/reviews?sort=top">
                 ⭐ Phim đánh giá cao nhất
               </a>
@@ -217,14 +221,50 @@ uri="jakarta.tags.functions" %>
                     >
                   </c:if>
                   <c:if test="${sessionScope.userRole == 'MANAGER'}">
-                    <a
-                      href="${pageContext.request.contextPath}/manager/dashboard"
-                      >Quản lý</a
+                    <a href="${pageContext.request.contextPath}/manager/movies"
+                      >Quản lý phim</a
+                    >
+                    <a href="${pageContext.request.contextPath}/manager/genres"
+                      >Quản lý thể loại</a
+                    >
+                    <a href="${pageContext.request.contextPath}/manager/rooms"
+                      >Quản lý phòng chiếu</a
+                    >
+                    <a href="${pageContext.request.contextPath}/manager/seat-types"
+                      >Quản lý loại ghế</a
+                    >
+                    <a href="${pageContext.request.contextPath}/manager/showtimes"
+                      >Quản lý suất chiếu</a
+                    >
+                    <a href="${pageContext.request.contextPath}/admin/promotions"
+                      >Quản lý voucher</a
                     >
                   </c:if>
                   <c:if test="${sessionScope.userRole == 'ADMIN'}">
+                    <a href="${pageContext.request.contextPath}/manager/movies"
+                      >Quản lý phim</a
+                    >
+                    <a href="${pageContext.request.contextPath}/manager/genres"
+                      >Quản lý thể loại</a
+                    >
+                    <span class="dropdown-divider-label">Quản trị hệ thống</span>
+                    <a href="${pageContext.request.contextPath}/admin/dashboard"
+                      >Bảng điều khiển</a
+                    >
                     <a href="${pageContext.request.contextPath}/admin/users"
-                      >Quản trị</a
+                      >Quản lý người dùng</a
+                    >
+                    <a href="${pageContext.request.contextPath}/admin/config"
+                      >Cấu hình hệ thống</a
+                    >
+                    <a href="${pageContext.request.contextPath}/admin/vat"
+                      >Quy tắc VAT</a
+                    >
+                    <a href="${pageContext.request.contextPath}/admin/promotions"
+                      >Quản lý voucher</a
+                    >
+                    <a href="${pageContext.request.contextPath}/admin/reports"
+                      >Báo cáo &amp; thống kê</a
                     >
                   </c:if>
                   <a
