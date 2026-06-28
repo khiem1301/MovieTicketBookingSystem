@@ -97,8 +97,10 @@
             </div>
             <div class="mgr-form-group">
               <label for="basePrice">Giá vé cơ bản (VNĐ) <span class="required">*</span></label>
-              <input id="basePrice" type="number" name="basePrice" min="1000" step="1000" required
+              <input id="basePrice" type="number" name="basePrice" min="1000" max="999999999" step="1000" required
+                     aria-describedby="basePriceHint"
                      value="<c:out value='${not empty inputBasePrice ? inputBasePrice : editShowtime.basePrice}'/>"/>
+              <small id="basePriceHint" class="mgr-hint">Tối đa 9 chữ số (tối đa 999.999.999 VNĐ)</small>
             </div>
             <div class="mgr-form-group">
               <label for="status">Trạng thái</label>
@@ -155,9 +157,11 @@
             </div>
             <div class="mgr-form-group">
               <label for="basePrice">Giá vé cơ bản (VNĐ) <span class="required">*</span></label>
-              <input id="basePrice" type="number" name="basePrice" min="1000" step="1000" required
+              <input id="basePrice" type="number" name="basePrice" min="1000" max="999999999" step="1000" required
                      placeholder="80000"
+                     aria-describedby="basePriceHint"
                      value="<c:out value='${inputBasePrice}'/>"/>
+              <small id="basePriceHint" class="mgr-hint">Tối đa 9 chữ số (tối đa 999.999.999 VNĐ)</small>
             </div>
             <p class="st-form-note">Giờ kết thúc tự tính theo thời lượng phim. Chưa áp dụng thời gian dọn phòng giữa các suất.</p>
             <button type="submit" class="btn btn-primary mgr-submit">+ Thêm suất chiếu</button>

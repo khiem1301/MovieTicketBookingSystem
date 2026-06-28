@@ -5,7 +5,7 @@
 > **Tổng quan dự án:** [`SOURCE_CODE_OVERVIEW.md`](SOURCE_CODE_OVERVIEW.md)  
 > **Spec nghiệp vụ:** [`project_summary_final.md`](project_summary_final.md)  
 > **Database & migration:** [`Database/README.md`](Database/README.md)  
-> **Module liên quan:** [`ADMIN_MODULE_DETAIL.md`](ADMIN_MODULE_DETAIL.md)
+> **Chi tiết 3 module vận hành (phòng · loại ghế · suất chiếu):** [`MANAGER_CINEMA_OPERATIONS.md`](MANAGER_CINEMA_OPERATIONS.md)
 
 ---
 
@@ -28,7 +28,7 @@ Module Manager dành cho người dùng có role **MANAGER** — người vận 
 | Quản lý phòng chiếu — danh sách + preview | FR-26 | ✅ |
 | Quản lý phòng chiếu — tạo phòng mới | FR-26 | ✅ |
 | Quản lý phòng chiếu — đổi tên phòng | FR-26 | ✅ |
-| Quản lý phòng chiếu — toggle trạng thái (ACTIVE ↔ MAINTENANCE) | FR-26 | ✅ |
+| Quản lý phòng chiếu — toggle trạng thái (ACTIVE / MAINTENANCE / INACTIVE) | FR-26 | ✅ |
 | Quản lý phòng chiếu — layout ghế (editor) | FR-26 | ✅ |
 | Lưu layout ghế vào `Seats` (persist DB) | FR-26 | ✅ |
 | Quản lý loại ghế & hệ số giá (CRUD) | FR-27 | ✅ |
@@ -97,7 +97,7 @@ Screen Design/
 | `css/manager-showtimes.css` | UI suất chiếu — `.st-*`, form 2 cột, status badges, filter bar |
 | `js/manager-auditoriums.js` | Lọc trạng thái, chọn card, sync panel preview |
 | `js/manager-seat-layout.js` | Editor ghế client-side; đọc `window.SLT_CONFIG` (layout JSON + i18n); POST save-layout |
-| `js/manager-showtimes.js` | Lọc bảng suất (phim/phòng/trạng thái); xác nhận xóa |
+| `js/manager-showtimes.js` | Lọc bảng suất (phim/phòng/**ngày**/trạng thái); gợi ý thời lượng phim khi chọn phim |
 | `js/seat-type-colors.js` | Preset + dynamic HSL color cho loại ghế (IIFE `window.SeatTypeColors`) |
 
 Trang list/detail load CSS qua `extraCss` / `extraCss2` trong `header.jsp`.
@@ -225,7 +225,7 @@ private boolean isAuthorized(HttpServletRequest req) {
 | `/manager/rooms` | `ManageCinemaRoomServlet` | POST | Tạo phòng mới (validate tên, check trùng) |
 | `/manager/rooms/detail?id={uuid}` | `ManageCinemaRoomServlet` | GET | `cinema-room-detail.jsp` — editor layout ghế |
 | `/manager/rooms/update` | `ManageCinemaRoomServlet` | POST `action=rename` | Đổi tên phòng |
-| `/manager/rooms/update` | `ManageCinemaRoomServlet` | POST `action=toggle` | Toggle ACTIVE ↔ MAINTENANCE (guard countUpcomingShowtimes) |
+| `/manager/rooms/update` | `ManageCinemaRoomServlet` | POST `action=toggle` | Toggle ACTIVE / MAINTENANCE / INACTIVE (guard countUpcomingShowtimes) |
 | `/manager/rooms/save-layout` | `ManageCinemaRoomServlet` | POST | Lưu layout ghế JSON → DB (`SeatLayoutJsonUtil.parseSeats`) |
 | `/manager/showtimes` | `ManageShowtimeServlet` | GET | `showtime-list.jsp` — danh sách + form tạo |
 | `/manager/showtimes?action=edit&id={uuid}` | `ManageShowtimeServlet` | GET | `showtime-list.jsp` — chế độ sửa |
@@ -234,7 +234,7 @@ private boolean isAuthorized(HttpServletRequest req) {
 | `/manager/showtimes` | `ManageShowtimeServlet` | POST `action=delete` | Xóa (guard booking) → redirect `?success=deleted` hoặc `?error=has_bookings` |
 | `/manager/seat-types` | `ManageSeatTypeServlet` | GET | `manager/seat-type-list.jsp` — danh sách + form tạo |
 | `/manager/seat-types?action=edit&id={uuid}` | `ManageSeatTypeServlet` | GET | `seat-type-list.jsp` — chế độ sửa |
-| `/manager/seat-types` | `ManageSeatTypeServlet` | POST `action=create` | Redirect `?success=created` |
+| `/manager/seat-types` | `ManageSeatTypeServlet` | POST (default) | Tạo loại ghế → redirect `?success=created` hoặc re-render (lỗi) |
 | `/manager/seat-types` | `ManageSeatTypeServlet` | POST `action=update` | Redirect `?success=updated` |
 | `/manager/seat-types` | `ManageSeatTypeServlet` | POST `action=delete` | Xóa (usage guard) → redirect `?success=deleted` |
 
@@ -482,10 +482,12 @@ isAuthorized()
 
 ```
 isAuthorized()
-    → validate roomName (trống / trùng)
+    → validate roomName (trống / >100 ký tự / trùng)
     → CinemaRoomDAO.create(roomName) → returns UUID
-    → redirect /manager/rooms?room={newId}&success=created
+    → redirect /manager/rooms/detail?id={newId}&success=created
 ```
+
+Form tạo phòng: `roomName` — `required`, `maxlength="100"`; placeholder trong ô nhập gợi ý giới hạn ký tự.
 
 #### POST — Đổi tên / Toggle trạng thái (`/manager/rooms/update`)
 
@@ -495,9 +497,10 @@ action=rename:
     → redirect
 
 action=toggle:
-    → CinemaRoomDAO.countUpcomingShowtimes(id) → guard (có suất sắp tới → error)
+    → status ∈ {ACTIVE, MAINTENANCE, INACTIVE}
+    → CinemaRoomDAO.countUpcomingShowtimes(id) → guard khi chuyển MAINTENANCE hoặc INACTIVE (có suất sắp tới → error)
     → CinemaRoomDAO.updateStatus(id, newStatus)
-    → redirect
+    → redirect (list hoặc detail tùy param from)
 ```
 
 #### POST — Lưu layout ghế (`/manager/rooms/save-layout`)
@@ -528,21 +531,22 @@ isAuthorized()
 #### Giao diện list (`cinema-room-list.jsp`)
 
 - Design: `Screen Design/Cinema Auditoriums/`
-- Lọc: Tất cả / Hoạt động / Bảo trì (client-side)
+- Lọc: Tất cả / Hoạt động / Bảo trì / **Ngưng** (client-side)
 - Card: toggle trạng thái (POST), nút **Chi tiết →**
 - Panel: **Xem chi tiết** (primary), lịch chiếu / bảo trì (disabled)
-- Nút **Thêm phòng chiếu** → POST tạo phòng
+- Form **Thêm phòng** (header + thẻ + panel): placeholder *"Tên phòng mới (tối đa 100 ký tự)"*
 
 #### Giao diện detail + editor (`cinema-room-detail.jsp`)
 
 - Design: `Screen Design/Seat Layout/`
-- Sidebar: loại ghế từ DB, cấu hình layout title, toggles
+- Sidebar: loại ghế từ DB — mỗi card có `data-seat-span` (**1** hoặc **2**); ghế 2 ô render class `slt-seat--wide`
 - `#sltActiveTypeHint`: hint động qua `data-hint-add` / `data-hint-delete` (UTF-8 từ JSP — tránh lỗi font trong file `.js`)
 - `window.SLT_CONFIG`: `layoutJson`, `dbSeatCount`, `roomId`, block `i18n` (Unicode escape) cho tooltip/hộp thoại editor
 - Workspace: màn hình cong + lưới ghế; toolbar **Chọn / Thêm ghế / Lối đi / Xóa**
 - **Lưu layout:** POST `/manager/rooms/save-layout` → persist vào bảng `Seats`
 - Load layout từ DB qua `SeatLayoutJsonUtil.buildLayoutJson()` (khôi phục lối đi từ `seat_column`)
 - Phòng chưa có ghế → layout mẫu 3 hàng (A/B/C) hoặc draft `localStorage`
+- **Thêm hàng ghế:** tối đa **26 hàng** (nhãn A–Z); `nextRowLabel()` trong `manager-seat-layout.js` chặn sau hàng Z
 
 **Quy tắc editor (client — `manager-seat-layout.js`):**
 
@@ -591,7 +595,7 @@ isAuthorized()
 | `movieId` | ✅ | UUID phim (NOW_SHOWING hoặc COMING_SOON) |
 | `roomId` | ✅ | UUID phòng (status ACTIVE) |
 | `startTime` | ✅ | `datetime-local` — `yyyy-MM-dd'T'HH:mm` |
-| `basePrice` | ✅ | Giá vé cơ bản (VNĐ), > 0; form HTML `min="1000" step="1000"` |
+| `basePrice` | ✅ | Giá vé cơ bản (VNĐ), > 0, **tối đa 9 chữ số** (≤ 999.999.999); form HTML `min="1000" max="999999999" step="1000"`; gợi ý tĩnh `mgr-hint` |
 
 **Luồng thành công:**
 
@@ -611,6 +615,7 @@ parseAndValidate → end_time = start + movie.durationMinutes
 | Phòng không ACTIVE | "Phòng chiếu không hợp lệ hoặc không đang hoạt động." |
 | Giờ bắt đầu trong quá khứ (tạo mới) | "Giờ bắt đầu phải ở tương lai." |
 | Giá ≤ 0 hoặc không parse được | "Giá vé cơ bản phải lớn hơn 0." / "Giá vé không hợp lệ." |
+| Giá > 9 chữ số | "Giá vé cơ bản không quá 9 chữ số." |
 | Trùng lịch cùng phòng | "Trùng lịch với suất chiếu khác trong cùng phòng chiếu." |
 
 **Overlap rule (`ShowtimeDAO.isOverlapping`):** cùng `room_id`, status ≠ `CANCELLED`, `start < newEnd AND end > newStart`.
@@ -653,7 +658,7 @@ ShowtimeDAO.delete(id) → redirect ?success=deleted
 #### Giao diện (`showtime-list.jsp` + `manager-showtimes.css/js`)
 
 - Layout 2 cột: form trái + bảng phải (theo Screen Design)
-- Filter client-side: phim, phòng, trạng thái
+- Filter client-side: phim, phòng, **ngày**, trạng thái
 - Status badges: SCHEDULED, OPEN, SOLD_OUT, CANCELLED, FINISHED
 - Select dropdown: `color-scheme: dark` (đọc được trên nền tối)
 
@@ -674,27 +679,30 @@ isAuthorized()
     → forward seat-type-list.jsp
 ```
 
-#### POST — Tạo loại ghế (`action=create`)
+#### POST — Tạo loại ghế (POST mặc định, không cần `action`)
 
 **Form fields:**
 
 | Field | Bắt buộc | Mô tả |
 |-------|----------|-------|
-| `typeName` | ✅ | Tên loại ghế, max 50 ký tự (lưu UPPERCASE) |
-| `priceMultiplier` | ✅ | Hệ số giá, > 0 |
-| `description` | | Mô tả |
+| `typeName` | ✅ | Tên loại ghế, max 50 ký tự (lưu UPPERCASE); gợi ý tĩnh `mgr-hint` |
+| `priceMultiplier` | ✅ | Hệ số giá định dạng **X.XX** (0.01–9.99); regex `^[0-9]\.[0-9]{2}$` |
+| `seatSpan` | ✅ | Kích thước trên layout: **1** (ghế đơn) hoặc **2** (2 ô liền nhau — hiển thị rộng trên editor) |
+| `description` | | Mô tả, max 255 ký tự (client); DB `NVARCHAR(MAX)` |
 
 **Validation:**
 
 | Rule | Thông báo lỗi |
 |------|---------------|
-| `typeName` trống | "Tên loại ghế không được để trống" |
-| `typeName` > 50 ký tự | "Tên quá dài" |
-| `priceMultiplier <= 0` | "Hệ số giá phải lớn hơn 0" |
-| Trùng `typeName` | "Loại ghế đã tồn tại" |
+| `typeName` trống | "Tên loại ghế không được để trống." |
+| `typeName` > 50 ký tự | "Tên loại ghế không quá 50 ký tự." |
+| `priceMultiplier` sai định dạng | "Hệ số giá phải có 1 chữ số phần nguyên và 2 chữ số phần thập phân (VD: 1.50)." |
+| `priceMultiplier` ≤ 0 | "Hệ số giá phải lớn hơn 0." |
+| `seatSpan` ∉ {1, 2} | "Kích thước ghế phải là 1 ô hoặc 2 ô liền nhau." |
+| Trùng `typeName` | "Loại ghế \"...\" đã tồn tại." |
 
 ```
-validate → SeatTypeDAO.create(typeName, multiplier, description)
+parseAndValidate → SeatTypeDAO.create(typeName, multiplier, description, seatSpan)
     → redirect ?success=created
 ```
 
@@ -705,7 +713,7 @@ validate → SeatTypeDAO.create(typeName, multiplier, description)
 | `id` | UUID loại ghế |
 
 ```
-validate + isDuplicateExcluding → SeatTypeDAO.update(id, typeName, multiplier, description)
+parseAndValidate + isDuplicateExcluding → SeatTypeDAO.update(id, typeName, multiplier, description, seatSpan)
     → redirect ?success=updated
 ```
 
@@ -725,14 +733,17 @@ SeatTypeDAO.delete(id)
 | `editSeatType` | Loại ghế đang sửa |
 | `usageMap` | `Map<String,Integer>` — seat type ID → số ghế đang dùng |
 | `error` | Thông báo lỗi |
+| `inputTypeName`, `inputMultiplier`, `inputDescription`, `inputSeatSpan` | Giữ form khi validation fail |
 
 #### Giao diện (`seat-type-list.jsp`)
 
 - Layout 2 cột: form trái + bảng phải
-- Hiển thị tên, hệ số giá, mô tả, color swatch, usage count
+- Hiển thị tên, **kích thước (1 ô / 2 ô)**, hệ số giá, color swatch, usage count
+- Form: gợi ý tĩnh (`mgr-hint`) cho tên (50 ký tự), hệ số (X.XX), mô tả (255 ký tự), dropdown **Kích thước trên layout**
 - Nút sửa/xóa trên mỗi dòng
 - Xóa disabled (JS alert) khi loại ghế đang dùng trong layout
 - Dùng `seat-type-colors.js` cho color swatch
+- Editor phòng chiếu đọc `seat_span` qua `data-seat-span` trên `.slt-type-card` (không hardcode COUPLE/SWEETBOX)
 
 ---
 
@@ -812,12 +823,12 @@ SeatTypeDAO.delete(id)
 | `getTypeKeyToIdMap()` | `Map<String,String>` lowercase name → id | SeatLayoutJsonUtil |
 | `isDuplicate(name)` | `COUNT WHERE type_name = ?` (case-insensitive) | Validate create |
 | `isDuplicateExcluding(name, id)` | `COUNT WHERE type_name = ? AND id <> ?` | Validate update |
-| `create(typeName, multiplier, description)` | `INSERT SeatTypes` — name UPPERCASE | POST create |
-| `update(id, typeName, multiplier, description)` | `UPDATE SeatTypes` | POST update |
+| `create(typeName, multiplier, description, seatSpan)` | `INSERT SeatTypes` — name UPPERCASE, `seat_span` 1 hoặc 2 | POST create |
+| `update(id, typeName, multiplier, description, seatSpan)` | `UPDATE SeatTypes` | POST update |
 | `countUsedIn(seatTypeId)` | `COUNT Seats WHERE seat_type_id = ?` | Guard delete |
 | `delete(id)` | `DELETE` — throws `IllegalStateException` nếu `countUsedIn > 0` | POST delete |
 
-Seed: REGULAR (×1.0), VIP (×1.5), COUPLE (×2.0), SWEETBOX (×2.5).
+Seed: REGULAR (×1.0, 1 ô), VIP (×1.5, 1 ô), COUPLE (×2.0, **2 ô**), SWEETBOX (×2.5, **2 ô**).
 
 ---
 
@@ -929,8 +940,9 @@ Return đường dẫn tương đối: images/movies/posters/uuid.jpg
 | Field | Type | Manager UI |
 |-------|------|------------|
 | `typeName` | String | Form create/update (lưu UPPERCASE) |
-| `priceMultiplier` | BigDecimal | Form create/update (hệ số × giá) |
+| `priceMultiplier` | BigDecimal | Form create/update — định dạng X.XX |
 | `description` | String | Form create/update |
+| `seatSpan` | int | Dropdown 1 ô / 2 ô liền nhau; cột bảng + `data-seat-span` trên editor |
 
 ### 9.5 `Showtime`
 
@@ -1023,13 +1035,16 @@ CREATE TABLE Seats (
 CREATE TABLE SeatTypes (
     id               UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     type_name        NVARCHAR(50)     NOT NULL,
-    price_multiplier DECIMAL(5,2)     NOT NULL DEFAULT 1.0,
-    description      NVARCHAR(255)    NULL,
-    created_at       DATETIME2        NOT NULL DEFAULT GETDATE()
+    price_multiplier DECIMAL(5,2)     NOT NULL DEFAULT 1.00,
+    description      NVARCHAR(MAX)    NULL,
+    seat_span        INT              NOT NULL DEFAULT 1,   -- 1 = ghế đơn, 2 = 2 ô liền nhau
+    CONSTRAINT CK_SeatTypes_SeatSpan CHECK (seat_span IN (1, 2))
 );
 ```
 
-**Seed:** REGULAR (×1.0), VIP (×1.5), COUPLE (×2.0), SWEETBOX (×2.5).
+**Migration (DB cũ):** `Database/migrations/add_seat_type_span.sql`
+
+**Seed:** REGULAR (×1.0, span 1), VIP (×1.5, span 1), COUPLE (×2.0, span 2), SWEETBOX (×2.5, span 2).
 
 ### 10.6 Bảng `Showtimes` (FR-25)
 
@@ -1040,7 +1055,7 @@ CREATE TABLE Showtimes (
     room_id     UNIQUEIDENTIFIER NOT NULL,
     start_time  DATETIME2        NOT NULL,
     end_time    DATETIME2        NOT NULL,
-    base_price  DECIMAL(18,0)    NOT NULL,
+    base_price  DECIMAL(12,2)    NOT NULL,
     status      NVARCHAR(20)     NOT NULL,  -- SCHEDULED | OPEN | SOLD_OUT | CANCELLED | FINISHED
     created_by  UNIQUEIDENTIFIER NULL,
     created_at  DATETIME2        NOT NULL DEFAULT GETDATE()
@@ -1073,6 +1088,9 @@ CREATE TABLE Showtimes (
 | 16 | Xóa suất: hard delete chỉ khi `countBookingsByShowtimeId = 0` | `ManageShowtimeServlet` |
 | 17 | `average_rating` không chỉnh từ manager | Chỉ cập nhật qua review (chưa triển khai đầy đủ) |
 | 18 | `type_name` loại ghế lưu **UPPERCASE** | `SeatTypeDAO.create()` |
+| 19 | `seat_span` ∈ {1, 2} — ghế 2 ô hiển thị rộng trên layout editor | DB + `ManageSeatTypeServlet` + `data-seat-span` |
+| 20 | `priceMultiplier` loại ghế: định dạng X.XX (0.01–9.99) | `ManageSeatTypeServlet.PRICE_MULTIPLIER_PATTERN` |
+| 21 | `basePrice` suất chiếu: tối đa 9 chữ số | `ManageShowtimeServlet.MAX_BASE_PRICE` |
 
 ---
 
@@ -1103,7 +1121,8 @@ CREATE TABLE Showtimes (
 | Nhóm | Mục đích |
 |------|----------|
 | `.slt-editor`, `.slt-sidebar`, `.slt-workspace` | Shell editor |
-| `.slt-seat--regular/vip/couple/sweetbox` | Ô ghế |
+| `.slt-seat--regular/vip/couple/sweetbox`, `.slt-seat--custom` | Màu preset / HSL loại mới |
+| `.slt-seat--wide` | Ghế **2 ô** (theo `seat_span` / `data-seat-span`) |
 | `.slt-gap` | Ô lối đi (dashed) |
 | `.slt-toolbar`, `.slt-tool--active`, `.slt-tool--danger` | Chọn / Thêm ghế / Lối đi / **Xóa** |
 | `#sltActiveTypeHint[data-hint-add]` | Hint tool Thêm ghế / Xóa (render từ JSP) |
@@ -1194,7 +1213,7 @@ Dựa trên `project_summary_final.md` (Nhóm Manager):
 | FR-21 | Promotion Management | `Promotions` | ❌ Chưa có |
 | FR-25 | Showtime Management | `Showtimes` | ✅ CRUD suất, overlap check, booking lock |
 | FR-26 | Cinema Room Management | `CinemaRooms`, `Seats` | 🟡 Tạo/rename/toggle ✅; save layout ✅; xóa phòng ❌ |
-| FR-27 | Seat Type & Pricing | `SeatTypes` | ✅ Hoàn thành (CRUD + delete guard) |
+| FR-27 | Seat Type & Pricing | `SeatTypes` | ✅ CRUD + delete guard + **seat_span** (1/2 ô) |
 | FR-30 | Dashboard Statistics | aggregate | 🟡 Admin dashboard — thống kê tháng |
 | FR-31 | Revenue Report | `Payments`, `Bookings` | 🟡 Admin `/admin/reports` + CSV (Phase 1) |
 | FR-32 | Ticket Sales Report | `Bookings`, `BookingSeats` | 🟡 Admin `/admin/reports` — phim/suất + CSV (Phase 1) |
@@ -1252,7 +1271,8 @@ Dựa trên `project_summary_final.md` (Nhóm Manager):
 - [ ] Lọc Hoạt động / Bảo trì hoạt động (client-side)
 - [ ] Click card → panel preview cập nhật; nút **Xem chi tiết** đúng `id`
 - [ ] Nút **Chi tiết** trên card → `/manager/rooms/detail?id=...`
-- [ ] Tạo phòng mới → `?success=created`
+- [ ] Tạo phòng mới → redirect **`/manager/rooms/detail?id=...&success=created`**
+- [ ] Validate tên trống / >100 ký tự / trùng → lỗi qua query `?error=`
 - [ ] Đổi tên phòng → `?success=renamed`
 - [ ] Toggle trạng thái ACTIVE ↔ MAINTENANCE (guard showtime)
 - [ ] Detail — sidebar loại ghế từ DB (4 loại seed)
@@ -1266,8 +1286,9 @@ Dựa trên `project_summary_final.md` (Nhóm Manager):
 
 - [ ] Menu MANAGER có「Quản lý loại ghế」
 - [ ] Hiển thị 4 loại seed (REGULAR, VIP, COUPLE, SWEETBOX)
-- [ ] Tạo loại ghế mới → `?success=created`
-- [ ] Validate: tên trống, hệ số ≤ 0, trùng tên → lỗi
+- [ ] Tạo loại ghế mới (chọn 1 ô hoặc 2 ô) → `?success=created`
+- [ ] Validate: tên trống, hệ số sai định dạng (VD 1.5), hệ số ≤ 0, seatSpan invalid, trùng tên → lỗi
+- [ ] Loại ghế **2 ô** hiển thị rộng trên editor layout phòng chiếu
 - [ ] Sửa loại ghế → `?success=updated`
 - [ ] Xóa loại ghế — guard countUsedIn → `?success=deleted`
 - [ ] Usage count hiển thị đúng
@@ -1280,12 +1301,12 @@ Dựa trên `project_summary_final.md` (Nhóm Manager):
 - [ ] Tạo suất → `end_time` = start + duration; `?success=created`
 - [ ] Validate: trùng lịch cùng phòng → lỗi
 - [ ] Validate: giờ bắt đầu quá khứ (tạo mới) → lỗi
-- [ ] Giá vé 90000 (step 1000) — không lỗi HTML5 constraint
+- [ ] Giá vé 90000 (step 1000) — không lỗi; giá 1000000000 → lỗi "không quá 9 chữ số"
 - [ ] Sửa suất chưa có booking — đổi phim/phòng/giờ/giá/status → `?success=updated`
 - [ ] Sửa suất **đã có booking** — khóa phim/phòng/giờ; chỉ sửa giá/status
 - [ ] Xóa suất không booking → `?success=deleted`
 - [ ] Xóa suất có booking → `?error=has_bookings`; gợi ý CANCELLED
-- [ ] Filter client-side (phim, phòng, trạng thái) hoạt động
+- [ ] Filter client-side (phim, phòng, **ngày**, trạng thái) hoạt động
 - [ ] Select dropdown đọc được trên nền tối
 
 ### Bảo mật
@@ -1343,4 +1364,4 @@ sequenceDiagram
 
 ---
 
-*Tài liệu chi tiết module Manager — cập nhật 14/06/2026 (FR-23 soft delete, FR-24 delete + toggle, FR-25 CRUD suất chiếu, FR-26 CRUD phòng + persist layout + lối đi qua `seat_column`, FR-27 CRUD loại ghế; session 24h; editor layout — xóa chỉ ở tool Xóa).*
+*Tài liệu chi tiết module Manager — cập nhật 29/06/2026 (FR-25 validate giá 9 chữ số; FR-26 redirect detail sau tạo phòng, layout A–Z, seat_span trên editor; FR-27 seat_span + validate hệ số X.XX; gợi ý tĩnh form loại ghế/suất chiếu).*

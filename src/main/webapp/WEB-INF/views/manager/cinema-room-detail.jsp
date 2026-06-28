@@ -161,12 +161,12 @@
             <div class="slt-seat-types" id="sltSeatTypes">
               <c:forEach var="st" items="${seatTypeList}">
                 <c:set var="typeKey" value="${fn:toLowerCase(st.typeName)}"/>
-                <c:set var="isWide" value="${st.typeName == 'COUPLE' or st.typeName == 'SWEETBOX'}"/>
+                <c:set var="typeSpan" value="${st.seatSpan >= 2 ? 2 : 1}"/>
                 <button type="button"
                         class="slt-type-card slt-type-card--${typeKey}"
                         data-type-id="<c:out value='${st.id}'/>"
                         data-type-key="${typeKey}"
-                        data-wide="${isWide ? 'true' : 'false'}"
+                        data-seat-span="${typeSpan}"
                         data-multiplier="<c:out value='${st.priceMultiplier}'/>">
                   <span class="slt-type-swatch slt-type-swatch--${typeKey}" data-type-key="${typeKey}"></span>
                   <span class="slt-type-info">

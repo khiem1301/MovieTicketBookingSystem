@@ -182,7 +182,12 @@ public class ManageCinemaRoomServlet extends HttpServlet {
         } catch (IllegalArgumentException ex) {
             resp.sendRedirect(detailUrl(ctx, roomId, "error=" + enc(ex.getMessage())));
         } catch (RuntimeException ex) {
-            resp.sendRedirect(detailUrl(ctx, roomId, "error=" + enc("Không thể lưu layout. Vui lòng thử lại.")));
+            String msg = "Không thể lưu layout. Vui lòng thử lại.";
+            if (ex.getCause() instanceof java.sql.SQLException) {
+                msg = "Không thể lưu layout — ghế có thể đang được đặt vé hoặc giữ chỗ. "
+                        + "Giữ nguyên mã ghế đã bán và thử lại.";
+            }
+            resp.sendRedirect(detailUrl(ctx, roomId, "error=" + enc(msg)));
         }
     }
 

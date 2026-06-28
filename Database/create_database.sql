@@ -260,10 +260,12 @@ CREATE TABLE SeatTypes (
     type_name        NVARCHAR(50)      NOT NULL,
     price_multiplier DECIMAL(5,2)     NOT NULL DEFAULT 1.00,
     description      NVARCHAR(MAX)    NULL,
+    seat_span        INT              NOT NULL DEFAULT 1,
 
     CONSTRAINT PK_SeatTypes       PRIMARY KEY (id),
     CONSTRAINT UK_SeatTypes_Name  UNIQUE (type_name),
-    CONSTRAINT CK_SeatTypes_Multi CHECK  (price_multiplier > 0)
+    CONSTRAINT CK_SeatTypes_Multi CHECK  (price_multiplier > 0),
+    CONSTRAINT CK_SeatTypes_SeatSpan CHECK (seat_span IN (1, 2))
 );
 GO
 
@@ -819,11 +821,11 @@ INSERT INTO CinemaInfo (id, name, address, hotline, email, opening_hours, descri
      N'Rạp chiếu phim hiện đại với 4 phòng chiếu, hỗ trợ đặt vé online và tại quầy.');
 GO
 
-INSERT INTO SeatTypes (id, type_name, price_multiplier, description) VALUES
-    (NEWID(), 'REGULAR',  1.00, N'Ghế thường'),
-    (NEWID(), 'VIP',      1.50, N'Ghế VIP - rộng hơn, vị trí trung tâm'),
-    (NEWID(), 'COUPLE',   2.00, N'Ghế đôi dành cho 2 người'),
-    (NEWID(), 'SWEETBOX', 2.50, N'Ghế sweetbox - riêng tư, có bàn nhỏ');
+INSERT INTO SeatTypes (id, type_name, price_multiplier, description, seat_span) VALUES
+    (NEWID(), 'REGULAR',  1.00, N'Ghế thường', 1),
+    (NEWID(), 'VIP',      1.50, N'Ghế VIP - rộng hơn, vị trí trung tâm', 1),
+    (NEWID(), 'COUPLE',   2.00, N'Ghế đôi dành cho 2 người', 2),
+    (NEWID(), 'SWEETBOX', 2.50, N'Ghế sweetbox - riêng tư, có bàn nhỏ', 2);
 GO
 
 -- Chatbot: chi user da dang nhap (user_id NOT NULL)

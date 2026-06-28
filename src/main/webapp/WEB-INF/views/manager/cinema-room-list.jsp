@@ -30,7 +30,7 @@
       <div class="aud-header-actions">
         <form method="post" action="${pageContext.request.contextPath}/manager/rooms" class="aud-add-room-form">
           <input type="text" name="roomName" maxlength="100" required
-                 placeholder="Tên phòng mới..."
+                 placeholder="Tên phòng mới (tối đa 100 ký tự)"
                  class="aud-add-room-input"/>
           <button type="submit" class="aud-btn aud-btn--primary">
             <span class="material-symbols-outlined">add</span>
@@ -212,7 +212,7 @@
               <h3 class="aud-add-title">Thêm phòng mới</h3>
               <p class="aud-add-desc">Nhập tên phòng, sau đó cấu hình layout ghế trên trang chi tiết.</p>
               <input type="text" name="roomName" maxlength="100" required
-                     placeholder="VD: Phòng 4, Phòng IMAX..."
+                     placeholder="Tên phòng mới (tối đa 100 ký tự)"
                      class="aud-add-card-input" id="audAddRoomInput"/>
               <button type="submit" class="aud-btn aud-btn--primary aud-add-card-submit">
                 <span class="material-symbols-outlined">add</span>
@@ -312,7 +312,7 @@
               <p>Chưa có phòng chiếu nào. Tạo phòng mới ở thẻ bên trái hoặc dùng form bên dưới.</p>
               <form method="post" action="${pageContext.request.contextPath}/manager/rooms" class="aud-add-panel-form">
                 <input type="text" name="roomName" maxlength="100" required
-                       placeholder="Tên phòng mới..."
+                       placeholder="Tên phòng mới (tối đa 100 ký tự)"
                        class="aud-add-room-input"/>
                 <button type="submit" class="aud-btn aud-btn--primary">
                   <span class="material-symbols-outlined">add</span>

@@ -17,12 +17,13 @@ public class SeatTypeDAO {
         st.setTypeName(rs.getString("type_name"));
         st.setPriceMultiplier(rs.getBigDecimal("price_multiplier"));
         st.setDescription(rs.getString("description"));
+        st.setSeatSpan(rs.getInt("seat_span"));
         return st;
     }
 
     public List<SeatType> getAll() {
         String sql = """
-                SELECT id, type_name, price_multiplier, description
+                SELECT id, type_name, price_multiplier, description, seat_span
                 FROM SeatTypes
                 ORDER BY price_multiplier, type_name
                 """;
@@ -39,7 +40,7 @@ public class SeatTypeDAO {
 
     public SeatType getById(String id) {
         String sql = """
-                SELECT id, type_name, price_multiplier, description
+                SELECT id, type_name, price_multiplier, description, seat_span
                 FROM SeatTypes WHERE id = ?
                 """;
         try (Connection conn = DBContext.getConnection();
@@ -90,26 +91,27 @@ public class SeatTypeDAO {
         }
     }
 
-    public void create(String typeName, BigDecimal multiplier, String description) {
+    public void create(String typeName, BigDecimal multiplier, String description, int seatSpan) {
         String sql = """
-                INSERT INTO SeatTypes (id, type_name, price_multiplier, description)
-                VALUES (NEWID(), ?, ?, ?)
+                INSERT INTO SeatTypes (id, type_name, price_multiplier, description, seat_span)
+                VALUES (NEWID(), ?, ?, ?, ?)
                 """;
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, typeName.trim().toUpperCase());
             ps.setBigDecimal(2, multiplier);
             ps.setString(3, description != null && !description.isBlank() ? description.trim() : null);
+            ps.setInt(4, seatSpan);
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("SeatTypeDAO.create failed", e);
         }
     }
 
-    public void update(String id, String typeName, BigDecimal multiplier, String description) {
+    public void update(String id, String typeName, BigDecimal multiplier, String description, int seatSpan) {
         String sql = """
                 UPDATE SeatTypes
-                SET type_name = ?, price_multiplier = ?, description = ?
+                SET type_name = ?, price_multiplier = ?, description = ?, seat_span = ?
                 WHERE id = ?
                 """;
         try (Connection conn = DBContext.getConnection();
@@ -117,7 +119,8 @@ public class SeatTypeDAO {
             ps.setString(1, typeName.trim().toUpperCase());
             ps.setBigDecimal(2, multiplier);
             ps.setString(3, description != null && !description.isBlank() ? description.trim() : null);
-            ps.setString(4, id);
+            ps.setInt(4, seatSpan);
+            ps.setString(5, id);
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("SeatTypeDAO.update failed", e);
