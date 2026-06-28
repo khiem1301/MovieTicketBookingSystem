@@ -33,6 +33,8 @@ public class ManageShowtimeServlet extends HttpServlet {
             "SCHEDULED", "OPEN", "SOLD_OUT", "CANCELLED", "FINISHED"
     );
     private static final DateTimeFormatter DT_LOCAL = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
+    private static final int MAX_BASE_PRICE_DIGITS = 9;
+    private static final BigDecimal MAX_BASE_PRICE = new BigDecimal("999999999");
 
     private final ShowtimeDAO showtimeDAO = new ShowtimeDAO();
     private final MovieDAO movieDAO = new MovieDAO();
@@ -219,6 +221,11 @@ public class ManageShowtimeServlet extends HttpServlet {
             basePrice = new BigDecimal(basePriceStr.replace(",", "").trim());
             if (basePrice.compareTo(BigDecimal.ZERO) <= 0) {
                 result.error = "Giá vé cơ bản phải lớn hơn 0.";
+                return result;
+            }
+            if (basePrice.compareTo(MAX_BASE_PRICE) > 0
+                    || basePrice.toBigInteger().toString().length() > MAX_BASE_PRICE_DIGITS) {
+                result.error = "Giá vé cơ bản không quá 9 chữ số.";
                 return result;
             }
         } catch (NumberFormatException e) {

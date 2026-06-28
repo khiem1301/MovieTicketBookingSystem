@@ -5,7 +5,7 @@
 > **Tổng quan dự án:** [`SOURCE_CODE_OVERVIEW.md`](SOURCE_CODE_OVERVIEW.md)  
 > **Spec nghiệp vụ:** [`project_summary_final.md`](project_summary_final.md)  
 > **Database & migration:** [`Database/README.md`](Database/README.md)  
-> **Module liên quan:** [`ADMIN_MODULE_DETAIL.md`](ADMIN_MODULE_DETAIL.md)
+> **Chi tiết 3 module vận hành (phòng · loại ghế · suất chiếu):** [`MANAGER_CINEMA_OPERATIONS.md`](MANAGER_CINEMA_OPERATIONS.md)
 
 ---
 
@@ -543,6 +543,7 @@ isAuthorized()
 - **Lưu layout:** POST `/manager/rooms/save-layout` → persist vào bảng `Seats`
 - Load layout từ DB qua `SeatLayoutJsonUtil.buildLayoutJson()` (khôi phục lối đi từ `seat_column`)
 - Phòng chưa có ghế → layout mẫu 3 hàng (A/B/C) hoặc draft `localStorage`
+- **Thêm hàng ghế:** tối đa **11 hàng** (nhãn A–K); `nextRowLabel()` trong `manager-seat-layout.js` chặn sau hàng K
 
 **Quy tắc editor (client — `manager-seat-layout.js`):**
 

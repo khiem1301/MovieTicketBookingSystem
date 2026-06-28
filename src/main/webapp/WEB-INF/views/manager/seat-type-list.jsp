@@ -44,17 +44,32 @@
             <div class="mgr-form-group">
               <label for="typeName">Tên loại ghế <span class="required">*</span></label>
               <input id="typeName" type="text" name="typeName" maxlength="50" required
+                     aria-describedby="typeNameHint"
                      value="<c:out value='${not empty inputTypeName ? inputTypeName : editSeatType.typeName}'/>"/>
+              <small id="typeNameHint" class="mgr-hint">Tối đa 50 ký tự</small>
             </div>
             <div class="mgr-form-group">
               <label for="priceMultiplier">Hệ số giá <span class="required">*</span></label>
-              <input id="priceMultiplier" type="number" name="priceMultiplier" step="0.01" min="0.01" required
+              <input id="priceMultiplier" type="number" name="priceMultiplier" step="0.01" min="0.01" max="9.99" required
+                     title="1 chữ số phần nguyên, 2 chữ số phần thập phân (VD: 1.50)"
                      value="<c:out value='${not empty inputMultiplier ? inputMultiplier : editSeatType.priceMultiplier}'/>"/>
+              <small class="mgr-hint">Định dạng X.XX — từ 0.01 đến 9.99</small>
+            </div>
+            <div class="mgr-form-group">
+              <label for="seatSpan">Kích thước trên layout <span class="required">*</span></label>
+              <select id="seatSpan" name="seatSpan" required>
+                <c:set var="editSpan" value="${not empty inputSeatSpan ? inputSeatSpan : editSeatType.seatSpan}"/>
+                <option value="1" ${editSpan == 1 || editSpan == '1' ? 'selected' : ''}>1 ô — ghế đơn</option>
+                <option value="2" ${editSpan == 2 || editSpan == '2' ? 'selected' : ''}>2 ô — ghế đôi</option>
+              </select>
+              <small class="mgr-hint">Ghế 2 ô hiển thị rộng gấp đôi trên sơ đồ (như COUPLE, SWEETBOX)</small>
             </div>
             <div class="mgr-form-group">
               <label for="description">Mô tả</label>
               <input id="description" type="text" name="description" maxlength="255"
+                     aria-describedby="descriptionHint"
                      value="<c:out value='${not empty inputDescription ? inputDescription : editSeatType.description}'/>"/>
+              <small id="descriptionHint" class="mgr-hint">Tối đa 255 ký tự</small>
             </div>
             <div class="mgr-form-actions">
               <button type="submit" class="btn btn-primary mgr-submit">💾 Lưu thay đổi</button>
@@ -72,18 +87,32 @@
               <label for="typeName">Tên loại ghế <span class="required">*</span></label>
               <input id="typeName" type="text" name="typeName" maxlength="50" required
                      placeholder="VD: PREMIUM"
+                     aria-describedby="typeNameHint"
                      value="<c:out value='${inputTypeName}'/>"/>
+              <small id="typeNameHint" class="mgr-hint">Tối đa 50 ký tự</small>
             </div>
             <div class="mgr-form-group">
               <label for="priceMultiplier">Hệ số giá <span class="required">*</span></label>
-              <input id="priceMultiplier" type="number" name="priceMultiplier" step="0.01" min="0.01" required
+              <input id="priceMultiplier" type="number" name="priceMultiplier" step="0.01" min="0.01" max="9.99" required
                      placeholder="1.00"
+                     title="1 chữ số phần nguyên, 2 chữ số phần thập phân (VD: 1.50)"
                      value="<c:out value='${inputMultiplier}'/>"/>
+              <small class="mgr-hint">Định dạng X.XX — từ 0.01 đến 9.99</small>
+            </div>
+            <div class="mgr-form-group">
+              <label for="seatSpan">Kích thước trên layout <span class="required">*</span></label>
+              <select id="seatSpan" name="seatSpan" required>
+                <option value="1" ${inputSeatSpan == '2' ? '' : 'selected'}>1 ô — ghế đơn</option>
+                <option value="2" ${inputSeatSpan == '2' ? 'selected' : ''}>2 ô — ghế đôi</option>
+              </select>
+              <small class="mgr-hint">Ghế 2 ô hiển thị rộng gấp đôi trên sơ đồ (như COUPLE, SWEETBOX)</small>
             </div>
             <div class="mgr-form-group">
               <label for="description">Mô tả</label>
               <input id="description" type="text" name="description" maxlength="255"
+                     aria-describedby="descriptionHint"
                      value="<c:out value='${inputDescription}'/>"/>
+              <small id="descriptionHint" class="mgr-hint">Tối đa 255 ký tự</small>
             </div>
             <button type="submit" class="btn btn-primary mgr-submit">+ Thêm loại ghế</button>
           </form>
@@ -101,6 +130,7 @@
           <tr>
             <th>#</th>
             <th>Tên loại</th>
+            <th>Kích thước</th>
             <th>Hệ số</th>
             <th>Ghế đang dùng</th>
             <th>Thao tác</th>
@@ -117,6 +147,7 @@
                       style="display:inline-block;vertical-align:middle;margin-right:8px;width:14px;height:14px;border-radius:3px;"></span>
                 <c:out value="${st.typeName}"/>
               </td>
+              <td><c:out value="${st.seatSpan >= 2 ? '2 ô' : '1 ô'}"/></td>
               <td>×<fmt:formatNumber value="${st.priceMultiplier}" minFractionDigits="2" maxFractionDigits="2"/></td>
               <td class="mgr-td-date">${usageMap[st.id] != null ? usageMap[st.id] : 0}</td>
               <td>

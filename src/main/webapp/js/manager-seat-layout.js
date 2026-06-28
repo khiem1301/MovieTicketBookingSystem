@@ -47,10 +47,13 @@
     }
     document.querySelectorAll('.slt-type-card').forEach(function (card) {
       var key = normalizeType(card.dataset.typeKey || 'regular');
+      var span = parseInt(card.dataset.seatSpan || '1', 10);
+      if (isNaN(span) || span < 1) span = 1;
       var nameEl = card.querySelector('.slt-type-name');
       TYPE_META[key] = {
         css: key,
-        wide: card.dataset.wide === 'true' || !!WIDE_TYPE_KEYS[key],
+        seatSpan: span,
+        wide: span >= 2 || card.dataset.wide === 'true' || !!WIDE_TYPE_KEYS[key],
         icon: ICON_TYPE_KEYS[key] || '',
         color: colorForType(key),
         label: nameEl ? nameEl.textContent.trim() : key
@@ -63,6 +66,7 @@
     if (!TYPE_META[key]) {
       TYPE_META[key] = {
         css: key,
+        seatSpan: WIDE_TYPE_KEYS[key] ? 2 : 1,
         wide: !!WIDE_TYPE_KEYS[key],
         icon: ICON_TYPE_KEYS[key] || '',
         color: colorForType(key),
