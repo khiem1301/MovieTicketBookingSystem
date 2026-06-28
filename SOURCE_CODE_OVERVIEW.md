@@ -1,4 +1,4 @@
-# ÉPCINE — Tổng hợp Source Code (đến 23/06/2026)
+# ÉPCINE — Tổng hợp Source Code (đến 29/06/2026)
 
 > **Dự án:** Movie Ticket Booking System (SWP391)  
 > **Stack:** Java 17 · Jakarta Servlet 6 · JSP/JSTL · JDBC · SQL Server · Maven WAR · Tomcat 10  
@@ -82,7 +82,11 @@ MovieTicketBookingSystem/
 ├── Database/
 │   ├── create_database.sql          # Schema + seed data
 │   └── migrations/
-│       └── add_vietqr_payment_method.sql  # Thêm VIETQR vào CK_Payments_Method
+│       ├── add_user_status_log.sql
+│       ├── add_token_purpose.sql
+│       ├── add_vietqr_payment_method.sql
+│       ├── add_seat_type_span.sql          # seat_span (1 ô / 2 ô) trên SeatTypes
+│       └── sprint2_counter_pos.sql
 ├── scripts/                         # Setup & Git hooks
 │   ├── setup.bat / setup.ps1
 │   ├── install-git-hooks.bat
@@ -350,23 +354,25 @@ MovieTicketBookingSystem/
 #### `ManageCinemaRoomServlet` — `/manager/rooms`, `/manager/rooms/detail`, `/manager/rooms/update`, `/manager/rooms/save-layout`
 - **GET list:** danh sách phòng + panel preview
 - **GET detail:** editor layout ghế + load seats từ DB
-- **POST create:** tạo phòng mới (validate tên, check trùng)
-- **POST update:** rename (`action=rename`) hoặc toggle status (`action=toggle`) với guard `countUpcomingShowtimes()`
+- **POST create:** tạo phòng mới (validate tên ≤100 ký tự, check trùng) → redirect `/manager/rooms/detail?id={newId}&success=created`
+- **POST update:** rename (`action=rename`) hoặc toggle status (`action=toggle`) — guard `countUpcomingShowtimes()` khi chuyển MAINTENANCE/INACTIVE
 - **POST save-layout:** parse JSON layout qua `SeatLayoutJsonUtil.parseSeats()` → persist vào bảng `Seats`; lối đi (gap) giữ qua `seat_column` nhảy số
-- **Editor layout:** tối đa **11 hàng** (nhãn A–K); `manager-seat-layout.js` → `nextRowLabel()` chặn sau hàng K
+- **Editor layout:** tối đa **26 hàng** (nhãn A–Z); `manager-seat-layout.js` → `nextRowLabel()` chặn sau hàng Z
+- **Loại ghế rộng (2 ô):** sidebar editor đọc `data-seat-span` từ DB (`SeatTypes.seat_span`), không hardcode tên COUPLE/SWEETBOX
 
 #### `ManageShowtimeServlet` — `/manager/showtimes`
 - **GET:** danh sách suất + form tạo/sửa; dropdown phim (`getSchedulableMovies`) và phòng ACTIVE (`getActiveRooms`)
 - **POST create:** `end_time = start + movie.duration`; kiểm tra overlap cùng phòng (bỏ qua suất CANCELLED)
 - **POST update:** khóa phim/phòng/giờ khi suất đã có booking; luôn cho sửa `basePrice` và `status`
 - **POST delete:** hard delete chỉ khi không có booking → else redirect `?error=has_bookings`
+- **Validate `basePrice`:** > 0, tối đa **9 chữ số** (≤ 999.999.999 VNĐ); form HTML `min="1000" max="999999999" step="1000"`
 - Status hợp lệ: `SCHEDULED`, `OPEN`, `SOLD_OUT`, `CANCELLED`, `FINISHED`
 
 #### `ManageSeatTypeServlet` — `/manager/seat-types`
 - CRUD loại ghế (create/update/delete)
-- Validate: typeName required (≤50 ký tự), priceMultiplier > 0, duplicate check
+- Validate: `typeName` required (≤50 ký tự), `priceMultiplier` định dạng **X.XX** (0.01–9.99), `seatSpan` **1 hoặc 2** (1 ô / 2 ô liền nhau trên layout), duplicate check
 - **Delete:** guard `countUsedIn()` — không xóa nếu đang dùng trong layout phòng
-- Hiển thị `usageMap` (số ghế đang dùng mỗi loại)
+- Hiển thị `usageMap` (số ghế đang dùng mỗi loại); gợi ý tĩnh (`mgr-hint`) trên form
 
 ### 5.5 `controller.staff`
 
@@ -441,7 +447,7 @@ MovieTicketBookingSystem/
 | `PricingRuleDAO` | `PricingRules` | `getActiveRules()` — đọc rule ACTIVE cho tính giá động (FR-50) |
 | `SeatDAO` | `Seats`, `SeatTypes`, `SeatHolds`, `BookingSeats` | Ghế theo suất + availability (booked + hold); overload `getSeatsForShowtime(id, userId)` cho checkout; `saveLayout()` |
 | `SeatHoldDAO` | `SeatHolds` | FR-13: `findBlockingSeatCodes`, `holdSeats`, **`syncHolds`**, **`releaseHolds`**, `getActiveHoldExpiry`, `getHeldSeatIds`, `deleteExpiredHolds` |
-| `SeatTypeDAO` | `SeatTypes` | getAll, getById, create, update, delete; isDuplicate*; getTypeKeyToIdMap; countUsedIn |
+| `SeatTypeDAO` | `SeatTypes` | getAll, getById, create, update, delete; isDuplicate*; getTypeKeyToIdMap; countUsedIn; **seat_span** |
 | `CinemaRoomDAO` | `CinemaRooms` | getAll, getById, getActiveRooms, create, updateName, updateStatus; existsByName*; countUpcomingShowtimes, countActiveSeats, countAccessibleSeats |
 | `BookingDAO` | `Bookings`, `BookingSeats` | `createOfflineBooking`, **`createOnlineBooking`**, **`applyPromotionToBooking`**, **`removePromotionFromBooking`**, **`cancelOnlinePendingBooking`**, **`completeOnlinePayment`**, `findActiveOnlinePendingBookingId`, **`countConfirmedByUserId`**, `confirmPayment`, `getById`, `getDetailById`, `getCurrentVatRate` |
 | `PaymentDAO` | `Payments` | FR-16: **`insertPendingOnlineVietQR`**, **`findLatestPendingVietQR`**, **`findByTransferCode`**, `markSuccess`, `markFailed` |
@@ -471,7 +477,7 @@ MovieTicketBookingSystem/
 | `Genre` | `Genres` | |
 | `Showtime` | `Showtimes` | Denormalized movie/room cho UI; `effectivePrice` transient (FR-50) |
 | `Seat` | `Seats` | `ticketPrice`, `available`, `heldByCurrentUser` computed |
-| `SeatType` | `SeatTypes` | typeName, priceMultiplier, description |
+| `SeatType` | `SeatTypes` | typeName, priceMultiplier, description, **seatSpan** (1 hoặc 2 ô trên layout) |
 | `CinemaRoom` | `CinemaRooms` | id, roomName, capacity, status, createdAt |
 | `Booking` | `Bookings` | |
 | `PricingRule` | `PricingRules` | Quy tắc điều chỉnh giá động (conditionType, adjustmentType, …) |
@@ -616,7 +622,7 @@ MovieTicketBookingSystem/
 | `cinema-room-list.jsp` | Grid phòng chiếu + panel preview + tạo phòng |
 | `cinema-room-detail.jsp` | Chi tiết phòng + editor layout ghế (lưu DB) |
 | `showtime-list.jsp` | CRUD suất chiếu + filter + status badges |
-| `seat-type-list.jsp` | CRUD loại ghế + color swatch + usage count |
+| `seat-type-list.jsp` | CRUD loại ghế + color swatch + usage count + **seat_span** (1/2 ô) + gợi ý tĩnh |
 
 ### 10.5 Staff (`views/staff/`)
 
@@ -681,8 +687,8 @@ MovieTicketBookingSystem/
 | `js/profile.js` | Preview avatar, toggle form đổi mật khẩu trên `/profile` |
 | `js/counter-booking.js` | Chọn ghế + logic form booking (render gap qua `seatColumn`) |
 | `js/manager-auditoriums.js` | Lọc phòng, chọn card, panel preview |
-| `js/manager-seat-layout.js` | Editor ghế client-side + gọi save-layout API; giới hạn hàng A–K (`nextRowLabel`) |
-| `js/manager-showtimes.js` | Lọc bảng suất + xác nhận xóa |
+| `js/manager-seat-layout.js` | Editor ghế client-side + gọi save-layout API; giới hạn hàng A–Z (`nextRowLabel`); đọc `data-seat-span` cho ghế 2 ô |
+| `js/manager-showtimes.js` | Lọc bảng suất (phim/phòng/**ngày**/trạng thái); gợi ý thời lượng phim |
 | `js/seat-type-colors.js` | Preset + dynamic HSL color cho loại ghế |
 | `js/showtimes-selector.js` | Tab chọn ngày suất chiếu (zero reload, FR-11) |
 | `js/customer-checkout.js` | Chọn ghế + **AJAX hold ngay** (`action=hold`), countdown giữ ghế, poll JSON 2s **hai chiều** (available ↔ sold) |
@@ -699,7 +705,7 @@ MovieTicketBookingSystem/
 ## 11. Database
 
 **Script:** `Database/create_database.sql` (~1168 dòng) — chạy một lần trên SSMS/Azure Data Studio.  
-**Migration bổ sung:** `Database/migrations/` — `add_user_status_log.sql`, `add_vietqr_payment_method.sql` (DB đã tạo trước khi schema gộp vào `create_database.sql`).
+**Migration bổ sung:** `Database/migrations/` — `add_user_status_log.sql`, `add_token_purpose.sql`, `add_vietqr_payment_method.sql`, **`add_seat_type_span.sql`**, `sprint2_counter_pos.sql` (DB đã tạo trước khi schema gộp vào `create_database.sql`).
 
 ### 11.1 28 bảng
 
@@ -726,7 +732,7 @@ MovieTicketBookingSystem/
 | Users | 6 tài khoản test — mật khẩu `Password@123` (gồm 3 CUSTOMER seed) |
 | Movies | 8 phim (4 NOW_SHOWING + 4 COMING_SOON) |
 | Genres | 8 thể loại |
-| Cinema | 3 phòng, 4 loại ghế (REGULAR/VIP/COUPLE/SWEETBOX) |
+| Cinema | 3 phòng, 4 loại ghế (REGULAR/VIP/COUPLE/SWEETBOX; COUPLE & SWEETBOX `seat_span=2`) |
 | Config | Loyalty settings, VAT 8% (fallback default) |
 | PricingRules | 2 rule demo FR-50 (cuối tuần +10k, khung tối +10%) |
 | Promotions | 2 voucher demo FR-22: `WEEKEND10`, `FLAT20K` |
@@ -773,7 +779,7 @@ MovieTicketBookingSystem/
 | Manager — Thể loại | ✅ Hoàn thành | CRUD + delete (FK guard) + toggle status |
 | Manager — Phòng chiếu | 🟡 Gần hoàn thành | Tạo, rename, toggle status ✅; save layout + lối đi ✅; xóa phòng ❌ |
 | Manager — Suất chiếu | ✅ Hoàn thành | CRUD + overlap check + booking lock |
-| Manager — Loại ghế & hệ số giá | ✅ Hoàn thành | CRUD + delete (usage guard) |
+| Manager — Loại ghế & hệ số giá | ✅ Hoàn thành | CRUD + delete guard + **seat_span** (1/2 ô) + validate hệ số X.XX |
 | Staff — Đặt vé quầy | ✅ Hoàn thành | POS: booking → payment → print |
 | Customer — Xem lịch chiếu (FR-11) | ✅ Hoàn thành | `/showtimes` public + dynamic pricing (FR-50) + chip gạch giá gốc |
 | Customer — Chọn ghế online (FR-12) | ✅ Hoàn thành | `/checkout` — sơ đồ ghế, giá × multiplier, poll refresh |
@@ -838,4 +844,4 @@ sequenceDiagram
 
 ---
 
-*Tài liệu được tổng hợp từ source code thực tế trong repo, cập nhật 23/06/2026.*
+*Tài liệu được tổng hợp từ source code thực tế trong repo, cập nhật 29/06/2026.*
