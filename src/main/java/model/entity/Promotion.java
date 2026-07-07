@@ -17,6 +17,7 @@ public class Promotion {
     private Integer usageLimit;
     private int usedCount;
     private String status;             // ACTIVE | INACTIVE | EXPIRED
+    private String imageUrl;
     private Timestamp createdAt;
 
     public Promotion() {}
@@ -59,6 +60,9 @@ public class Promotion {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getImageUrl() { return imageUrl; }
+    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }

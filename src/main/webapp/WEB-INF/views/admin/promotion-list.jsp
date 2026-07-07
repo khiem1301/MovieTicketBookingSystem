@@ -209,6 +209,7 @@
   flex-shrink: 0;
 }
 .promo-icon svg { width: 18px; height: 18px; fill: var(--accent); }
+.promo-icon--img { object-fit: cover; background: rgba(255,255,255,.04); }
 .promo-name { font-weight: 600; font-size: 14px; line-height: 1.3; }
 .promo-name-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 
@@ -541,6 +542,7 @@
               <option value="">Tất cả</option>
               <option value="ACTIVE"   ${statusFilter == 'ACTIVE'   ? 'selected' : ''}>ACTIVE</option>
               <option value="INACTIVE" ${statusFilter == 'INACTIVE' ? 'selected' : ''}>INACTIVE</option>
+              <option value="EXPIRED"  ${statusFilter == 'EXPIRED'  ? 'selected' : ''}>EXPIRED</option>
             </select>
             <button type="submit" class="promo-icon-btn">
               <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M3 18h6v-2H3v2zm0-5h12v-2H3v2zm0-7v2h18V6H3z"/></svg>
@@ -590,17 +592,28 @@
 
                   <%-- Name --%>
                   <td>
+                    <c:set var="pImgSrc" value="${p.imageUrl}"/>
+                    <c:if test="${not empty pImgSrc and not fn:startsWith(pImgSrc, 'http')}">
+                      <c:set var="pImgSrc" value="${pageContext.request.contextPath}/${pImgSrc}"/>
+                    </c:if>
                     <div class="promo-name-cell">
-                      <div class="promo-icon">
-                        <c:choose>
-                          <c:when test="${p.discountType == 'PERCENTAGE'}">
-                            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM7.5 6C8.33 6 9 6.67 9 7.5S8.33 9 7.5 9 6 8.33 6 7.5 6.67 6 7.5 6zm9 12l-9-9 1.5-1.5 9 9-1.5 1.5zm-1-3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5z"/></svg>
-                          </c:when>
-                          <c:otherwise>
-                            <svg viewBox="0 0 24 24"><path d="M20 12c0-1.1.9-2 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v4c1.1 0 2 .9 2 2s-.9 2-2 2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-4c-1.1 0-2-.9-2-2z"/></svg>
-                          </c:otherwise>
-                        </c:choose>
-                      </div>
+                      <c:choose>
+                        <c:when test="${not empty pImgSrc}">
+                          <img class="promo-icon promo-icon--img" src="<c:out value='${pImgSrc}'/>" alt=""/>
+                        </c:when>
+                        <c:otherwise>
+                          <div class="promo-icon">
+                            <c:choose>
+                              <c:when test="${p.discountType == 'PERCENTAGE'}">
+                                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM7.5 6C8.33 6 9 6.67 9 7.5S8.33 9 7.5 9 6 8.33 6 7.5 6.67 6 7.5 6zm9 12l-9-9 1.5-1.5 9 9-1.5 1.5zm-1-3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5-1.5-.67-1.5-1.5.67-1.5 1.5-1.5z"/></svg>
+                              </c:when>
+                              <c:otherwise>
+                                <svg viewBox="0 0 24 24"><path d="M20 12c0-1.1.9-2 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v4c1.1 0 2 .9 2 2s-.9 2-2 2v4c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-4c-1.1 0-2-.9-2-2z"/></svg>
+                              </c:otherwise>
+                            </c:choose>
+                          </div>
+                        </c:otherwise>
+                      </c:choose>
                       <div>
                         <div class="promo-name"><c:out value="${p.title}"/></div>
                         <div class="promo-name-sub">
@@ -715,7 +728,8 @@
                               data-start-date="<c:out value='${pStartFmt}'/>"
                               data-end-date="<c:out value='${pEndFmt}'/>"
                               data-usage-limit="<c:out value='${p.usageLimit}'/>"
-                              data-used-count="${p.usedCount}">
+                              data-used-count="${p.usedCount}"
+                              data-image-url="<c:out value='${p.imageUrl}'/>">
                         Edit
                       </button>
 
@@ -808,24 +822,26 @@
       </div>
 
       <form id="promoForm" method="post"
-            action="${pageContext.request.contextPath}/admin/promotions/save" novalidate>
+            action="${pageContext.request.contextPath}/admin/promotions/save"
+            enctype="multipart/form-data" novalidate>
         <input type="hidden" id="modalPromotionId" name="promotionId" value=""/>
+        <input type="hidden" id="modalExistingImageUrl" name="existingImageUrl" value=""/>
 
         <div class="promo-modal-body">
 
           <div class="pm-row">
             <div class="pm-field">
               <label class="pm-label" for="modalCode">Mã voucher *</label>
-              <input type="text" id="modalCode" name="code" class="pm-input" required
-                     maxlength="50" placeholder="SUMMER25"
+              <input type="text" id="modalCode" name="code" class="pm-input"
+                     placeholder="SUMMER25"
                      style="text-transform:uppercase"
                      oninput="this.value=this.value.toUpperCase()"/>
               <span class="pm-hint">Chữ cái, số, gạch ngang, gạch dưới</span>
             </div>
             <div class="pm-field">
               <label class="pm-label" for="modalTitle">Tiêu đề *</label>
-              <input type="text" id="modalTitle" name="title" class="pm-input" required
-                     maxlength="255" placeholder="Giảm 25% mùa hè"/>
+              <input type="text" id="modalTitle" name="title" class="pm-input"
+                     placeholder="Giảm 25% mùa hè"/>
             </div>
           </div>
 
@@ -833,6 +849,25 @@
             <label class="pm-label" for="modalDescription">Mô tả</label>
             <textarea id="modalDescription" name="description" class="pm-textarea"
                       placeholder="Điều kiện, đối tượng áp dụng..."></textarea>
+          </div>
+
+          <div class="pm-field">
+            <label class="pm-label">Ảnh voucher</label>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <img id="modalImagePreview" src="" alt=""
+                   style="width:56px;height:56px;border-radius:8px;object-fit:cover;
+                          background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);"
+                   hidden/>
+              <div style="flex:1;min-width:0;">
+                <input id="modalImageFile" type="file" name="imageFile"
+                       accept="image/jpeg,image/png,image/webp" class="pm-input"
+                       onchange="previewImageFile(this)"/>
+                <input type="text" id="modalImageUrl" name="imageUrl" class="pm-input"
+                       placeholder="Hoặc dán URL ảnh…" style="margin-top:8px;"
+                       oninput="previewImageUrl(this.value)"/>
+              </div>
+            </div>
+            <span class="pm-hint">JPG, PNG hoặc WEBP, tối đa 5MB</span>
           </div>
 
           <hr class="pm-divider"/>
@@ -849,7 +884,7 @@
             <div class="pm-field">
               <label class="pm-label" for="modalDiscountValue">Giá trị giảm *</label>
               <input type="number" id="modalDiscountValue" name="discountValue" class="pm-input"
-                     required min="0.01" step="0.01" placeholder="25"/>
+                     placeholder="25"/>
             </div>
           </div>
 
@@ -857,13 +892,13 @@
             <div class="pm-field" id="modalMaxDiscField">
               <label class="pm-label" for="modalMaxDiscount">Giảm tối đa (₫)</label>
               <input type="number" id="modalMaxDiscount" name="maxDiscountAmount"
-                     class="pm-input" min="1" step="1000" placeholder="Không giới hạn"/>
+                     class="pm-input" placeholder="Không giới hạn"/>
               <span class="pm-hint">Chỉ với loại Phần trăm</span>
             </div>
             <div class="pm-field">
               <label class="pm-label" for="modalMinOrder">Đơn tối thiểu (₫)</label>
               <input type="number" id="modalMinOrder" name="minOrderAmount"
-                     class="pm-input" min="1" step="1000" placeholder="Không yêu cầu"/>
+                     class="pm-input" placeholder="Không yêu cầu"/>
             </div>
           </div>
 
@@ -872,18 +907,18 @@
           <div class="pm-row">
             <div class="pm-field">
               <label class="pm-label" for="modalStartDate">Ngày bắt đầu *</label>
-              <input type="date" id="modalStartDate" name="startDate" class="pm-input" required/>
+              <input type="date" id="modalStartDate" name="startDate" class="pm-input"/>
             </div>
             <div class="pm-field">
               <label class="pm-label" for="modalEndDate">Ngày kết thúc *</label>
-              <input type="date" id="modalEndDate" name="endDate" class="pm-input" required/>
+              <input type="date" id="modalEndDate" name="endDate" class="pm-input"/>
             </div>
           </div>
 
           <div class="pm-field" style="max-width:50%;">
             <label class="pm-label" for="modalUsageLimit">Giới hạn lượt dùng</label>
             <input type="number" id="modalUsageLimit" name="usageLimit"
-                   class="pm-input" min="1" step="1" placeholder="Không giới hạn"/>
+                   class="pm-input" placeholder="Không giới hạn"/>
           </div>
 
           <div id="modalUsedInfo" style="display:none;font-size:12px;color:var(--text-muted);
@@ -924,6 +959,33 @@ function formatIsoDate(d) {
   return y + '-' + m + '-' + day;
 }
 
+function previewImageFile(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) { showImagePreview(e.target.result); };
+  reader.readAsDataURL(file);
+}
+
+function previewImageUrl(url) {
+  if (url && url.trim()) showImagePreview(url.trim());
+  else document.getElementById('modalImagePreview').hidden = true;
+}
+
+function showImagePreview(src) {
+  var img = document.getElementById('modalImagePreview');
+  img.src = src;
+  img.hidden = false;
+}
+
+function resetImageField() {
+  document.getElementById('modalImageFile').value = '';
+  document.getElementById('modalImageUrl').value = '';
+  document.getElementById('modalExistingImageUrl').value = '';
+  document.getElementById('modalImagePreview').hidden = true;
+  document.getElementById('modalImagePreview').src = '';
+}
+
 function openCreateModal() {
   document.getElementById('modalHeading').textContent   = 'Create Promotion';
   document.getElementById('modalSubmitBtn').textContent = 'Tạo mã giảm giá';
@@ -931,6 +993,7 @@ function openCreateModal() {
   document.getElementById('promoForm').reset();
   document.getElementById('modalUsedInfo').style.display = 'none';
   document.getElementById('modalCode').removeAttribute('readonly');
+  resetImageField();
   var today = new Date();
   var end = new Date();
   end.setDate(end.getDate() + 30);
@@ -955,6 +1018,13 @@ function openEditModal(btn) {
   document.getElementById('modalStartDate').value       = d.startDate;
   document.getElementById('modalEndDate').value         = d.endDate;
   document.getElementById('modalUsageLimit').value      = d.usageLimit || '';
+
+  resetImageField();
+  document.getElementById('modalExistingImageUrl').value = d.imageUrl || '';
+  if (d.imageUrl) {
+    var ctxImg = d.imageUrl.startsWith('http') ? d.imageUrl : '${pageContext.request.contextPath}/' + d.imageUrl;
+    showImagePreview(ctxImg);
+  }
 
   var usedCount = parseInt(d.usedCount || '0');
   if (usedCount > 0) {
