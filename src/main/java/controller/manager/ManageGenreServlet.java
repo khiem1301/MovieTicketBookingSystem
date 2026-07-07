@@ -68,6 +68,20 @@ public class ManageGenreServlet extends HttpServlet {
             loadAndForward(req, resp);
             return;
         }
+        if (name.trim().length() > 100) {
+            req.setAttribute("error", "Tên thể loại tối đa 100 ký tự.");
+            req.setAttribute("inputValue", name);
+            req.setAttribute("descriptionValue", description);
+            loadAndForward(req, resp);
+            return;
+        }
+        if (description != null && description.length() > 500) {
+            req.setAttribute("error", "Mô tả tối đa 500 ký tự.");
+            req.setAttribute("inputValue", name);
+            req.setAttribute("descriptionValue", description);
+            loadAndForward(req, resp);
+            return;
+        }
         if (genreDAO.isDuplicate(name)) {
             req.setAttribute("error", "Thể loại \"" + name.trim() + "\" đã tồn tại.");
             req.setAttribute("inputValue", name.trim());
@@ -94,6 +108,22 @@ public class ManageGenreServlet extends HttpServlet {
 
         if (name == null || name.trim().isEmpty()) {
             req.setAttribute("error", "Tên thể loại không được để trống.");
+            req.setAttribute("inputValue", name);
+            req.setAttribute("descriptionValue", description);
+            req.setAttribute("editGenre", editing);
+            loadAndForward(req, resp);
+            return;
+        }
+        if (name.trim().length() > 100) {
+            req.setAttribute("error", "Tên thể loại tối đa 100 ký tự.");
+            req.setAttribute("inputValue", name);
+            req.setAttribute("descriptionValue", description);
+            req.setAttribute("editGenre", editing);
+            loadAndForward(req, resp);
+            return;
+        }
+        if (description != null && description.length() > 500) {
+            req.setAttribute("error", "Mô tả tối đa 500 ký tự.");
             req.setAttribute("inputValue", name);
             req.setAttribute("descriptionValue", description);
             req.setAttribute("editGenre", editing);
