@@ -40,6 +40,8 @@ public final class AccessControl {
             "/booking-history",
             "/loyalty",
             "/reviews/mine",
+            "/reviews/submit",
+            "/reviews/delete",
             "/checkout",
             "/payment",
             "/payment/status",
@@ -105,7 +107,10 @@ public final class AccessControl {
                 return true;
             }
         }
-        if (path.startsWith("/reviews") && !path.startsWith("/reviews/mine")) {
+        if (path.startsWith("/reviews")
+                && !path.startsWith("/reviews/mine")
+                && !path.startsWith("/reviews/submit")
+                && !path.startsWith("/reviews/delete")) {
             return true;
         }
         return false;
