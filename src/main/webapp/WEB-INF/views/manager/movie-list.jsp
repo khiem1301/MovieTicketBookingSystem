@@ -323,7 +323,7 @@
 
           <div class="mm-field">
             <label class="mm-flabel">MOVIE TITLE <span class="mm-req">*</span></label>
-            <input type="text" name="title" maxlength="255" required
+            <input type="text" name="title"
                    placeholder="Enter full title…"
                    value="<c:out value='${m.title}'/>"/>
           </div>
@@ -331,13 +331,13 @@
           <div class="mm-field-row">
             <div class="mm-field">
               <label class="mm-flabel">SLUG <span class="mm-req">*</span></label>
-              <input type="text" id="slugField" name="slug" maxlength="255" required
+              <input type="text" id="slugField" name="slug"
                      placeholder="auto-generated-from-title"
                      value="<c:out value='${m.slug}'/>"/>
             </div>
             <div class="mm-field">
               <label class="mm-flabel">RUNTIME (MIN) <span class="mm-req">*</span></label>
-              <input type="number" name="durationMinutes" min="1" max="999" required
+              <input type="number" name="durationMinutes"
                      placeholder="120"
                      value="<c:if test='${not empty m and m.durationMinutes > 0}'><c:out value='${m.durationMinutes}'/></c:if>"/>
             </div>
@@ -346,7 +346,7 @@
           <div class="mm-field-row">
             <div class="mm-field">
               <label class="mm-flabel">STATUS <span class="mm-req">*</span></label>
-              <select name="status" required>
+              <select name="status">
                 <option value="COMING_SOON"    <c:if test="${empty m or m.status == 'COMING_SOON'}">selected</c:if>>Coming Soon</option>
                 <option value="EARLY_SHOWING"  <c:if test="${m.status == 'EARLY_SHOWING'}">selected</c:if>>Early Showing</option>
                 <option value="NOW_SHOWING"    <c:if test="${m.status == 'NOW_SHOWING'}">selected</c:if>>Now Showing</option>
@@ -355,7 +355,7 @@
             </div>
             <div class="mm-field">
               <label class="mm-flabel">DIRECTOR</label>
-              <input type="text" name="director" maxlength="255"
+              <input type="text" name="director"
                      placeholder="Director name"
                      value="<c:out value='${m.director}'/>"/>
             </div>
@@ -364,12 +364,12 @@
           <div class="mm-field-row">
             <div class="mm-field">
               <label class="mm-flabel">LANGUAGE</label>
-              <input type="text" name="language" maxlength="50"
+              <input type="text" name="language"
                      value="<c:out value='${m.language}'/>"/>
             </div>
             <div class="mm-field">
               <label class="mm-flabel">SUBTITLE</label>
-              <input type="text" name="subtitle" maxlength="50"
+              <input type="text" name="subtitle"
                      value="<c:out value='${m.subtitle}'/>"/>
             </div>
           </div>
@@ -384,7 +384,7 @@
 
           <div class="mm-field">
             <label class="mm-flabel">SYNOPSIS</label>
-            <textarea name="description" rows="5" maxlength="4000"
+            <textarea name="description" rows="5"
                       placeholder="Write a compelling description…"><c:out value='${m.description}'/></textarea>
           </div>
 
@@ -405,7 +405,6 @@
             <div class="mm-field">
               <label class="mm-flabel">RELEASE DATE</label>
               <input type="date" name="releaseDate"
-                     min="<%= java.time.LocalDate.now() %>"
                      value="<c:if test='${not empty m.releaseDate}'><fmt:formatDate value='${m.releaseDate}' pattern='yyyy-MM-dd'/></c:if>"/>
             </div>
           </div>
@@ -417,7 +416,7 @@
                 <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
                 <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
               </svg>
-              <input type="url" name="trailerUrl"
+              <input type="text" name="trailerUrl"
                      placeholder="https://youtube.com/watch?…"
                      value="<c:out value='${m.trailerUrl}'/>"/>
             </div>
