@@ -95,8 +95,9 @@ public class MovieDAO {
         return result;
     }
 
-    // Trang /movies: lọc theo trạng thái, thể loại, từ khóa
-    public List<Movie> searchPublicMovies(String status, String genreId, String keyword) {
+    // Trang /movies: lọc theo trạng thái, thể loại, từ khóa, phân loại độ tuổi (phân trang)
+    public List<Movie> searchPublicMovies(String status, String genreId, String keyword, String ageRating,
+                                          int offset, int limit) {
         StringBuilder sql = new StringBuilder("""
                 SELECT m.id, m.title, m.slug, m.description, m.duration_minutes,
                        m.release_date, m.trailer_url, m.poster_url, m.backdrop_url, m.director,
@@ -123,6 +124,10 @@ public class MovieDAO {
                     """);
             params.add(genreId.trim());
         }
+        if (ageRating != null && !ageRating.isBlank()) {
+            sql.append(" AND m.age_rating = ?");
+            params.add(ageRating.trim());
+        }
         if (keyword != null && !keyword.isBlank()) {
             sql.append(" AND m.title LIKE ?");
             params.add("%" + keyword.trim() + "%");
@@ -133,7 +138,10 @@ public class MovieDAO {
                          m.release_date, m.trailer_url, m.poster_url, m.backdrop_url, m.director,
                          m.age_rating, m.status, m.average_rating, m.created_at
                 ORDER BY m.average_rating DESC, m.created_at DESC
+                OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
                 """);
+        params.add(offset);
+        params.add(limit);
 
         List<Movie> result = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
@@ -148,6 +156,49 @@ public class MovieDAO {
             throw new RuntimeException("searchPublicMovies failed", e);
         }
         return result;
+    }
+
+    // Đếm tổng số phim khớp bộ lọc (dùng cho phân trang trang /movies)
+    public int countPublicMovies(String status, String genreId, String keyword, String ageRating) {
+        StringBuilder sql = new StringBuilder("""
+                SELECT COUNT(*) FROM Movies m
+                WHERE m.status = ?
+                """);
+        List<Object> params = new ArrayList<>();
+        params.add(status);
+
+        if ("COMING_SOON".equals(status)) {
+            sql.append(" AND NOT (").append(HAS_EARLY_SHOWTIME).append(")");
+        }
+        if (genreId != null && !genreId.isBlank()) {
+            sql.append("""
+                     AND EXISTS (
+                         SELECT 1 FROM MovieGenres mg2
+                         WHERE mg2.movie_id = m.id AND mg2.genre_id = ?
+                     )
+                    """);
+            params.add(genreId.trim());
+        }
+        if (ageRating != null && !ageRating.isBlank()) {
+            sql.append(" AND m.age_rating = ?");
+            params.add(ageRating.trim());
+        }
+        if (keyword != null && !keyword.isBlank()) {
+            sql.append(" AND m.title LIKE ?");
+            params.add("%" + keyword.trim() + "%");
+        }
+
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("countPublicMovies failed", e);
+        }
     }
 
     // Suất chiếu sớm: chỉ phim có lịch chiếu thật trước ngày công chiếu
@@ -184,7 +235,8 @@ public class MovieDAO {
         return result;
     }
 
-    public List<Movie> searchEarlyShowtimeMovies(String genreId, String keyword) {
+    public List<Movie> searchEarlyShowtimeMovies(String genreId, String keyword, String ageRating,
+                                                  int offset, int limit) {
         StringBuilder sql = new StringBuilder("""
                 SELECT m.id, m.title, m.slug, m.description, m.duration_minutes,
                        m.release_date, m.trailer_url, m.poster_url, m.backdrop_url, m.director,
@@ -211,6 +263,10 @@ public class MovieDAO {
                     """);
             params.add(genreId.trim());
         }
+        if (ageRating != null && !ageRating.isBlank()) {
+            sql.append(" AND m.age_rating = ?");
+            params.add(ageRating.trim());
+        }
         if (keyword != null && !keyword.isBlank()) {
             sql.append(" AND m.title LIKE ?");
             params.add("%" + keyword.trim() + "%");
@@ -221,7 +277,10 @@ public class MovieDAO {
                          m.release_date, m.trailer_url, m.poster_url, m.backdrop_url, m.director,
                          m.age_rating, m.status, m.average_rating, m.created_at
                 ORDER BY MIN(st.start_time) ASC, m.created_at DESC
+                OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
                 """);
+        params.add(offset);
+        params.add(limit);
 
         List<Movie> result = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
@@ -236,6 +295,50 @@ public class MovieDAO {
             throw new RuntimeException("searchEarlyShowtimeMovies failed", e);
         }
         return result;
+    }
+
+    // Đếm tổng số phim suất chiếu sớm khớp bộ lọc (dùng cho phân trang trang /movies)
+    public int countEarlyShowtimeMovies(String genreId, String keyword, String ageRating) {
+        StringBuilder sql = new StringBuilder("""
+                SELECT COUNT(DISTINCT m.id) FROM Movies m
+                INNER JOIN Showtimes st ON st.movie_id = m.id
+                    AND st.status IN ('SCHEDULED', 'OPEN')
+                    AND st.start_time > SYSDATETIME()
+                    AND m.release_date IS NOT NULL
+                    AND CAST(st.start_time AS DATE) < m.release_date
+                WHERE m.status = 'COMING_SOON'
+                """);
+        List<Object> params = new ArrayList<>();
+
+        if (genreId != null && !genreId.isBlank()) {
+            sql.append("""
+                     AND EXISTS (
+                         SELECT 1 FROM MovieGenres mg2
+                         WHERE mg2.movie_id = m.id AND mg2.genre_id = ?
+                     )
+                    """);
+            params.add(genreId.trim());
+        }
+        if (ageRating != null && !ageRating.isBlank()) {
+            sql.append(" AND m.age_rating = ?");
+            params.add(ageRating.trim());
+        }
+        if (keyword != null && !keyword.isBlank()) {
+            sql.append(" AND m.title LIKE ?");
+            params.add("%" + keyword.trim() + "%");
+        }
+
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("countEarlyShowtimeMovies failed", e);
+        }
     }
 
     // Manager: danh sách tất cả phim (kèm genre)

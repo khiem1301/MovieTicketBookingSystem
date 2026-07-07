@@ -591,6 +591,37 @@ ul { list-style: none; }
   gap: 20px;
 }
 
+/* Pagination (trang /movies) */
+.movies-pagination {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin-top: 36px;
+}
+.movies-page-btn {
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+.movies-page-btn:hover, .movies-page-btn.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 /* Movie Card */
 .movie-card {
   border-radius: var(--radius);
@@ -746,28 +777,6 @@ ul { list-style: none; }
   border: 1px solid var(--border);
   color: var(--text-muted);
 }
-
-/* "Nhiều phim hơn" placeholder card */
-.more-card {
-  background: rgba(255,255,255,0.03);
-  border: 1px dashed var(--border);
-}
-.more-card .card-poster {
-  background: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.more-card .more-label {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  color: var(--text-dim);
-}
-.more-card:hover { transform: translateY(-6px); background: rgba(255,255,255,0.05); }
 
 /* Card footer — buy-ticket button */
 .card-footer { padding: 0 14px 14px; }
