@@ -130,15 +130,27 @@ public class ManageMovieServlet extends HttpServlet {
         resp.sendRedirect(req.getContextPath() + "/manager/movies" + param);
     }
 
+    private static final java.util.regex.Pattern URL_PATTERN =
+            java.util.regex.Pattern.compile("^https?://.+", java.util.regex.Pattern.CASE_INSENSITIVE);
+
     private String validate(Movie movie, String excludeId) {
         if (movie.getTitle() == null || movie.getTitle().isBlank()) {
             return "Tên phim không được để trống.";
         }
+        if (movie.getTitle().trim().length() > 255) {
+            return "Tên phim tối đa 255 ký tự.";
+        }
         if (movie.getSlug() == null || movie.getSlug().isBlank()) {
             return "Slug không được để trống.";
         }
+        if (movie.getSlug().trim().length() > 255) {
+            return "Slug tối đa 255 ký tự.";
+        }
         if (movie.getDurationMinutes() <= 0) {
             return "Thời lượng phim phải lớn hơn 0 phút.";
+        }
+        if (movie.getDurationMinutes() > 999) {
+            return "Thời lượng phim tối đa 999 phút.";
         }
         if (movie.getStatus() == null || !VALID_STATUS.contains(movie.getStatus())) {
             return "Trạng thái phim không hợp lệ.";
@@ -147,9 +159,25 @@ public class ManageMovieServlet extends HttpServlet {
                 && !VALID_AGE.contains(movie.getAgeRating())) {
             return "Độ tuổi xem không hợp lệ.";
         }
-        if (movie.getReleaseDate() != null
+        if (excludeId == null && movie.getReleaseDate() != null
                 && movie.getReleaseDate().toLocalDate().isBefore(LocalDate.now())) {
             return "Ngày phát hành không được là ngày trong quá khứ.";
+        }
+        if (movie.getDirector() != null && movie.getDirector().length() > 255) {
+            return "Đạo diễn tối đa 255 ký tự.";
+        }
+        if (movie.getLanguage() != null && movie.getLanguage().length() > 50) {
+            return "Ngôn ngữ tối đa 50 ký tự.";
+        }
+        if (movie.getSubtitle() != null && movie.getSubtitle().length() > 50) {
+            return "Phụ đề tối đa 50 ký tự.";
+        }
+        if (movie.getDescription() != null && movie.getDescription().length() > 4000) {
+            return "Mô tả tối đa 4000 ký tự.";
+        }
+        if (movie.getTrailerUrl() != null && !movie.getTrailerUrl().isBlank()
+                && !URL_PATTERN.matcher(movie.getTrailerUrl().trim()).matches()) {
+            return "Trailer URL không hợp lệ.";
         }
 
         boolean dupTitle = excludeId == null

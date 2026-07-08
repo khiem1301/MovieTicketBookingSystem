@@ -6,6 +6,13 @@
 <c:set var="pageTitle" value="ÉPCINE — Đặt vé xem phim"/>
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 
+<c:set var="ctx" value="${pageContext.request.contextPath}"/>
+<c:choose>
+  <c:when test="${param.tab == 'coming'}"><c:set var="activeTab" value="tab-coming"/></c:when>
+  <c:when test="${param.tab == 'early'}"><c:set var="activeTab" value="tab-early"/></c:when>
+  <c:otherwise><c:set var="activeTab" value="tab-showing"/></c:otherwise>
+</c:choose>
+
 <c:if test="${param.logout == 'success'}">
   <div class="container" style="padding-top:16px;" id="logout-success-banner">
     <div style="padding:11px 14px;border-radius:8px;background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.35);color:#a5d6a7;font-size:14px;">
@@ -199,13 +206,13 @@
 
     <%-- Tab bar --%>
     <div class="tabs-wrapper">
-      <button class="tab-btn" data-tab="tab-coming">Sắp chiếu</button>
-      <button class="tab-btn active" data-tab="tab-showing">Đang chiếu</button>
-      <button class="tab-btn" data-tab="tab-early">Suất chiếu sớm</button>
+      <button class="tab-btn ${activeTab == 'tab-coming' ? 'active' : ''}" data-tab="tab-coming">Sắp chiếu</button>
+      <button class="tab-btn ${activeTab == 'tab-showing' ? 'active' : ''}" data-tab="tab-showing">Đang chiếu</button>
+      <button class="tab-btn ${activeTab == 'tab-early' ? 'active' : ''}" data-tab="tab-early">Suất chiếu sớm</button>
     </div>
 
     <%-- TAB: Sắp chiếu --%>
-    <div class="tab-panel movies-grid" id="tab-coming">
+    <div class="tab-panel movies-grid ${activeTab == 'tab-coming' ? 'active' : ''}" id="tab-coming">
       <c:choose>
         <c:when test="${not empty comingSoonMovies}">
           <c:forEach var="movie" items="${comingSoonMovies}">
@@ -262,16 +269,6 @@
             </div>
           </c:forEach>
 
-          <c:if test="${comingSoonMovies.size() >= 8}">
-            <div class="movie-card more-card">
-              <a href="${pageContext.request.contextPath}/movies?status=COMING_SOON"
-                 style="display:flex;flex-direction:column;height:100%;text-decoration:none;">
-                <div class="card-poster" style="flex:1;">
-                  <div class="more-label">Nhiều phim hơn</div>
-                </div>
-              </a>
-            </div>
-          </c:if>
         </c:when>
         <c:otherwise>
           <p style="color:var(--text-muted);text-align:center;padding:40px;grid-column:1/-1;">
@@ -279,10 +276,24 @@
           </p>
         </c:otherwise>
       </c:choose>
+      <c:if test="${totalPagesComing > 1}">
+        <div class="movies-pagination">
+          <c:if test="${pageComing > 1}">
+            <a class="movies-page-btn" href="${ctx}/home?tab=coming&pageComing=${pageComing - 1}">‹</a>
+          </c:if>
+          <c:forEach begin="1" end="${totalPagesComing}" var="pg">
+            <a class="movies-page-btn ${pg == pageComing ? 'is-active' : ''}"
+               href="${ctx}/home?tab=coming&pageComing=${pg}">${pg}</a>
+          </c:forEach>
+          <c:if test="${pageComing < totalPagesComing}">
+            <a class="movies-page-btn" href="${ctx}/home?tab=coming&pageComing=${pageComing + 1}">›</a>
+          </c:if>
+        </div>
+      </c:if>
     </div>
 
     <%-- TAB: Đang chiếu --%>
-    <div class="tab-panel active movies-grid" id="tab-showing">
+    <div class="tab-panel movies-grid ${activeTab == 'tab-showing' ? 'active' : ''}" id="tab-showing">
       <c:choose>
         <c:when test="${not empty nowShowingMovies}">
           <c:forEach var="movie" items="${nowShowingMovies}">
@@ -339,17 +350,6 @@
             </div>
           </c:forEach>
 
-          <%-- "Nhiều phim hơn" --%>
-          <c:if test="${nowShowingMovies.size() >= 8}">
-            <div class="movie-card more-card">
-              <a href="${pageContext.request.contextPath}/movies?status=NOW_SHOWING"
-                 style="display:flex;flex-direction:column;height:100%;text-decoration:none;">
-                <div class="card-poster" style="flex:1;">
-                  <div class="more-label">Nhiều phim hơn</div>
-                </div>
-              </a>
-            </div>
-          </c:if>
         </c:when>
         <c:otherwise>
           <p style="color:var(--text-muted);text-align:center;padding:40px;grid-column:1/-1;">
@@ -357,10 +357,24 @@
           </p>
         </c:otherwise>
       </c:choose>
+      <c:if test="${totalPagesShowing > 1}">
+        <div class="movies-pagination">
+          <c:if test="${pageShowing > 1}">
+            <a class="movies-page-btn" href="${ctx}/home?tab=showing&pageShowing=${pageShowing - 1}">‹</a>
+          </c:if>
+          <c:forEach begin="1" end="${totalPagesShowing}" var="pg">
+            <a class="movies-page-btn ${pg == pageShowing ? 'is-active' : ''}"
+               href="${ctx}/home?tab=showing&pageShowing=${pg}">${pg}</a>
+          </c:forEach>
+          <c:if test="${pageShowing < totalPagesShowing}">
+            <a class="movies-page-btn" href="${ctx}/home?tab=showing&pageShowing=${pageShowing + 1}">›</a>
+          </c:if>
+        </div>
+      </c:if>
     </div>
 
     <%-- TAB: Suất chiếu sớm --%>
-    <div class="tab-panel movies-grid" id="tab-early">
+    <div class="tab-panel movies-grid ${activeTab == 'tab-early' ? 'active' : ''}" id="tab-early">
           <c:forEach var="movie" items="${earlyMovies}">
             <c:set var="cardPoster" value="${movie.posterUrl}"/>
             <c:if test="${not empty cardPoster and not fn:startsWith(cardPoster, 'http')}">
@@ -415,16 +429,25 @@
             </div>
           </c:forEach>
 
-          <c:if test="${not empty earlyMovies and earlyMovies.size() >= 8}">
-            <div class="movie-card more-card">
-              <a href="${pageContext.request.contextPath}/movies?status=EARLY"
-                 style="display:flex;flex-direction:column;height:100%;text-decoration:none;">
-                <div class="card-poster" style="flex:1;">
-                  <div class="more-label">Nhiều phim hơn</div>
-                </div>
-              </a>
-            </div>
+          <c:if test="${empty earlyMovies}">
+            <p style="color:var(--text-muted);text-align:center;padding:40px;grid-column:1/-1;">
+              Chưa có suất chiếu sớm.
+            </p>
           </c:if>
+      <c:if test="${totalPagesEarly > 1}">
+        <div class="movies-pagination">
+          <c:if test="${pageEarly > 1}">
+            <a class="movies-page-btn" href="${ctx}/home?tab=early&pageEarly=${pageEarly - 1}">‹</a>
+          </c:if>
+          <c:forEach begin="1" end="${totalPagesEarly}" var="pg">
+            <a class="movies-page-btn ${pg == pageEarly ? 'is-active' : ''}"
+               href="${ctx}/home?tab=early&pageEarly=${pg}">${pg}</a>
+          </c:forEach>
+          <c:if test="${pageEarly < totalPagesEarly}">
+            <a class="movies-page-btn" href="${ctx}/home?tab=early&pageEarly=${pageEarly + 1}">›</a>
+          </c:if>
+        </div>
+      </c:if>
     </div>
 
   </div><%-- /container --%>

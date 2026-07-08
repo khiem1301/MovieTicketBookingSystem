@@ -23,6 +23,7 @@ public class Movie {
     private BigDecimal averageRating;
     private Timestamp createdAt;
     private List<String> genres;
+    private int reviewCount;
 
     public Movie() {}
 
@@ -76,4 +77,7 @@ public class Movie {
 
     public List<String> getGenres() { return genres; }
     public void setGenres(List<String> genres) { this.genres = genres; }
+
+    public int getReviewCount() { return reviewCount; }
+    public void setReviewCount(int reviewCount) { this.reviewCount = reviewCount; }
 }

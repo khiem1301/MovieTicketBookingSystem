@@ -261,11 +261,11 @@
         <input id="addGenreName" type="text" name="genreName"
                value="<c:out value='${inputValue}'/>"
                placeholder="e.g. Science Fiction"
-               maxlength="100" autocomplete="off" required/>
+               autocomplete="off"/>
         <p class="genre-hint">Name is case-insensitive when checking for duplicates.</p>
 
         <label for="addDescription" style="margin-top:14px;display:block">Mô tả</label>
-        <textarea id="addDescription" name="description" rows="3" maxlength="500"
+        <textarea id="addDescription" name="description" rows="3"
                   placeholder="Mô tả ngắn về thể loại…"
                   style="resize:vertical"><c:out value='${descriptionValue}'/></textarea>
         <p class="genre-hint">Tối đa 500 ký tự. Hiển thị khi chọn thể loại cho phim.</p>
@@ -309,11 +309,11 @@
         <input type="hidden" name="id"     id="editGenreId"/>
         <label for="editGenreName">Genre Name <span class="required">*</span></label>
         <input id="editGenreName" type="text" name="genreName"
-               maxlength="100" autocomplete="off" required/>
+               autocomplete="off"/>
         <p class="genre-hint">Name is case-insensitive when checking for duplicates.</p>
 
         <label for="editDescription" style="margin-top:14px;display:block">Mô tả</label>
-        <textarea id="editDescription" name="description" rows="3" maxlength="500"
+        <textarea id="editDescription" name="description" rows="3"
                   placeholder="Mô tả ngắn về thể loại…"
                   style="resize:vertical"></textarea>
         <p class="genre-hint">Tối đa 500 ký tự. Hiển thị khi chọn thể loại cho phim.</p>

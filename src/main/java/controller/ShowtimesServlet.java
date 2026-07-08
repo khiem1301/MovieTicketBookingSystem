@@ -1,6 +1,8 @@
 package controller;
 
+import dal.BookingDAO;
 import dal.MovieDAO;
+import dal.MovieReviewDAO;
 import dal.PricingRuleDAO;
 import dal.ShowtimeDAO;
 import jakarta.servlet.ServletException;
@@ -8,10 +10,13 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import model.dto.SessionUser;
 import model.entity.Movie;
+import model.entity.MovieReview;
 import model.entity.PricingRule;
 import model.entity.Showtime;
 import utils.PricingCalculator;
+import utils.SessionUtil;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -70,12 +75,27 @@ public class ShowtimesServlet extends HttpServlet {
 
         Map<String, Map<String, List<Showtime>>> showtimeMap = buildShowtimeMap(showtimes, dateKeys);
 
+        MovieReviewDAO reviewDAO = new MovieReviewDAO();
+        List<MovieReview> movieReviews = reviewDAO.findByMovie(movie.getId(), 0, 10);
+        int movieReviewCount = reviewDAO.countByMovie(movie.getId());
+        MovieReview myReview = null;
+        boolean canReview = false;
+        SessionUser sessionUser = SessionUtil.getLoggedUser(req);
+        if (sessionUser != null && "CUSTOMER".equals(SessionUtil.getUserRole(req))) {
+            myReview = reviewDAO.findByMovieAndUser(movie.getId(), sessionUser.getId()).orElse(null);
+            canReview = new BookingDAO().hasWatchedMovie(sessionUser.getId(), movie.getId());
+        }
+
         req.setAttribute("movie", movie);
         req.setAttribute("dateKeys", dateKeys);
         req.setAttribute("dateLabels", dateLabels);
         req.setAttribute("showtimeMap", showtimeMap);
         req.setAttribute("genreList", movieDAO.getAllGenres());
         req.setAttribute("similarMovies", movieDAO.getSimilarMovies(movie.getId(), 6));
+        req.setAttribute("canReview", canReview);
+        req.setAttribute("movieReviews", movieReviews);
+        req.setAttribute("movieReviewCount", movieReviewCount);
+        req.setAttribute("myReview", myReview);
 
         req.getRequestDispatcher("/WEB-INF/views/customer/showtimes.jsp").forward(req, resp);
     }

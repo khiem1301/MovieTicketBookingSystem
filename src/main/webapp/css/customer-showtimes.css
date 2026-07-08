@@ -59,6 +59,10 @@
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.mi-poster-wrap--playable { cursor: pointer; }
+.mi-poster-wrap--playable:hover .play-overlay { background: rgba(0,0,0,0.38); }
+.mi-poster-wrap--playable:hover .play-circle { opacity: 1; transform: scale(1); }
+
 .mi-poster {
   width: 100%;
   aspect-ratio: 2 / 3;
@@ -487,5 +491,141 @@
 
 @media (max-width: 480px) {
   .sr-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ── Đánh giá phim (FR-20) ──────────────────────────────────── */
+.mi-reviews-section {
+  max-width: 1200px;
+  margin: 0 auto 40px;
+  padding: 0 24px;
+}
+.mi-reviews-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.mi-reviews-title { font-size: 20px; font-weight: 700; }
+.mi-reviews-summary { display: flex; align-items: baseline; gap: 6px; }
+.mi-reviews-avg { font-size: 22px; font-weight: 800; color: #ffd740; }
+.mi-reviews-count { font-size: 13px; color: var(--text-muted); }
+
+.mi-review-alert {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+.mi-review-alert--success {
+  background: rgba(76,175,80,.1);
+  border: 1px solid rgba(76,175,80,.3);
+  color: #a5d6a7;
+}
+.mi-review-alert--error {
+  background: rgba(229,57,53,.1);
+  border: 1px solid rgba(229,57,53,.3);
+  color: #ff8a80;
+}
+
+.mi-review-form {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+}
+.mi-review-stars { display: flex; gap: 4px; margin-bottom: 12px; }
+.mi-star {
+  font-size: 26px;
+  line-height: 1;
+  color: rgba(255,255,255,.18);
+  cursor: pointer;
+  transition: color .15s;
+}
+.mi-star.is-filled { color: #ffd740; }
+.mi-review-textarea {
+  width: 100%;
+  min-height: 70px;
+  padding: 10px 13px;
+  background: #1e1e1e;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  outline: none;
+  margin-bottom: 12px;
+}
+.mi-review-textarea:focus { border-color: var(--accent); }
+.mi-review-submit {
+  padding: 9px 20px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.mi-review-submit:hover { background: var(--accent-hover); }
+.mi-review-delete {
+  padding: 9px 20px;
+  background: transparent;
+  border: 1px solid rgba(229,57,53,.3);
+  border-radius: 8px;
+  color: #ff8a80;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.mi-review-delete:hover { background: rgba(229,57,53,.15); }
+
+.mi-review-login-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+.mi-review-login-hint a { color: var(--accent); font-weight: 600; }
+
+.mi-review-list { display: flex; flex-direction: column; gap: 18px; }
+.mi-review-item { display: flex; gap: 12px; }
+.mi-review-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--bg-card);
+}
+.mi-review-avatar--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  border: 1px solid var(--border);
+}
+.mi-review-body { flex: 1; min-width: 0; }
+.mi-review-item-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.mi-review-user { font-weight: 600; font-size: 13px; }
+.mi-review-stars-display { font-size: 12px; color: rgba(255,255,255,.18); }
+.mi-review-stars-display .is-filled { color: #ffd740; }
+.mi-review-date { font-size: 11px; color: var(--text-dim); margin-left: auto; }
+.mi-review-content { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+.mi-review-empty {
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 24px 0;
+  text-align: center;
 }
 

@@ -81,6 +81,27 @@ public class BookingPromotionDAO {
         }
     }
 
+    /** FR-22 — true nếu user đã dùng mã này ở một booking khác (đơn đã áp/đã thanh toán). */
+    public boolean existsForUserExcludingBooking(Connection conn, String userId, String promotionId,
+                                                  String excludeBookingId) throws SQLException {
+        String sql = """
+                SELECT 1
+                FROM BookingPromotions bp
+                JOIN Bookings b ON b.id = bp.booking_id
+                WHERE b.user_id = ?
+                  AND bp.promotion_id = ?
+                  AND bp.booking_id <> ?
+                """;
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            ps.setString(2, promotionId);
+            ps.setString(3, excludeBookingId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
     public void deleteByBookingId(Connection conn, String bookingId) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
                 "DELETE FROM BookingPromotions WHERE booking_id = ?")) {

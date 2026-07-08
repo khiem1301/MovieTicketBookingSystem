@@ -17,6 +17,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import model.dto.BookingDetailDTO;
 import model.entity.Booking;
+import model.entity.Movie;
 import model.entity.PricingRule;
 import model.entity.Seat;
 import model.entity.Showtime;
@@ -636,6 +637,11 @@ public class BookingDAO {
                 bpDao.deleteByBookingId(conn, bookingId);
             }
 
+            if (bpDao.existsForUserExcludingBooking(conn, userId, promotionId, bookingId)) {
+                conn.rollback();
+                throw new IllegalStateException("Bạn đã sử dụng voucher này rồi.");
+            }
+
             if (!promoDao.incrementUsedCountIfAvailable(conn, promotionId)) {
                 conn.rollback();
                 throw new IllegalStateException("Mã voucher đã hết lượt sử dụng hoặc không còn hiệu lực.");
@@ -989,6 +995,68 @@ public class BookingDAO {
         b.setBookedAt(rs.getTimestamp("booked_at"));
         b.setExpiredAt(rs.getTimestamp("expired_at"));
         return b;
+    }
+
+    /**
+     * FR-20 — true nếu user đã mua vé (CONFIRMED + PAID) cho một suất chiếu của phim này
+     * và suất chiếu đó đã bắt đầu. Điều kiện để được viết đánh giá.
+     */
+    public boolean hasWatchedMovie(String userId, String movieId) {
+        String sql = """
+                SELECT 1
+                FROM Bookings b
+                JOIN Showtimes st ON st.id = b.showtime_id
+                WHERE b.user_id = ?
+                  AND st.movie_id = ?
+                  AND b.booking_status = 'CONFIRMED'
+                  AND b.payment_status = 'PAID'
+                  AND st.start_time <= GETDATE()
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            ps.setString(2, movieId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("hasWatchedMovie failed", e);
+        }
+    }
+
+    /** FR-20 — Phim user đã xem (vé CONFIRMED+PAID, suất chiếu đã bắt đầu) — gợi ý đánh giá. */
+    public List<Movie> findWatchedMovies(String userId) {
+        String sql = """
+                SELECT DISTINCT m.id, m.title, m.slug, m.poster_url, m.average_rating
+                FROM Bookings b
+                JOIN Showtimes st ON st.id = b.showtime_id
+                JOIN Movies m     ON m.id = st.movie_id
+                WHERE b.user_id = ?
+                  AND b.booking_status = 'CONFIRMED'
+                  AND b.payment_status = 'PAID'
+                  AND st.start_time <= GETDATE()
+                ORDER BY m.title
+                """;
+        List<Movie> result = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Movie m = new Movie();
+                    m.setId(rs.getString("id"));
+                    m.setTitle(rs.getString("title"));
+                    m.setSlug(rs.getString("slug"));
+                    m.setPosterUrl(rs.getString("poster_url"));
+                    BigDecimal rating = rs.getBigDecimal("average_rating");
+                    m.setAverageRating(rating != null ? rating : BigDecimal.ZERO);
+                    result.add(m);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findWatchedMovies failed", e);
+        }
+        return result;
     }
 
     /** Số vé đã xác nhận của khách (hiển thị sidebar profile). */

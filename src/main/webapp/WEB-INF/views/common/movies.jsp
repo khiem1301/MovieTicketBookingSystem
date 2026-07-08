@@ -9,10 +9,10 @@
 <c:set var="ctx" value="${pageContext.request.contextPath}"/>
 
 <c:choose>
-  <c:when test="${activeStatus == 'COMING_SOON'}">
+  <c:when test="${param.tab == 'coming' or (empty param.tab and activeStatus == 'COMING_SOON')}">
     <c:set var="activeTab" value="tab-coming"/>
   </c:when>
-  <c:when test="${activeStatus == 'EARLY'}">
+  <c:when test="${param.tab == 'early' or (empty param.tab and activeStatus == 'EARLY')}">
     <c:set var="activeTab" value="tab-early"/>
   </c:when>
   <c:otherwise>
@@ -37,6 +37,9 @@
           </c:when>
           <c:when test="${not empty selectedGenre}">
             Phim <c:out value="${selectedGenre.genreName}"/>
+          </c:when>
+          <c:when test="${not empty selectedAgeRating}">
+            Phim phân loại <c:out value="${selectedAgeRating}"/>
           </c:when>
           <c:otherwise>Danh sách phim</c:otherwise>
         </c:choose>
@@ -122,6 +125,20 @@
             <p class="movies-empty">Chưa có phim sắp chiếu.</p>
           </c:otherwise>
         </c:choose>
+        <c:if test="${totalPagesComing > 1}">
+          <div class="movies-pagination">
+            <c:if test="${pageComing > 1}">
+              <a class="movies-page-btn" href="${ctx}/movies?tab=coming&pageComing=${pageComing - 1}${filterQuery}">‹</a>
+            </c:if>
+            <c:forEach begin="1" end="${totalPagesComing}" var="pg">
+              <a class="movies-page-btn ${pg == pageComing ? 'is-active' : ''}"
+                 href="${ctx}/movies?tab=coming&pageComing=${pg}${filterQuery}">${pg}</a>
+            </c:forEach>
+            <c:if test="${pageComing < totalPagesComing}">
+              <a class="movies-page-btn" href="${ctx}/movies?tab=coming&pageComing=${pageComing + 1}${filterQuery}">›</a>
+            </c:if>
+          </div>
+        </c:if>
       </div>
     </c:if>
 
@@ -175,6 +192,20 @@
             <p class="movies-empty">Chưa có phim đang chiếu.</p>
           </c:otherwise>
         </c:choose>
+        <c:if test="${totalPagesShowing > 1}">
+          <div class="movies-pagination">
+            <c:if test="${pageShowing > 1}">
+              <a class="movies-page-btn" href="${ctx}/movies?tab=showing&pageShowing=${pageShowing - 1}${filterQuery}">‹</a>
+            </c:if>
+            <c:forEach begin="1" end="${totalPagesShowing}" var="pg">
+              <a class="movies-page-btn ${pg == pageShowing ? 'is-active' : ''}"
+                 href="${ctx}/movies?tab=showing&pageShowing=${pg}${filterQuery}">${pg}</a>
+            </c:forEach>
+            <c:if test="${pageShowing < totalPagesShowing}">
+              <a class="movies-page-btn" href="${ctx}/movies?tab=showing&pageShowing=${pageShowing + 1}${filterQuery}">›</a>
+            </c:if>
+          </div>
+        </c:if>
       </div>
     </c:if>
 
@@ -220,6 +251,20 @@
                 </div>
               </div>
             </c:forEach>
+        <c:if test="${totalPagesEarly > 1}">
+          <div class="movies-pagination">
+            <c:if test="${pageEarly > 1}">
+              <a class="movies-page-btn" href="${ctx}/movies?tab=early&pageEarly=${pageEarly - 1}${filterQuery}">‹</a>
+            </c:if>
+            <c:forEach begin="1" end="${totalPagesEarly}" var="pg">
+              <a class="movies-page-btn ${pg == pageEarly ? 'is-active' : ''}"
+                 href="${ctx}/movies?tab=early&pageEarly=${pg}${filterQuery}">${pg}</a>
+            </c:forEach>
+            <c:if test="${pageEarly < totalPagesEarly}">
+              <a class="movies-page-btn" href="${ctx}/movies?tab=early&pageEarly=${pageEarly + 1}${filterQuery}">›</a>
+            </c:if>
+          </div>
+        </c:if>
       </div>
     </c:if>
 

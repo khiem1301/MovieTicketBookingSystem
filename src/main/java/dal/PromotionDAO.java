@@ -13,7 +13,7 @@ public class PromotionDAO {
     private static final String SELECT_COLUMNS = """
             SELECT id, code, title, description, discount_type, discount_value,
                    max_discount_amount, min_order_amount,
-                   start_date, end_date, usage_limit, used_count, status, created_at
+                   start_date, end_date, usage_limit, used_count, status, image_url, created_at
             FROM Promotions
             """;
 
@@ -156,8 +156,8 @@ public class PromotionDAO {
                 INSERT INTO Promotions
                   (code, title, description, discount_type, discount_value,
                    max_discount_amount, min_order_amount,
-                   start_date, end_date, usage_limit, status)
-                VALUES (?,?,?,?,?,?,?,?,?,?,'ACTIVE')
+                   start_date, end_date, usage_limit, image_url, status)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,'ACTIVE')
                 """;
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -171,6 +171,7 @@ public class PromotionDAO {
             ps.setTimestamp(8, p.getStartDate());
             ps.setTimestamp(9, p.getEndDate());
             setNullableInt(ps, 10, p.getUsageLimit());
+            setNullableString(ps, 11, p.getImageUrl());
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("PromotionDAO.create failed", e);
@@ -184,7 +185,7 @@ public class PromotionDAO {
                   code = ?, title = ?, description = ?,
                   discount_type = ?, discount_value = ?,
                   max_discount_amount = ?, min_order_amount = ?,
-                  start_date = ?, end_date = ?, usage_limit = ?
+                  start_date = ?, end_date = ?, usage_limit = ?, image_url = ?
                 WHERE id = ?
                 """;
         try (Connection conn = DBContext.getConnection();
@@ -199,7 +200,8 @@ public class PromotionDAO {
             ps.setTimestamp(8, p.getStartDate());
             ps.setTimestamp(9, p.getEndDate());
             setNullableInt(ps, 10, p.getUsageLimit());
-            ps.setString(11, p.getId());
+            setNullableString(ps, 11, p.getImageUrl());
+            ps.setString(12, p.getId());
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("PromotionDAO.update failed", e);
@@ -351,6 +353,7 @@ public class PromotionDAO {
         p.setUsageLimit(rs.wasNull() ? null : ul);
         p.setUsedCount(rs.getInt("used_count"));
         p.setStatus(rs.getString("status"));
+        p.setImageUrl(rs.getString("image_url"));
         p.setCreatedAt(rs.getTimestamp("created_at"));
         return p;
     }

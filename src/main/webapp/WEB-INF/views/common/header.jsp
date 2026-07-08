@@ -141,6 +141,33 @@ uri="jakarta.tags.functions" %>
             </div>
           </div>
 
+          <%-- Độ tuổi: hover dropdown --%>
+          <div class="nav-item">
+            <a
+              href="${pageContext.request.contextPath}/movies"
+              class="nav-link"
+            >
+              Độ tuổi <span class="nav-arrow">▾</span>
+            </a>
+            <div class="dropdown-menu">
+              <a href="${pageContext.request.contextPath}/movies?ageRating=P">
+                🔵 P &mdash; Mọi lứa tuổi
+              </a>
+              <a href="${pageContext.request.contextPath}/movies?ageRating=K">
+                👨‍👩‍👧 K &mdash; Dưới 13 tuổi cần người lớn đi kèm
+              </a>
+              <a href="${pageContext.request.contextPath}/movies?ageRating=T13">
+                🟢 T13 &mdash; Từ 13 tuổi trở lên
+              </a>
+              <a href="${pageContext.request.contextPath}/movies?ageRating=T16">
+                🟠 T16 &mdash; Từ 16 tuổi trở lên
+              </a>
+              <a href="${pageContext.request.contextPath}/movies?ageRating=T18">
+                🔞 T18 &mdash; Từ 18 tuổi trở lên
+              </a>
+            </div>
+          </div>
+
           <%-- Đánh giá: hover dropdown --%>
           <div class="nav-item">
             <a href="${pageContext.request.contextPath}/reviews" class="nav-link">
@@ -213,6 +240,9 @@ uri="jakarta.tags.functions" %>
                     >
                     <a href="${pageContext.request.contextPath}/loyalty"
                       >Điểm thưởng</a
+                    >
+                    <a href="${pageContext.request.contextPath}/reviews/mine"
+                      >Đánh giá</a
                     >
                   </c:if>
                   <c:if test="${sessionScope.userRole == 'STAFF'}">

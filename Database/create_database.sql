@@ -557,6 +557,7 @@ CREATE TABLE Promotions (
     usage_limit         INT              NULL,
     used_count          INT              NOT NULL DEFAULT 0,
     status              NVARCHAR(10)      NOT NULL DEFAULT 'ACTIVE',
+    image_url           NVARCHAR(500)    NULL,
     created_at          DATETIME2        NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT PK_Promotions         PRIMARY KEY (id),

@@ -2,12 +2,15 @@ package controller.admin;
 
 import dal.PromotionDAO;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
 import model.entity.Promotion;
 import utils.AdminAuthUtil;
+import utils.PromotionImageUpload;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -17,6 +20,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @WebServlet(urlPatterns = {"/admin/promotions/save"})
+@MultipartConfig(
+        fileSizeThreshold = 1024 * 1024,
+        maxFileSize       = 5 * 1024 * 1024,
+        maxRequestSize    = 8 * 1024 * 1024
+)
 public class PromotionSaveServlet extends HttpServlet {
 
     @Override
@@ -147,6 +155,14 @@ public class PromotionSaveServlet extends HttpServlet {
             }
         }
 
+        // ── Ảnh voucher (upload file hoặc dán URL) ──────────────────────
+        String imageUrl = null;
+        try {
+            imageUrl = resolveImage(req);
+        } catch (IllegalArgumentException | IOException e) {
+            errors.add(e.getMessage());
+        }
+
         if (!errors.isEmpty()) {
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, String.join(" ", errors));
             String redirect = req.getContextPath() + "/admin/promotions"
@@ -168,6 +184,7 @@ public class PromotionSaveServlet extends HttpServlet {
         p.setStartDate(startDate);
         p.setEndDate(endDate);
         p.setUsageLimit(usageLimit);
+        p.setImageUrl(imageUrl);
 
         try {
             PromotionDAO dao = new PromotionDAO();
@@ -188,4 +205,18 @@ public class PromotionSaveServlet extends HttpServlet {
     }
 
     private String trim(String v) { return v == null ? null : v.trim(); }
+
+    private String resolveImage(HttpServletRequest req) throws IOException, ServletException {
+        Part part = req.getPart("imageFile");
+        String uploaded = PromotionImageUpload.save(req.getServletContext(), part);
+        if (uploaded != null) return uploaded;
+
+        String textUrl = trim(req.getParameter("imageUrl"));
+        if (textUrl != null && !textUrl.isBlank()) return textUrl;
+
+        String hiddenExisting = trim(req.getParameter("existingImageUrl"));
+        if (hiddenExisting != null && !hiddenExisting.isBlank()) return hiddenExisting;
+
+        return null;
+    }
 }
