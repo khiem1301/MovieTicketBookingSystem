@@ -16,7 +16,7 @@
 
 Module Customer phục vụ người dùng có role **CUSTOMER** (và khách chưa đăng nhập cho các màn public). Theo spec (`project_summary_final.md`), nhóm FR Customer gồm FR-06 – FR-20, FR-43, FR-44.
 
-**Trạng thái hiện tại (23/06/2026):** Đã triển khai **FR-04/05** (profile, quên MK), **FR-11**, **FR-50**, **FR-12**, **FR-13**, **FR-14**, **FR-22**, **FR-16–17** (VietQR). Chưa có VNPay, loyalty, reviews, lịch sử đặt vé.
+**Trạng thái hiện tại (08/07/2026):** Đã triển khai **FR-04/05** (profile, quên MK), **FR-11**, **FR-50**, **FR-12**, **FR-13**, **FR-14**, **FR-15** (lịch sử đặt vé), **FR-22**, **FR-16–17** (VietQR). Chưa có VNPay, loyalty, reviews.
 
 ### 1.1 Tính năng đã triển khai
 
@@ -41,6 +41,7 @@ Module Customer phục vụ người dùng có role **CUSTOMER** (và khách ch�
 | Duyệt phim / trang chủ | — | ✅ | Thuộc `common/` (`HomeServlet`, `MovieListServlet`) |
 | Quên / đặt lại mật khẩu | FR-04 | ✅ | `/forgot-password`, `/reset-password` — public; `ForgotPasswordServlet`, `ResetPasswordServlet` |
 | Profile tài khoản | FR-04 / FR-05 | ✅ | `/profile` — sửa họ tên, username, SĐT, avatar; xác minh bảo mật + đổi MK (mọi role đã login) |
+| Lịch sử đặt vé | FR-15 | ✅ | `/booking-history` — lọc trạng thái, phân trang; chi tiết `/booking-history/detail` |
 
 ### 1.2 Tính năng chưa triển khai
 
@@ -49,12 +50,11 @@ Module Customer phục vụ người dùng có role **CUSTOMER** (và khách ch�
 | Thanh toán VNPay | FR-16–18 | — | Chưa triển khai |
 | Đối soát VietQR tự động (webhook) | FR-16 | — | Hiện xác nhận thủ công; chưa Casso/Sepay |
 | Hủy / hoàn vé sau thanh toán | FR-08 – FR-10 | — | Chỉ hủy đơn **PENDING** (chưa thanh toán) |
-| Lịch sử đặt vé | FR-07 | `/booking-history` | |
 | Điểm tích lũy (xem / đổi) | FR-43, FR-44 | `/loyalty` | Config loyalty có ở Admin |
 | Đánh giá phim | FR-20 | `/reviews/mine` | Schema `MovieReviews` có |
 | Email xác nhận vé | FR-19 | — | `EmailUtil` có sẵn |
 
-> `ShowtimesServlet` ở `controller` (public). Package `controller.customer`: `CheckoutServlet`, `PaymentServlet`, `PaymentSuccessServlet`, `PaymentStatusServlet` (CUSTOMER-only qua `RoleFilter`).
+> `ShowtimesServlet` ở `controller` (public). Package `controller.customer`: `CheckoutServlet`, `PaymentServlet`, `PaymentSuccessServlet`, `PaymentStatusServlet`, `BookingHistoryServlet`, `BookingHistoryDetailServlet` (CUSTOMER-only qua `RoleFilter`).
 
 **Tài khoản test (seed):**
 
@@ -245,7 +245,7 @@ Trang load CSS qua `extraCss` trong JSP → `header.jsp` (`customer-showtimes` /
 | `/payment`, `/payment/*` | **CUSTOMER** + đăng nhập | `PaymentServlet`, `PaymentSuccessServlet`, `PaymentStatusServlet` |
 | `/profile`, `/profile/*` | Đăng nhập (mọi role) | `ProfileServlet`, `ChangePasswordServlet`, `ProfileSecurityVerifyServlet` |
 | `/forgot-password`, `/reset-password` | **Public** | `ForgotPasswordServlet`, `ResetPasswordServlet` |
-| `/booking-history`, `/loyalty`, `/reviews/mine` | **CUSTOMER** + đăng nhập | Servlet chưa có |
+| `/booking-history`, `/booking-history/detail`, `/loyalty`, `/reviews/mine` | **CUSTOMER** + đăng nhập | `BookingHistoryServlet`, `BookingHistoryDetailServlet` |
 
 ### 2.6 Cấu hình VietQR (`vietqr.properties`)
 
@@ -759,7 +759,7 @@ UI: input mã + breakdown giảm giá trên [`payment.jsp`](src/main/webapp/WEB-
 ```
 FR-11 ✅  →  FR-50 ✅  →  FR-12 ✅  →  FR-13 ✅  →  FR-14 ✅  →  FR-22 ✅  →  FR-16–17 ✅ (VietQR)
                                                               ↓
-                                                       FR-07 (lịch sử) · FR-19 (email) · FR-43 (loyalty)
+                                                       FR-15 (lịch sử) ✅ · FR-19 (email) · FR-43 (loyalty)
 ```
 
 | Bước | FR | Việc cần làm |
@@ -767,7 +767,7 @@ FR-11 ✅  →  FR-50 ✅  →  FR-12 ✅  →  FR-13 ✅  →  FR-14 ✅  →  
 | 1 | FR-16 webhook | Casso/Sepay — tự động đối soát, bỏ xác nhận thủ công |
 | 2 | FR-18 / email vé | Email xác nhận sau thanh toán |
 | 3 | FR-19 | Email e-ticket qua `EmailUtil` |
-| 4 | FR-07 | `BookingHistoryServlet` → `/booking-history` |
+| 4 | FR-15 | ✅ `BookingHistoryServlet` → `/booking-history` + `BookingHistoryDetailServlet` |
 | 5 | FR-20 | `MovieReviewDAO` + servlet reviews |
 | 6 | FR-43–44 | `LoyaltyServlet` → `/loyalty` |
 

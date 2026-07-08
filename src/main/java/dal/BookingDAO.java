@@ -13,9 +13,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 import model.dto.BookingDetailDTO;
+import model.dto.BookingHistoryItemDTO;
 import model.entity.Booking;
 import model.entity.Movie;
 import model.entity.PricingRule;
@@ -1060,6 +1062,112 @@ public class BookingDAO {
     }
 
     /** Số vé đã xác nhận của khách (hiển thị sidebar profile). */
+    private static final Set<String> HISTORY_STATUS_WHITELIST = Set.of(
+            "PENDING", "CONFIRMED", "CANCELLED", "EXPIRED", "REFUNDED"
+    );
+
+    /**
+     * FR-15 — Đếm đơn trong lịch sử của user (tùy chọn lọc booking_status).
+     */
+    public int countHistoryByUserId(String userId, String statusFilter) {
+        String normalized = normalizeHistoryStatus(statusFilter);
+        String sql = """
+                SELECT COUNT(*) AS cnt
+                FROM Bookings b
+                WHERE b.user_id = ?
+                """ + (normalized != null ? " AND b.booking_status = ?" : "");
+
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            if (normalized != null) {
+                ps.setString(2, normalized);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("cnt");
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("countHistoryByUserId failed", e);
+        }
+        return 0;
+    }
+
+    /**
+     * FR-15 — Danh sách đơn đặt vé của user, mới nhất trước.
+     */
+    public List<BookingHistoryItemDTO> findHistoryByUserId(String userId, String statusFilter,
+                                                             int offset, int limit) {
+        String normalized = normalizeHistoryStatus(statusFilter);
+        String sql = """
+                SELECT b.id, b.booking_code, b.booked_at, b.booking_source,
+                       b.booking_status, b.payment_status, b.final_amount, b.expired_at,
+                       m.title AS movie_title, m.poster_url AS movie_poster_url,
+                       cr.room_name, s.start_time,
+                       (SELECT COUNT(*) FROM BookingSeats bs WHERE bs.booking_id = b.id) AS seat_count,
+                       (SELECT STRING_AGG(se.seat_code, ', ') WITHIN GROUP (ORDER BY se.seat_row, se.seat_column)
+                        FROM BookingSeats bs
+                        JOIN Seats se ON se.id = bs.seat_id
+                        WHERE bs.booking_id = b.id) AS seat_codes
+                FROM Bookings b
+                JOIN Showtimes s ON s.id = b.showtime_id
+                JOIN Movies m ON m.id = s.movie_id
+                JOIN CinemaRooms cr ON cr.id = s.room_id
+                WHERE b.user_id = ?
+                """ + (normalized != null ? " AND b.booking_status = ?" : "") + """
+                ORDER BY b.booked_at DESC
+                OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                """;
+
+        List<BookingHistoryItemDTO> items = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int idx = 1;
+            ps.setString(idx++, userId);
+            if (normalized != null) {
+                ps.setString(idx++, normalized);
+            }
+            ps.setInt(idx++, offset);
+            ps.setInt(idx, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    items.add(mapHistoryRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findHistoryByUserId failed", e);
+        }
+        return items;
+    }
+
+    private static String normalizeHistoryStatus(String statusFilter) {
+        if (statusFilter == null || statusFilter.isBlank()) {
+            return null;
+        }
+        String s = statusFilter.trim().toUpperCase();
+        return HISTORY_STATUS_WHITELIST.contains(s) ? s : null;
+    }
+
+    private static BookingHistoryItemDTO mapHistoryRow(ResultSet rs) throws SQLException {
+        BookingHistoryItemDTO item = new BookingHistoryItemDTO();
+        item.setBookingId(rs.getString("id"));
+        item.setBookingCode(rs.getString("booking_code"));
+        item.setBookedAt(rs.getTimestamp("booked_at"));
+        item.setBookingSource(rs.getString("booking_source"));
+        item.setBookingStatus(rs.getString("booking_status"));
+        item.setPaymentStatus(rs.getString("payment_status"));
+        item.setFinalAmount(rs.getBigDecimal("final_amount"));
+        item.setExpiredAt(rs.getTimestamp("expired_at"));
+        item.setMovieTitle(rs.getString("movie_title"));
+        item.setMoviePosterUrl(rs.getString("movie_poster_url"));
+        item.setRoomName(rs.getString("room_name"));
+        item.setStartTime(rs.getTimestamp("start_time"));
+        item.setSeatCount(rs.getInt("seat_count"));
+        item.setSeatCodesSummary(rs.getString("seat_codes"));
+        return item;
+    }
+
     public int countConfirmedByUserId(String userId) {
         String sql = """
                 SELECT COUNT(*) AS cnt
