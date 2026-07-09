@@ -147,6 +147,7 @@
           </c:forEach>
         </div>
 
+        <%-- pagination v3: circular buttons --%>
         <%@ include file="/WEB-INF/views/common/pagination.jspf" %>
       </c:otherwise>
     </c:choose>

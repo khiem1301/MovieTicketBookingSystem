@@ -390,35 +390,100 @@
 /* ── Pagination ────────────────────────────────────────────── */
 .bh-pagination {
   display: flex;
+  justify-content: center;
+  margin-top: 24px;
+  padding: 5px 0 2px;
+}
+
+.bh-pagination-pages {
+  display: flex;
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+}
+
+.bh-page-btn {
+  width: 31px;
+  height: 31px;
+  min-width: 31px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(233, 188, 182, 0.45);
+  background: transparent;
+  color: #e9bcb6;
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  margin-top: 36px;
-  padding-top: 8px;
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
 }
 
-.bh-pagination-info {
-  font-size: 14px;
-  color: #e9bcb6;
-  width: 100%;
-  text-align: center;
-}
-
-.bh-pagination-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.bh-pagination .bh-btn--ghost {
-  min-width: 140px;
-  padding: 12px 22px;
-  border-color: rgba(255, 255, 255, 0.28);
-}
-
-.bh-pagination .bh-btn--more {
-  border-color: rgba(255, 255, 255, 0.4);
+.bh-page-btn:hover {
   color: #f5f2f1;
+  border-color: rgba(229, 9, 20, 0.55);
+  background: rgba(229, 9, 20, 0.14);
+  transform: translateY(-1px);
+}
+
+.bh-page-btn.is-active {
+  background: #e50914;
+  border-color: #e50914;
+  color: #fff;
+  box-shadow: 0 4px 13px rgba(229, 9, 20, 0.45);
+  pointer-events: none;
+  transform: none;
+}
+
+.bh-page-btn--nav {
+  color: #e9bcb6;
+}
+
+.bh-page-btn--nav:hover {
+  color: #fff;
+  background: rgba(229, 9, 20, 0.2);
+  border-color: rgba(229, 9, 20, 0.5);
+}
+
+.bh-page-btn--nav svg {
+  display: block;
+}
+
+/* Trang có nhiều chữ số — pill thay vì tròn */
+.bh-page-btn--wide {
+  width: auto;
+  min-width: 31px;
+  padding: 0 11px;
+  border-radius: 999px;
+}
+
+.bh-page-ellipsis {
+  width: 22px;
+  height: 31px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(233, 188, 182, 0.55);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  user-select: none;
+}
+
+@media (max-width: 480px) {
+  .bh-page-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    font-size: 9px;
+  }
+
+  .bh-pagination-pages {
+    gap: 6px;
+  }
 }
 
 /* ── Detail page ───────────────────────────────────────────── */
