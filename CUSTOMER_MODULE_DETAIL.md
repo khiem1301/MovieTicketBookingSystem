@@ -32,6 +32,7 @@ Module Customer phục vụ người dùng có role **CUSTOMER** (và khách ch�
 | Poll sơ đồ ghế hai chiều | — | ✅ | JSON 2s — ghế giải phóng hiện lại available |
 | Tạo đơn đặt vé online | FR-14 | ✅ | Form POST → `Bookings` PENDING/UNPAID + redirect `/payment` |
 | Hủy đơn PENDING (giải phóng ghế) | FR-14 | ✅ | POST `/payment?action=cancel` → `booking_status=CANCELLED` |
+| Tự hết hạn đơn PENDING (quá `expired_at`) | FR-14 | ✅ | `booking_status=EXPIRED` — lazy (lịch sử/thanh toán) + job 5 phút (`BookingExpiryListener`) |
 | Trang thanh toán VietQR + countdown | FR-14 / FR-16 | ✅ | `/payment?bookingId=` — QR chuyển khoản |
 | Phát hành vé điện tử sau thanh toán | FR-17 | ✅ | `TicketDAO.issueTicketsForBooking` — bảng `Tickets` |
 | Trang xác nhận thanh toán thành công | FR-17 | ✅ | `/payment/success?bookingId=` |
@@ -54,7 +55,7 @@ Module Customer phục vụ người dùng có role **CUSTOMER** (và khách ch�
 | Đánh giá phim | FR-20 | `/reviews/mine` | Schema `MovieReviews` có |
 | Email xác nhận vé | FR-19 | — | `EmailUtil` có sẵn |
 
-> `ShowtimesServlet` ở `controller` (public). Package `controller.customer`: `CheckoutServlet`, `PaymentServlet`, `PaymentSuccessServlet`, `PaymentStatusServlet`, `BookingHistoryServlet`, `BookingHistoryDetailServlet` (CUSTOMER-only qua `RoleFilter`).
+> Package `controller.customer`: `CheckoutServlet`, `PaymentServlet`, `PaymentSuccessServlet`, `PaymentStatusServlet`, `BookingHistoryServlet`, `BookingHistoryDetailServlet`. Listener: `listener.BookingExpiryListener` (expire job). CUSTOMER-only qua `RoleFilter`.
 
 **Tài khoản test (seed):**
 
@@ -548,7 +549,7 @@ ticketPrice = effectivePrice × seat_multiplier
 |-------|---------|
 | Không thuộc user hiện tại | 404 |
 | Không phải ONLINE / PENDING | Redirect checkout + error |
-| `expired_at` đã qua | Redirect checkout + error |
+| `expired_at` đã qua | Gọi `expireStalePendingOnlineBooking` → `booking_status=EXPIRED`, xóa `SeatHolds`, hoàn voucher; redirect checkout + error |
 
 UI: poster phim, ghế, breakdown, countdown 10 phút, khối voucher, nút **Thanh toán VietQR** → hiển thị QR + thông tin STK; nút **Tôi đã chuyển khoản** sau khi CK.
 
@@ -816,6 +817,30 @@ FR-11 ✅  →  FR-50 ✅  →  FR-12 ✅  →  FR-13 ✅  →  FR-14 ✅  →  
 2. Click **Hủy đơn** → confirm → redirect checkout; DB `booking_status = CANCELLED`.
 3. Tab khác poll checkout → ghế hiện lại available (không còn icon X).
 4. Từ checkout (khi có `pendingBookingId`): nút **Hủy đơn đang chờ** hoạt động tương tự.
+
+### 12.5a Đơn PENDING hết hạn (`expired_at`)
+
+Khi quá 10 phút thanh toán, đơn ONLINE PENDING/UNPAID được chuyển sang **`booking_status = EXPIRED`** (khác **CANCELLED** — hủy tay).
+
+| Kích hoạt | Servlet / component |
+|-----------|---------------------|
+| Lazy (theo user) | `BookingHistoryServlet`, `BookingHistoryDetailServlet` — trước khi đọc DB |
+| Thanh toán | `PaymentServlet.validateAccess` — nếu `expired_at` đã qua |
+| Job nền (5 phút) | `listener.BookingExpiryListener` → `BookingDAO.expireAllStalePendingOnlineBookings()` |
+
+**Side effects mỗi đơn expire** (transaction, giống hủy PENDING):
+
+- `UPDATE Bookings` → `EXPIRED`
+- Xóa `BookingPromotions` + `decrementUsedCount` voucher (FR-22)
+- `DELETE SeatHolds` theo `showtime_id` + `user_id`
+- `Payments` ONLINE `PENDING` → `FAILED` (nếu có bản ghi VietQR)
+
+**Kiểm thử:**
+
+1. Tạo đơn PENDING, không thanh toán; đợi quá `expired_at` (hoặc sửa `expired_at` trong DB).
+2. Mở `/booking-history` → tab **Chờ thanh toán** không còn đơn; tab **Hết hạn** có đơn.
+3. Checkout cùng suất → ghế available lại.
+4. `/payment?bookingId=` đơn cũ → lỗi, không thanh toán được.
 
 ### 12.6 Tích hợp 2 người (showtimes UI)
 

@@ -124,6 +124,20 @@ public class PaymentDAO {
         }
     }
 
+    /** Đánh dấu mọi payment ONLINE PENDING của đơn là FAILED (khi đơn hết hạn / hủy). */
+    public void markPendingFailedByBookingId(Connection conn, String bookingId) throws SQLException {
+        String sql = """
+                UPDATE Payments SET payment_status = 'FAILED'
+                WHERE booking_id = ?
+                  AND payment_source = 'ONLINE'
+                  AND payment_status = 'PENDING'
+                """;
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, bookingId);
+            ps.executeUpdate();
+        }
+    }
+
     private PaymentRecord mapRow(ResultSet rs) throws SQLException {
         return new PaymentRecord(
                 rs.getString("id"),

@@ -795,81 +795,55 @@ public class BookingDAO {
      * @return true nếu hủy thành công
      */
     public boolean cancelOnlinePendingBooking(String bookingId, String userId) {
-        String selectSql = """
-                SELECT showtime_id
-                FROM Bookings
-                WHERE id = ?
-                  AND user_id = ?
-                  AND booking_source = 'ONLINE'
-                  AND booking_status = 'PENDING'
-                  AND payment_status = 'UNPAID'
-                """;
-        String updateSql = """
-                UPDATE Bookings
-                SET booking_status = 'CANCELLED'
-                WHERE id = ?
-                  AND user_id = ?
-                  AND booking_source = 'ONLINE'
-                  AND booking_status = 'PENDING'
-                  AND payment_status = 'UNPAID'
-                """;
-        String deleteHoldsSql = """
-                DELETE FROM SeatHolds
-                WHERE showtime_id = ?
-                  AND user_id = ?
-                """;
+        return runFinalizePendingOnlineBooking(bookingId, userId, "CANCELLED", false);
+    }
 
+    /**
+     * Đơn ONLINE PENDING quá expired_at → EXPIRED (giải phóng ghế, hoàn voucher).
+     *
+     * @return true nếu đã chuyển sang EXPIRED
+     */
+    public boolean expireStalePendingOnlineBooking(String bookingId, String userId) {
+        return runFinalizePendingOnlineBooking(bookingId, userId, "EXPIRED", true);
+    }
+
+    /** Expire mọi đơn ONLINE PENDING quá hạn của user (trước khi load lịch sử). */
+    public void expireStalePendingOnlineBookingsForUser(String userId) {
+        for (String bookingId : findStalePendingOnlineBookingIds(userId)) {
+            expireStalePendingOnlineBooking(bookingId, userId);
+        }
+    }
+
+    /** Job nền — expire toàn bộ đơn ONLINE PENDING quá hạn. */
+    public int expireAllStalePendingOnlineBookings() {
+        List<String[]> rows = findAllStalePendingOnlineBookingRows();
+        int count = 0;
+        for (String[] row : rows) {
+            if (expireStalePendingOnlineBooking(row[0], row[1])) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private boolean runFinalizePendingOnlineBooking(String bookingId, String userId,
+                                                    String targetStatus, boolean requireExpired) {
         Connection conn = null;
         try {
             conn = DBContext.getConnection();
             conn.setAutoCommit(false);
-
-            String showtimeId;
-            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
-                ps.setString(1, bookingId);
-                ps.setString(2, userId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (!rs.next()) {
-                        conn.rollback();
-                        return false;
-                    }
-                    showtimeId = rs.getString("showtime_id");
-                }
-            }
-
-            int updated;
-            try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
-                ps.setString(1, bookingId);
-                ps.setString(2, userId);
-                updated = ps.executeUpdate();
-            }
-            if (updated == 0) {
+            boolean ok = finalizePendingOnlineBooking(conn, bookingId, userId, targetStatus, requireExpired);
+            if (ok) {
+                conn.commit();
+            } else {
                 conn.rollback();
-                return false;
             }
-
-            BookingPromotionDAO bpDao = new BookingPromotionDAO();
-            PromotionDAO promoDao = new PromotionDAO();
-            var appliedPromo = bpDao.findByBookingId(conn, bookingId);
-            if (appliedPromo.isPresent()) {
-                bpDao.deleteByBookingId(conn, bookingId);
-                promoDao.decrementUsedCount(conn, appliedPromo.get().promotionId());
-            }
-
-            try (PreparedStatement ps = conn.prepareStatement(deleteHoldsSql)) {
-                ps.setString(1, showtimeId);
-                ps.setString(2, userId);
-                ps.executeUpdate();
-            }
-
-            conn.commit();
-            return true;
-
+            return ok;
         } catch (SQLException e) {
             if (conn != null) {
                 try { conn.rollback(); } catch (SQLException ignored) { }
             }
-            throw new RuntimeException("cancelOnlinePendingBooking failed", e);
+            throw new RuntimeException("finalize pending online booking failed", e);
         } finally {
             if (conn != null) {
                 try {
@@ -878,6 +852,128 @@ public class BookingDAO {
                 } catch (SQLException ignored) { }
             }
         }
+    }
+
+    private boolean finalizePendingOnlineBooking(Connection conn, String bookingId, String userId,
+                                                   String targetStatus, boolean requireExpired)
+            throws SQLException {
+        String expiredClause = requireExpired
+                ? " AND expired_at IS NOT NULL AND expired_at <= GETDATE()"
+                : "";
+
+        String selectSql = """
+                SELECT showtime_id
+                FROM Bookings
+                WHERE id = ?
+                  AND user_id = ?
+                  AND booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                """ + expiredClause;
+
+        String updateSql = """
+                UPDATE Bookings
+                SET booking_status = ?
+                WHERE id = ?
+                  AND user_id = ?
+                  AND booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                """ + expiredClause;
+
+        String deleteHoldsSql = """
+                DELETE FROM SeatHolds
+                WHERE showtime_id = ?
+                  AND user_id = ?
+                """;
+
+        String showtimeId;
+        try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+            ps.setString(1, bookingId);
+            ps.setString(2, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return false;
+                }
+                showtimeId = rs.getString("showtime_id");
+            }
+        }
+
+        try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+            ps.setString(1, targetStatus);
+            ps.setString(2, bookingId);
+            ps.setString(3, userId);
+            if (ps.executeUpdate() == 0) {
+                return false;
+            }
+        }
+
+        BookingPromotionDAO bpDao = new BookingPromotionDAO();
+        PromotionDAO promoDao = new PromotionDAO();
+        var appliedPromo = bpDao.findByBookingId(conn, bookingId);
+        if (appliedPromo.isPresent()) {
+            bpDao.deleteByBookingId(conn, bookingId);
+            promoDao.decrementUsedCount(conn, appliedPromo.get().promotionId());
+        }
+
+        new PaymentDAO().markPendingFailedByBookingId(conn, bookingId);
+
+        try (PreparedStatement ps = conn.prepareStatement(deleteHoldsSql)) {
+            ps.setString(1, showtimeId);
+            ps.setString(2, userId);
+            ps.executeUpdate();
+        }
+
+        return true;
+    }
+
+    private List<String> findStalePendingOnlineBookingIds(String userId) {
+        String sql = """
+                SELECT id
+                FROM Bookings
+                WHERE user_id = ?
+                  AND booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND expired_at IS NOT NULL
+                  AND expired_at <= GETDATE()
+                """;
+        List<String> ids = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ids.add(rs.getString("id"));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findStalePendingOnlineBookingIds failed", e);
+        }
+        return ids;
+    }
+
+    private List<String[]> findAllStalePendingOnlineBookingRows() {
+        String sql = """
+                SELECT id, user_id
+                FROM Bookings
+                WHERE booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND expired_at IS NOT NULL
+                  AND expired_at <= GETDATE()
+                """;
+        List<String[]> rows = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                rows.add(new String[] { rs.getString("id"), rs.getString("user_id") });
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findAllStalePendingOnlineBookingRows failed", e);
+        }
+        return rows;
     }
 
     /** Lấy VAT rate hiện hành từ VatRules; fallback 8% nếu chưa cấu hình. */

@@ -37,7 +37,10 @@ public class BookingHistoryDetailServlet extends HttpServlet {
             return;
         }
 
-        BookingDetailDTO detail = new BookingDAO().getDetailById(bookingId);
+        BookingDAO bookingDAO = new BookingDAO();
+        bookingDAO.expireStalePendingOnlineBooking(bookingId, sessionUser.getId());
+
+        BookingDetailDTO detail = bookingDAO.getDetailById(bookingId);
         if (!BookingAccessUtil.isOwner(detail, sessionUser.getId())) {
             req.getRequestDispatcher("/WEB-INF/views/error/404.jsp").forward(req, resp);
             return;
