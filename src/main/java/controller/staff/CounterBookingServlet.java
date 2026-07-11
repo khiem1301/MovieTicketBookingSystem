@@ -302,7 +302,7 @@ public class CounterBookingServlet extends HttpServlet {
             dao.confirmPaymentWithDetails(bookingId, method, cashReceived, changeAmount);
 
             // FR-19 — Gửi email xác nhận nếu khách là thành viên (bất đồng bộ)
-            sendConfirmationEmailAsync(bookingId);
+            EmailUtil.sendBookingConfirmationEmailAsync(bookingId);
 
             resp.sendRedirect(req.getContextPath()
                     + "/staff/counter?step=print&bookingId=" + bookingId);
@@ -336,24 +336,6 @@ public class CounterBookingServlet extends HttpServlet {
     }
 
     // ── Helpers ────────────────────────────────────────────────────────
-
-    private void sendConfirmationEmailAsync(String bookingId) {
-        new Thread(() -> {
-            try {
-                BookingDetailDTO detail = new BookingDAO().getDetailById(bookingId);
-                if (detail == null || isBlank(detail.getUserId())) return;
-
-                String email = new dal.UserDAO().findById(detail.getUserId())
-                        .map(u -> u.getEmail()).orElse(null);
-                if (email == null) return;
-
-                detail.setLinkedUserEmail(email);
-                EmailUtil.sendBookingConfirmationEmail(email, detail.getCustomerName(), detail);
-            } catch (Exception e) {
-                log("Email confirmation error for booking " + bookingId + ": " + e.getMessage());
-            }
-        }).start();
-    }
 
     private void forwardError(HttpServletRequest req, HttpServletResponse resp, String msg)
             throws ServletException, IOException {

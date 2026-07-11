@@ -31,7 +31,8 @@ import utils.SeatHoldException;
 
 public class BookingDAO {
 
-    public static final int ONLINE_EXPIRE_MINUTES = 10;
+    /** TEMP test: 1 phút. Đổi lại 10 trước khi demo/production. */
+    public static final int ONLINE_EXPIRE_MINUTES = 1;
 
     /**
      * FR-35 / FR-38 — Tạo booking tại quầy (OFFLINE).
@@ -591,6 +592,30 @@ public class BookingDAO {
         }
     }
 
+    /** Gia hạn thêm phút cho đơn PENDING khi bắt đầu redirect cổng thanh toán. */
+    public void extendPendingExpiry(String bookingId, int extraMinutes) {
+        if (bookingId == null || bookingId.isBlank() || extraMinutes <= 0) {
+            return;
+        }
+        String sql = """
+                UPDATE Bookings
+                SET expired_at = CASE
+                    WHEN expired_at > GETDATE() THEN DATEADD(minute, ?, expired_at)
+                    ELSE DATEADD(minute, ?, GETDATE())
+                END
+                WHERE id = ? AND booking_status = 'PENDING' AND payment_status = 'UNPAID'
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, extraMinutes);
+            ps.setInt(2, extraMinutes);
+            ps.setString(3, bookingId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("extendPendingExpiry failed", e);
+        }
+    }
+
     /** Đánh dấu payment online thất bại (không đụng booking PENDING). */
     public void failOnlinePayment(String paymentId) {
         try (Connection conn = DBContext.getConnection()) {
@@ -795,6 +820,59 @@ public class BookingDAO {
      * @return true nếu hủy thành công
      */
     public boolean cancelOnlinePendingBooking(String bookingId, String userId) {
+        return releaseOnlinePendingBooking(bookingId, userId, "CANCELLED");
+    }
+
+    /**
+     * Hết hạn đơn ONLINE PENDING — giải phóng ghế (booking_status → EXPIRED).
+     *
+     * @return true nếu cập nhật thành công
+     */
+    public boolean expireOnlinePendingBooking(String bookingId, String userId) {
+        return releaseOnlinePendingBooking(bookingId, userId, "EXPIRED");
+    }
+
+    /**
+     * Đánh EXPIRED mọi đơn ONLINE PENDING đã quá {@code expired_at} trên suất chiếu.
+     * Gọi khi mở sơ đồ ghế để ghế không bị khóa “ma”.
+     */
+    public int expireStaleOnlinePendingForShowtime(String showtimeId) {
+        if (showtimeId == null || showtimeId.isBlank()) {
+            return 0;
+        }
+        String selectSql = """
+                SELECT id, user_id
+                FROM Bookings
+                WHERE showtime_id = ?
+                  AND booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND expired_at IS NOT NULL
+                  AND expired_at <= GETDATE()
+                """;
+        int count = 0;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(selectSql)) {
+            ps.setString(1, showtimeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String bookingId = rs.getString("id");
+                    String userId = rs.getString("user_id");
+                    if (userId != null && expireOnlinePendingBooking(bookingId, userId)) {
+                        count++;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("expireStaleOnlinePendingForShowtime failed", e);
+        }
+        return count;
+    }
+
+    private boolean releaseOnlinePendingBooking(String bookingId, String userId, String newStatus) {
+        if (!"CANCELLED".equals(newStatus) && !"EXPIRED".equals(newStatus)) {
+            throw new IllegalArgumentException("newStatus must be CANCELLED or EXPIRED");
+        }
         String selectSql = """
                 SELECT showtime_id
                 FROM Bookings
@@ -806,7 +884,7 @@ public class BookingDAO {
                 """;
         String updateSql = """
                 UPDATE Bookings
-                SET booking_status = 'CANCELLED'
+                SET booking_status = ?
                 WHERE id = ?
                   AND user_id = ?
                   AND booking_source = 'ONLINE'
@@ -839,8 +917,9 @@ public class BookingDAO {
 
             int updated;
             try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
-                ps.setString(1, bookingId);
-                ps.setString(2, userId);
+                ps.setString(1, newStatus);
+                ps.setString(2, bookingId);
+                ps.setString(3, userId);
                 updated = ps.executeUpdate();
             }
             if (updated == 0) {
@@ -869,7 +948,7 @@ public class BookingDAO {
             if (conn != null) {
                 try { conn.rollback(); } catch (SQLException ignored) { }
             }
-            throw new RuntimeException("cancelOnlinePendingBooking failed", e);
+            throw new RuntimeException("releaseOnlinePendingBooking failed", e);
         } finally {
             if (conn != null) {
                 try {
