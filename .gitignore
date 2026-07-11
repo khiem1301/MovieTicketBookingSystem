@@ -54,3 +54,5 @@ build/
 !**/google.properties.example
 **/vietqr.properties
 !**/vietqr.properties.example
+**/sepay.properties
+!**/sepay.properties.example

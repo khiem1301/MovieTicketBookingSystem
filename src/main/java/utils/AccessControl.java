@@ -13,7 +13,7 @@ import java.util.Set;
  */
 public final class AccessControl {
 
-/** FR-16 — Thanh toán online (customer paths). */
+/** Public paths + role prefixes for AuthFilter / RoleFilter. */
     private static final Set<String> PUBLIC_EXACT = Set.of(
             "/",
             "/home",
@@ -28,6 +28,7 @@ public final class AccessControl {
             "/session-expired",
             "/forgot-password",
             "/reset-password",
+            "/payment/sepay/webhook",
             "/index.jsp"
     );
 

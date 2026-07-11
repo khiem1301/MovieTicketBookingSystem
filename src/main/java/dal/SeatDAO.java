@@ -18,7 +18,7 @@ public class SeatDAO {
      * Servlet customer ghi đè ticketPrice sau khi có effectivePrice từ PricingCalculator.
      *
      * Ghế unavailable khi:
-     * - BookingSeats thuộc booking PENDING/CONFIRMED cùng suất, hoặc
+     * - BookingSeats thuộc booking CONFIRMED, hoặc PENDING còn hạn (expired_at > now), hoặc
      * - SeatHolds cùng (showtime_id, seat_id) với expired_at > GETDATE()
      *   (trừ hold của chính currentUserId khi gọi overload 2 tham số — FR-13).
      */
@@ -65,7 +65,13 @@ public class SeatDAO {
                     AND bs.booking_id IN (
                         SELECT b.id FROM Bookings b
                         WHERE b.showtime_id = sh.id
-                          AND b.booking_status IN ('PENDING', 'CONFIRMED')
+                          AND (
+                              b.booking_status = 'CONFIRMED'
+                              OR (
+                                  b.booking_status = 'PENDING'
+                                  AND (b.expired_at IS NULL OR b.expired_at > GETDATE())
+                              )
+                          )
                     )
                 LEFT JOIN SeatHolds sh_hold ON sh_hold.seat_id = s.id
                     AND sh_hold.showtime_id = sh.id

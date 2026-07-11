@@ -5,7 +5,8 @@
 > **Tổng quan dự án:** [`SOURCE_CODE_OVERVIEW.md`](SOURCE_CODE_OVERVIEW.md)  
 > **Spec nghiệp vụ:** [`project_summary_final.md`](project_summary_final.md)  
 > **Database & migration:** [`Database/README.md`](Database/README.md)  
-> **Chi tiết 3 module vận hành (phòng · loại ghế · suất chiếu):** [`MANAGER_CINEMA_OPERATIONS.md`](MANAGER_CINEMA_OPERATIONS.md)
+> **Chi tiết 3 module vận hành (phòng · loại ghế · suất chiếu):** [`MANAGER_CINEMA_OPERATIONS.md`](MANAGER_CINEMA_OPERATIONS.md)  
+> **Cập nhật:** 11/07/2026
 
 ---
 
@@ -20,7 +21,7 @@ Module Manager dành cho người dùng có role **MANAGER** — người vận 
 | Quản lý phim — thêm / sửa | FR-23 | ✅ |
 | Upload poster & backdrop (file hoặc URL) | FR-23 | ✅ |
 | Gán thể loại cho phim | FR-23, FR-24 | ✅ |
-| Đổi trạng thái phim (COMING_SOON / NOW_SHOWING / ENDED) | FR-23 | ✅ |
+| Đổi trạng thái phim (COMING_SOON / NOW_SHOWING / EARLY_SHOWING / ENDED) | FR-23 | ✅ |
 | Xóa phim (soft delete) | FR-23 | ✅ |
 | Quản lý thể loại — thêm / sửa | FR-24 | ✅ |
 | Xóa thể loại (FK guard) | FR-24 | ✅ |
@@ -31,12 +32,12 @@ Module Manager dành cho người dùng có role **MANAGER** — người vận 
 | Quản lý phòng chiếu — toggle trạng thái (ACTIVE / MAINTENANCE / INACTIVE) | FR-26 | ✅ |
 | Quản lý phòng chiếu — layout ghế (editor) | FR-26 | ✅ |
 | Lưu layout ghế vào `Seats` (persist DB) | FR-26 | ✅ |
-| Quản lý loại ghế & hệ số giá (CRUD) | FR-27 | ✅ |
+| Quản lý loại ghế & hệ số giá + seat_span (1/2 ô) | FR-27 | ✅ |
 | Quản lý suất chiếu — tạo / sửa / xóa | FR-25 | ✅ |
 | Kiểm tra trùng lịch cùng phòng | FR-25 | ✅ |
 | Khóa phim/phòng/giờ khi suất đã có booking | FR-25 | ✅ |
 | Xóa phòng chiếu | FR-26 | ❌ Chưa có |
-| Quản lý khuyến mãi (voucher) | FR-21 | ❌ Chưa có |
+| Quản lý khuyến mãi (voucher) | FR-21 | ✅ | UI `/admin/promotions` (MANAGER + ADMIN) |
 | Dashboard thống kê | FR-30 | 🟡 Một phần — Admin dashboard có thống kê tháng |
 | Báo cáo doanh thu | FR-31 | 🟡 Phase 1 tại Admin `/admin/reports` (chưa UI Manager; chưa tách VAT) |
 | Báo cáo bán vé | FR-32 | 🟡 Phase 1 tại Admin `/admin/reports` — theo phim/suất + CSV (chưa theo loại ghế) |
@@ -124,7 +125,7 @@ Trang list/detail load CSS qua `extraCss` / `extraCss2` trong `header.jsp`.
 
 | File | Vai trò |
 |------|---------|
-| `utils/AccessControl.java` | Rule `/manager/*` → MANAGER |
+| `utils/AccessControl.java` | Rule `/manager/*` → **MANAGER + ADMIN** |
 | `utils/SessionUtil.java` | Đọc `userRole` từ session |
 | `filter/AuthFilter.java` | Bắt buộc đăng nhập |
 | `filter/RoleFilter.java` | Chặn sai role → HTTP 403 |
@@ -138,7 +139,7 @@ Trang list/detail load CSS qua `extraCss` / `extraCss2` trong `header.jsp`.
 |------|---------|
 | `WEB-INF/views/common/header.jsp` | Menu dropdown MANAGER: Quản lý phim, thể loại, **suất chiếu**, phòng chiếu, loại ghế |
 
-> ADMIN cũng thấy link phim/thể loại (dùng chung `/manager/movies` và `/manager/genres`) nhưng **không thấy** link phòng chiếu và loại ghế. ADMIN bị 403 khi vào `/manager/*` do `RoleFilter`.
+> `AccessControl` cho phép **MANAGER và ADMIN** vào `/manager/*`. Header: ADMIN thấy link phim/thể loại (+ promotions admin); MANAGER thấy thêm rooms / seat-types / showtimes / promotions.
 
 ### 2.7 Thư mục upload ảnh
 
@@ -158,7 +159,7 @@ flowchart TD
     A[Request /manager/*] --> B{Lớp 1: AuthFilter}
     B -->|Chưa login| C[Redirect /login?redirect=...]
     B -->|Đã login| D{Lớp 2: RoleFilter}
-    D -->|Role != MANAGER| E[HTTP 403 → error/403.jsp]
+    D -->|Role không phải MANAGER/ADMIN| E[HTTP 403 → error/403.jsp]
     D -->|Role == MANAGER| F{Lớp 3: isAuthorized trong Servlet}
     F -->|MANAGER hoặc ADMIN| G[Servlet xử lý]
     F -->|Khác| H[Redirect /home]
@@ -176,12 +177,13 @@ flowchart TD
 ```java
 // AccessControl.java
 ROLE_PREFIXES = {
-    "/manager/" → Set.of("MANAGER")
+    "/manager/" → Set.of("MANAGER", "ADMIN")
 }
 ```
 
-- Path bắt đầu `/manager/` hoặc chính xác `/manager` → yêu cầu role **MANAGER**
-- Role khác (ADMIN, STAFF, CUSTOMER) → HTTP 403, forward `error/403.jsp`
+- Path bắt đầu `/manager/` → yêu cầu role **MANAGER hoặc ADMIN**
+- Role khác (STAFF, CUSTOMER) → HTTP 403, forward `error/403.jsp`
+- Promotions: `/admin/promotions*` trong `ADMIN_MANAGER_PATHS` — cả ADMIN và MANAGER
 - Set attribute: `requestedPath`, `userRole`
 
 ### 3.3 Lớp 3 — `isAuthorized()` trong servlet
@@ -198,10 +200,10 @@ private boolean isAuthorized(HttpServletRequest req) {
 | Tình huống | Hành vi |
 |------------|---------|
 | `userRole == "MANAGER"` | Tiếp tục xử lý |
-| `userRole == "ADMIN"` | Servlet cho phép — **nhưng RoleFilter đã chặn ở lớp 2** |
+| `userRole == "ADMIN"` | Được phép (khớp `AccessControl`) |
 | Chưa đăng nhập / role khác | `sendRedirect("/home")` — **không** dùng flash message |
 
-> Khác với Admin: Manager servlet redirect về `/home` thay vì flash error hoặc 403 khi `isAuthorized()` fail.
+> Khi `isAuthorized()` fail (hiếm, vì filter đã chặn): Manager servlet redirect về `/home`.
 
 ---
 
@@ -1070,8 +1072,8 @@ CREATE TABLE Showtimes (
 
 | # | Quy tắc | Nơi enforce |
 |---|---------|-------------|
-| 1 | Chỉ **MANAGER** truy cập `/manager/*` qua filter | `RoleFilter` + `AccessControl` |
-| 2 | Servlet chấp nhận MANAGER **hoặc** ADMIN | `isAuthorized()` — ADMIN bị filter chặn trước |
+| 1 | **MANAGER + ADMIN** truy cập `/manager/*` | `RoleFilter` + `AccessControl` |
+| 2 | Servlet `isAuthorized()` chấp nhận MANAGER hoặc ADMIN | Khớp filter |
 | 3 | `slug` phải **duy nhất** toàn hệ thống | DB `UK_Movies_Slug` + `MovieDAO.isDuplicateSlug*` |
 | 4 | `title` không được trùng (app-level) | `MovieDAO.isDuplicateTitle*` |
 | 5 | `genre_name` phải **duy nhất** | DB `UK_Genres_Name` + `GenreDAO.isDuplicate*` |
@@ -1156,7 +1158,7 @@ Khi `sessionScope.userRole == 'MANAGER'`:
 | Quản lý phòng chiếu | `/manager/rooms` |
 | Quản lý loại ghế | `/manager/seat-types` |
 
-> ADMIN thấy link phim/thể loại nhưng **không thấy** suất chiếu, phòng chiếu và loại ghế.
+> ADMIN: menu phim/thể loại (+ admin promotions). MANAGER: đủ rooms / seat-types / showtimes / promotions.
 
 ---
 
@@ -1191,8 +1193,8 @@ Nếu có `?redirect=` hợp lệ (qua `AuthRedirectUtil.isSafeRedirect`), login
 
 | # | Vấn đề | Mô tả |
 |---|--------|-------|
-| 1 | ADMIN bị 403 vào `/manager/*` | `RoleFilter` chỉ cho MANAGER; servlet `isAuthorized()` lại cho ADMIN — mâu thuẫn |
-| 2 | Header hiện link manager cho ADMIN | ADMIN click phim/thể loại → 403 (dù servlet cho phép) |
+| 1 | (Đã sửa) ADMIN vào được `/manager/*` | `AccessControl` cho MANAGER + ADMIN |
+| 2 | Menu header khác nhau theo role | ADMIN không hiện link rooms/showtimes — vẫn vào bằng URL được |
 | 3 | Không có CSRF token | Form POST manager không có bảo vệ CSRF |
 | 4 | Không có `ManagerAuthUtil` | Không flash message; auth fail → redirect `/home` im lặng |
 | 5 | `cast_members` chưa có trên form | Cột DB tồn tại nhưng manager không nhập được |
@@ -1210,7 +1212,7 @@ Dựa trên `project_summary_final.md` (Nhóm Manager):
 
 | FR | Tên | Bảng chính | Trạng thái |
 |----|-----|------------|------------|
-| FR-21 | Promotion Management | `Promotions` | ❌ Chưa có |
+| FR-21 | Promotion Management | `Promotions` | ✅ UI `/admin/promotions` (MANAGER + ADMIN) |
 | FR-25 | Showtime Management | `Showtimes` | ✅ CRUD suất, overlap check, booking lock |
 | FR-26 | Cinema Room Management | `CinemaRooms`, `Seats` | 🟡 Tạo/rename/toggle ✅; save layout ✅; xóa phòng ❌ |
 | FR-27 | Seat Type & Pricing | `SeatTypes` | ✅ CRUD + delete guard + **seat_span** (1/2 ô) |
@@ -1227,7 +1229,7 @@ Dựa trên `project_summary_final.md` (Nhóm Manager):
 |-----------|-------|
 | Trường `cast_members` | Thêm vào form phim |
 | `ManagerAuthUtil` | Flash message + redirect nhất quán |
-| Cho ADMIN vào `/manager/*` | Thêm ADMIN vào `AccessControl.ROLE_PREFIXES` |
+| (Đã làm) ADMIN vào `/manager/*` | `ROLE_PREFIXES` đã có ADMIN |
 | CSRF protection | Token trên form POST |
 | Redirect sau login theo role | MANAGER → `/manager/movies` |
 | Xóa phòng chiếu | Soft delete hoặc guard FK |
@@ -1314,8 +1316,9 @@ Dựa trên `project_summary_final.md` (Nhóm Manager):
 - [ ] Chưa login → `/manager/movies` → redirect login
 - [ ] CUSTOMER login → `/manager/movies` → 403
 - [ ] STAFF login → `/manager/movies` → 403
-- [ ] ADMIN login → `/manager/movies` → 403 (dù header có link)
+- [ ] ADMIN login → `/manager/movies` → **được vào** (MANAGER + ADMIN)
 - [ ] MANAGER login → `/admin/dashboard` → 403
+- [ ] MANAGER login → `/admin/promotions` → được vào (ADMIN_MANAGER_PATHS)
 
 ### Upload & edge cases
 

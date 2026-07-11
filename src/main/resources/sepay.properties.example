@@ -1,0 +1,15 @@
+# Sao chép thành sepay.properties (không commit file thật).
+# SePay webhook tự xác nhận VietQR khi có tiền vào (Test mode free / Live).
+# Docs: https://docs.sepay.vn/tich-hop-webhooks.html
+# Developer: https://developer.sepay.vn/vi
+
+# Bật tích hợp (true/false). false = chỉ VietQR thủ công như cũ.
+sepay.enabled=true
+
+# API Key chứng thực webhook — SePay gửi header: Authorization: Apikey <key>
+# Tạo khi cấu hình webhook (kiểu API Key) trên my.sepay.vn / Test mode.
+sepay.webhook.api.key=YOUR_SEPAY_WEBHOOK_API_KEY
+
+# (Tuỳ chọn) Chỉ chấp nhận tiền vào đúng STK này — để trống = không lọc STK
+# Nên trùng vietqr.account.number
+# sepay.account.number=0123456789

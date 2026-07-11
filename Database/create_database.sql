@@ -1,19 +1,31 @@
 -- ============================================================
 -- Movie Ticket Booking System
--- SQL Server — SCRIPT DUY NHAT (schema + seed data day du)
+-- SQL Server — SCRIPT DUY NHẤT (schema + seed đầy đủ)
 -- ============================================================
--- Chay file nay MOT LAN trong SSMS / Azure Data Studio (Ctrl+A -> F5)
--- Khong can chay them migration_*.sql
+-- Máy mới / reset DB: chạy file này MỘT LẦN trong SSMS (Ctrl+A → F5).
+-- KHÔNG cần chạy thêm bất kỳ file nào trong Database/migrations/.
 --
--- Bao gom:
---   - 28 bang (PascalCase)
---   - Seed: Roles, Users, Config, Cinema, Chatbot
---   - Seed homepage: Genres (is_active, description), CinemaRooms, 8 Movies, MovieGenres
+-- Đã gộp toàn bộ migration vào schema CREATE TABLE:
+--   add_user_status_log.sql      → bảng UserStatusLog
+--   add_token_purpose.sql        → PasswordResetTokens.purpose
+--   add_promotion_image.sql      → Promotions.image_url
+--   add_seat_type_span.sql       → SeatTypes.seat_span (+ seed COUPLE/SWEETBOX = 2)
+--   add_vietqr_payment_method.sql→ CK_Payments_Method gồm VIETQR
+--   sprint2_counter_pos.sql      → Genres.description/is_active,
+--                                  Tickets.is_printed,
+--                                  Payments.cash_received/change_amount
 --
--- Luu y:
---   - UUID     -> UNIQUEIDENTIFIER + DEFAULT NEWID()
---   - ENUM     -> NVARCHAR + CHECK constraint
---   - Chay lai script se DROP va TAO LAI toan bo bang (mat du lieu cu)
+-- Bao gồm:
+--   - 28 bảng (PascalCase) + index
+--   - Seed: Roles, Users, Config, Cinema, SeatTypes, Chatbot
+--   - Seed homepage: Genres, CinemaRooms, 8 Movies, MovieGenres
+--   - Seed voucher FR-22, đơn SEED-STATS-* (báo cáo admin)
+--
+-- Lưu ý:
+--   - UUID     → UNIQUEIDENTIFIER + DEFAULT NEWID()
+--   - ENUM     → NVARCHAR + CHECK constraint
+--   - Chạy lại script sẽ DROP và TẠO LẠI toàn bộ bảng (mất dữ liệu cũ)
+--   - DB cũ muốn giữ data: xem Database/migrations/README.md (legacy)
 -- ============================================================
 
 USE master;
@@ -853,15 +865,15 @@ GO
 -- ============================================================
 
 -- The loai phim
-INSERT INTO Genres (id, genre_name) VALUES
-    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB101', N'Hành động'),
-    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB102', N'Viễn tưởng'),
-    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB103', N'Kinh dị'),
-    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB104', N'Tình cảm'),
-    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB105', N'Hoạt hình'),
-    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB106', N'Hài'),
-    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB107', N'Chính kịch'),
-    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB108', N'Kịch tính');
+INSERT INTO Genres (id, genre_name, description, is_active) VALUES
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB101', N'Hành động',  N'Phim hành động, võ thuật, rượt đuổi', 1),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB102', N'Viễn tưởng', N'Khoa học viễn tưởng, không gian, công nghệ', 1),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB103', N'Kinh dị',    N'Phim kinh dị, ma quái, giật gân', 1),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB104', N'Tình cảm',   N'Lãng mạn, tình cảm gia đình', 1),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB105', N'Hoạt hình',  N'Phim hoạt hình cho mọi lứa tuổi', 1),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB106', N'Hài',        N'Hài hước, giải trí nhẹ nhàng', 1),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB107', N'Chính kịch', N'Chính kịch, tâm lý xã hội', 1),
+    ('BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBB108', N'Kịch tính',  N'Thriller, căng thẳng, bí ẩn', 1);
 GO
 
 -- Phong chieu
@@ -1166,8 +1178,9 @@ WHERE b.booking_code LIKE 'SEED-STATS-%'
 ORDER BY b.booked_at;
 GO
 
-PRINT N'=== Hoan tat: 28 bang + day du seed data ===';
+PRINT N'=== Hoan tat: 28 bang + day du seed (da gop toan bo migrations) ===';
 PRINT N'=== Tai khoan seed: mat khau mac dinh Password@123 (BCrypt) ===';
 PRINT N'=== Phim mau: 4 dang chieu + 4 sap chieu ===';
 PRINT N'=== Thong ke test: 6 don PAID + 1 PENDING (SEED-STATS-*) ===';
+PRINT N'=== Khong can chay them Database/migrations/ ===';
 GO
