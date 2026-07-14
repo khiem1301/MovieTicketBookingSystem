@@ -18,21 +18,21 @@
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 28px;
   margin-bottom: 40px;
+  border-bottom: 1px solid var(--border);
 }
 .rv-subnav-link {
-  padding: 9px 18px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
+  padding: 12px 2px;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-muted);
+  border-bottom: 2px solid transparent;
   transition: var(--transition);
   white-space: nowrap;
 }
-.rv-subnav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
-.rv-subnav-link.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rv-subnav-link:hover { color: var(--text); }
+.rv-subnav-link.is-active { color: var(--accent); border-bottom-color: var(--accent); }
 
 .rv-movie-rating-badge {
   position: absolute;
@@ -72,13 +72,86 @@
   background: #1e1e1e;
 }
 
-.rv-pending-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 16px;
+.rv-pending-list { display: flex; flex-direction: column; gap: 16px; }
+.rv-pending-card {
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid rgba(229,57,53,.25);
+  border-radius: 12px;
 }
-.rv-pending-grid .card-info { padding: 10px 10px 6px; }
-.rv-pending-grid .card-title { font-size: 13px; }
+.rv-pending-tags {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.rv-pending-eligible {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(229,57,53,.15);
+  color: #ff8a80;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+.rv-pending-genre {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+.rv-pending-row { display: flex; gap: 14px; margin-bottom: 14px; }
+.rv-pending-poster {
+  width: 72px;
+  height: 104px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #1e1e1e;
+}
+.rv-pending-poster--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  border: 1px solid var(--border);
+}
+.rv-pending-title { font-size: 15px; font-weight: 700; align-self: center; }
+.rv-pending-cta {
+  display: block;
+  text-align: center;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  transition: background .2s;
+}
+.rv-pending-cta:hover { background: var(--accent-hover); }
+
+.rv-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(229,57,53,.15);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+}
 
 .rv-mine-layout {
   display: grid;
@@ -133,6 +206,35 @@
 }
 .rv-item-delete:hover { background: rgba(229,57,53,.15); }
 
+.rv-item--mine { position: relative; align-items: flex-start; }
+.rv-item-poster--mine { width: 48px; height: 48px; border-radius: 8px; }
+.rv-item--mine .rv-item-header { justify-content: space-between; flex-wrap: nowrap; margin-bottom: 6px; }
+.rv-item--mine .rv-item-movie { font-size: 15px; }
+.rv-item-stars--row { display: block; font-size: 14px; margin-bottom: 8px; }
+.rv-item-delete-form { flex-shrink: 0; }
+.rv-item-delete-icon {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid rgba(229,57,53,.3);
+  border-radius: 6px;
+  color: #ff8a80;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.rv-item-delete-icon:hover { background: rgba(229,57,53,.15); }
+.rv-item-timestamp {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  margin-top: 8px;
+}
+
 .rv-empty {
   text-align: center;
   color: var(--text-muted);
@@ -167,7 +269,7 @@
       </h1>
       <p class="rv-sub">
         <c:choose>
-          <c:when test="${isMine}">Những bộ phim bạn đã chấm sao và nhận xét</c:when>
+          <c:when test="${isMine}">Quản lý đánh giá phim của bạn và chia sẻ trải nghiệm với những bộ phim bạn đã xem.</c:when>
           <c:when test="${sort == 'latest'}">Những nhận xét mới nhất từ khán giả ÉPCINE</c:when>
           <c:when test="${sort == 'popular'}">Phim có nhiều lượt đánh giá nhất</c:when>
           <c:otherwise>Xếp hạng theo điểm trung bình từ khán giả</c:otherwise>
@@ -177,14 +279,14 @@
 
     <div class="rv-subnav">
       <a class="rv-subnav-link ${!isMine and sort == 'top' ? 'is-active' : ''}"
-         href="${ctx}/reviews?sort=top">⭐ Đánh giá cao nhất</a>
+         href="${ctx}/reviews?sort=top">Đánh giá cao nhất</a>
       <a class="rv-subnav-link ${!isMine and sort == 'latest' ? 'is-active' : ''}"
-         href="${ctx}/reviews?sort=latest">🕐 Mới nhất</a>
+         href="${ctx}/reviews?sort=latest">Mới nhất</a>
       <a class="rv-subnav-link ${!isMine and sort == 'popular' ? 'is-active' : ''}"
-         href="${ctx}/reviews?sort=popular">🔥 Được yêu thích</a>
+         href="${ctx}/reviews?sort=popular">Yêu thích nhất</a>
       <c:if test="${not empty sessionScope.loggedUser}">
         <a class="rv-subnav-link ${isMine ? 'is-active' : ''}"
-           href="${ctx}/reviews/mine">📝 Đánh giá của tôi</a>
+           href="${ctx}/reviews/mine">Đánh giá của tôi</a>
       </c:if>
     </div>
 
@@ -192,32 +294,34 @@
     <c:if test="${isMine}">
       <div class="rv-mine-layout">
         <div class="rv-mine-col">
-          <h2 class="rv-section-heading">Phim bạn có thể đánh giá</h2>
+          <h2 class="rv-section-heading">Phim bạn có thể đánh giá <span class="rv-count-badge">${fn:length(pendingMovies)}</span></h2>
           <c:choose>
             <c:when test="${not empty pendingMovies}">
-              <div class="rv-pending-grid">
+              <div class="rv-pending-list">
                 <c:forEach var="movie" items="${pendingMovies}">
                   <c:set var="cardPoster" value="${movie.posterUrl}"/>
                   <c:if test="${not empty cardPoster and not fn:startsWith(cardPoster, 'http')}">
                     <c:set var="cardPoster" value="${ctx}/${cardPoster}"/>
                   </c:if>
-                  <div class="movie-card">
-                    <div class="card-poster">
+                  <div class="rv-pending-card">
+                    <div class="rv-pending-tags">
+                      <span class="rv-pending-eligible">Đã đủ điều kiện</span>
+                      <c:if test="${not empty movie.genres}">
+                        <span class="rv-pending-genre"><c:out value="${movie.genres[0]}"/></span>
+                      </c:if>
+                    </div>
+                    <div class="rv-pending-row">
                       <c:choose>
                         <c:when test="${not empty movie.posterUrl}">
-                          <img src="<c:out value='${cardPoster}'/>" alt="<c:out value='${movie.title}'/>"/>
+                          <img class="rv-pending-poster" src="<c:out value='${cardPoster}'/>" alt="<c:out value='${movie.title}'/>"/>
                         </c:when>
                         <c:otherwise>
-                          <div class="poster-placeholder">🎬</div>
+                          <div class="rv-pending-poster rv-pending-poster--placeholder">🎬</div>
                         </c:otherwise>
                       </c:choose>
-                      <div class="card-overlay">
-                        <a href="${ctx}/showtimes?movieId=${movie.id}#movie-reviews-section" class="btn-book">Đánh giá ngay</a>
-                      </div>
+                      <h3 class="rv-pending-title"><c:out value="${movie.title}"/></h3>
                     </div>
-                    <div class="card-info">
-                      <h3 class="card-title"><c:out value="${movie.title}"/></h3>
-                    </div>
+                    <a href="${ctx}/showtimes?movieId=${movie.id}#movie-reviews-section" class="rv-pending-cta">✍ Viết đánh giá</a>
                   </div>
                 </c:forEach>
               </div>
@@ -280,7 +384,7 @@
     <%-- Chế độ danh sách review: latest / mine --%>
     <c:if test="${isMine or sort == 'latest'}">
       <c:if test="${isMine}">
-        <h2 class="rv-section-heading">Đánh giá của bạn</h2>
+        <h2 class="rv-section-heading">Đánh giá của bạn <span class="rv-count-badge">${total}</span></h2>
       </c:if>
       <c:choose>
         <c:when test="${not empty reviews}">
@@ -294,53 +398,82 @@
               <c:if test="${not empty rvAvatar and not fn:startsWith(rvAvatar, 'http')}">
                 <c:set var="rvAvatar" value="${ctx}/${rvAvatar}"/>
               </c:if>
-              <div class="rv-item">
-                <c:choose>
-                  <c:when test="${not empty rvPoster}">
-                    <img class="rv-item-poster" src="<c:out value='${rvPoster}'/>" alt=""/>
-                  </c:when>
-                  <c:otherwise>
-                    <div class="rv-item-poster"></div>
-                  </c:otherwise>
-                </c:choose>
-                <c:if test="${!isMine}">
-                  <c:choose>
-                    <c:when test="${not empty rvAvatar}">
-                      <img class="rv-item-avatar" src="<c:out value='${rvAvatar}'/>" alt=""/>
-                    </c:when>
-                    <c:otherwise>
-                      <div class="rv-item-avatar rv-item-avatar--placeholder">👤</div>
-                    </c:otherwise>
-                  </c:choose>
-                </c:if>
-                <div class="rv-item-body">
-                  <div class="rv-item-header">
-                    <a class="rv-item-movie" href="${ctx}/showtimes?movieId=${rv.movieId}">
-                      <c:out value="${rv.movieTitle}"/>
-                    </a>
-                    <c:if test="${!isMine}">
-                      <span class="rv-item-user">— <c:out value="${rv.userFullName}"/></span>
-                    </c:if>
-                    <span class="rv-item-stars">
-                      <c:forEach begin="1" end="5" var="s">
-                        <span class="${s <= rv.rating ? 'is-filled' : ''}">★</span>
-                      </c:forEach>
-                    </span>
-                    <span class="rv-item-date"><fmt:formatDate value="${rv.createdAt}" pattern="dd/MM/yyyy"/></span>
+              <c:choose>
+                <c:when test="${isMine}">
+                  <div class="rv-item rv-item--mine">
+                    <c:choose>
+                      <c:when test="${not empty rvPoster}">
+                        <img class="rv-item-poster rv-item-poster--mine" src="<c:out value='${rvPoster}'/>" alt=""/>
+                      </c:when>
+                      <c:otherwise>
+                        <div class="rv-item-poster rv-item-poster--mine"></div>
+                      </c:otherwise>
+                    </c:choose>
+                    <div class="rv-item-body">
+                      <div class="rv-item-header">
+                        <a class="rv-item-movie" href="${ctx}/showtimes?movieId=${rv.movieId}">
+                          <c:out value="${rv.movieTitle}"/>
+                        </a>
+                        <form method="post" action="${ctx}/reviews/delete"
+                              onsubmit="return confirm('Xóa đánh giá này?');" class="rv-item-delete-form">
+                          <input type="hidden" name="reviewId" value="<c:out value='${rv.id}'/>"/>
+                          <input type="hidden" name="redirectTo" value="/reviews/mine"/>
+                          <button type="submit" class="rv-item-delete-icon" aria-label="Xóa đánh giá">🗑</button>
+                        </form>
+                      </div>
+                      <span class="rv-item-stars rv-item-stars--row">
+                        <c:forEach begin="1" end="5" var="s">
+                          <span class="${s <= rv.rating ? 'is-filled' : ''}">★</span>
+                        </c:forEach>
+                      </span>
+                      <c:if test="${not empty rv.reviewContent}">
+                        <p class="rv-item-content"><c:out value="${rv.reviewContent}"/></p>
+                      </c:if>
+                      <div class="rv-item-timestamp">
+                        Đã đánh giá lúc <fmt:formatDate value="${rv.createdAt}" pattern="HH:mm"/>
+                        ngày <fmt:formatDate value="${rv.createdAt}" pattern="dd/MM/yyyy"/>
+                      </div>
+                    </div>
                   </div>
-                  <c:if test="${not empty rv.reviewContent}">
-                    <p class="rv-item-content"><c:out value="${rv.reviewContent}"/></p>
-                  </c:if>
-                  <c:if test="${isMine}">
-                    <form method="post" action="${ctx}/reviews/delete"
-                          onsubmit="return confirm('Xóa đánh giá này?');" style="margin-top:8px;">
-                      <input type="hidden" name="reviewId" value="<c:out value='${rv.id}'/>"/>
-                      <input type="hidden" name="redirectTo" value="/reviews/mine"/>
-                      <button type="submit" class="rv-item-delete">🗑 Xóa đánh giá</button>
-                    </form>
-                  </c:if>
-                </div>
-              </div>
+                </c:when>
+                <c:otherwise>
+                  <div class="rv-item">
+                    <c:choose>
+                      <c:when test="${not empty rvPoster}">
+                        <img class="rv-item-poster" src="<c:out value='${rvPoster}'/>" alt=""/>
+                      </c:when>
+                      <c:otherwise>
+                        <div class="rv-item-poster"></div>
+                      </c:otherwise>
+                    </c:choose>
+                    <c:choose>
+                      <c:when test="${not empty rvAvatar}">
+                        <img class="rv-item-avatar" src="<c:out value='${rvAvatar}'/>" alt=""/>
+                      </c:when>
+                      <c:otherwise>
+                        <div class="rv-item-avatar rv-item-avatar--placeholder">👤</div>
+                      </c:otherwise>
+                    </c:choose>
+                    <div class="rv-item-body">
+                      <div class="rv-item-header">
+                        <a class="rv-item-movie" href="${ctx}/showtimes?movieId=${rv.movieId}">
+                          <c:out value="${rv.movieTitle}"/>
+                        </a>
+                        <span class="rv-item-user">— <c:out value="${rv.userFullName}"/></span>
+                        <span class="rv-item-stars">
+                          <c:forEach begin="1" end="5" var="s">
+                            <span class="${s <= rv.rating ? 'is-filled' : ''}">★</span>
+                          </c:forEach>
+                        </span>
+                        <span class="rv-item-date"><fmt:formatDate value="${rv.createdAt}" pattern="dd/MM/yyyy"/></span>
+                      </div>
+                      <c:if test="${not empty rv.reviewContent}">
+                        <p class="rv-item-content"><c:out value="${rv.reviewContent}"/></p>
+                      </c:if>
+                    </div>
+                  </div>
+                </c:otherwise>
+              </c:choose>
             </c:forEach>
           </div>
         </c:when>

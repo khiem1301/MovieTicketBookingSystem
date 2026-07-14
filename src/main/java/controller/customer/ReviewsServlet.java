@@ -99,6 +99,7 @@ public class ReviewsServlet extends HttpServlet {
         req.setAttribute("movies",  movies);
         req.setAttribute("reviews", reviews);
         req.setAttribute("pendingMovies", pendingMovies);
+        req.setAttribute("total", total);
         req.setAttribute("page",    page);
         req.setAttribute("dbError", dbError);
 

@@ -144,6 +144,25 @@ public final class EmailUtil {
         sendPlainTextEmail(toEmail, subject, body);
     }
 
+    public static void sendReviewDeletedEmail(String toEmail, String fullName, String movieTitle, String reason)
+            throws MessagingException {
+        String subject = "ÉPCINE — Đánh giá của bạn đã bị gỡ";
+        String body = """
+                Xin chào %s,
+
+                Đánh giá của bạn cho phim "%s" đã bị quản trị viên gỡ bỏ khỏi hệ thống ÉPCINE.
+
+                Lý do:
+                %s
+
+                Nếu bạn cho rằng đây là nhầm lẫn, vui lòng liên hệ bộ phận hỗ trợ của rạp.
+
+                Trân trọng,
+                ÉPCINE
+                """.formatted(fullName, movieTitle, reason);
+        sendPlainTextEmail(toEmail, subject, body);
+    }
+
     private static void sendPlainTextEmail(String toEmail, String subject, String body)
             throws MessagingException {
         Properties props = requireProperties();

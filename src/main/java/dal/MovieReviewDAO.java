@@ -188,6 +188,148 @@ public class MovieReviewDAO {
         }
     }
 
+    /** Một đánh giá cụ thể kèm thông tin phim/người dùng — dùng trước khi manager xóa để gửi thông báo. */
+    public Optional<MovieReview> findById(String reviewId) {
+        String sql = "SELECT " + MOVIE_JOIN_COLS + """
+                FROM MovieReviews r
+                JOIN Movies m ON m.id = r.movie_id
+                JOIN Users  u ON u.id = r.user_id
+                WHERE r.id = ?
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, reviewId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Optional.of(mapJoined(rs)) : Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("MovieReviewDAO.findById failed", e);
+        }
+    }
+
+    /** Toàn bộ đánh giá — /manager/reviews (lọc theo tên phim / số sao). */
+    public List<MovieReview> findAllFiltered(String movieTitle, Integer rating, int offset, int limit) {
+        StringBuilder sql = new StringBuilder("SELECT " + MOVIE_JOIN_COLS + """
+                FROM MovieReviews r
+                JOIN Movies m ON m.id = r.movie_id
+                JOIN Users  u ON u.id = r.user_id
+                WHERE 1=1
+                """);
+        appendReviewFilters(sql, movieTitle, rating);
+        sql.append(" ORDER BY r.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+
+        List<MovieReview> result = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int idx = bindReviewFilters(ps, 1, movieTitle, rating);
+            ps.setInt(idx, offset);
+            ps.setInt(idx + 1, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) result.add(mapJoined(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("MovieReviewDAO.findAllFiltered failed", e);
+        }
+        return result;
+    }
+
+    public int countAllFiltered(String movieTitle, Integer rating) {
+        StringBuilder sql = new StringBuilder("""
+                SELECT COUNT(*) AS total
+                FROM MovieReviews r
+                JOIN Movies m ON m.id = r.movie_id
+                WHERE 1=1
+                """);
+        appendReviewFilters(sql, movieTitle, rating);
+
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            bindReviewFilters(ps, 1, movieTitle, rating);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt("total") : 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("MovieReviewDAO.countAllFiltered failed", e);
+        }
+    }
+
+    /** Manager/Admin xóa đánh giá vi phạm của bất kỳ khách hàng nào, rồi tính lại average_rating. */
+    public boolean deleteByManager(String reviewId) {
+        Connection conn = null;
+        try {
+            conn = DBContext.getConnection();
+            conn.setAutoCommit(false);
+
+            String movieId = null;
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT movie_id FROM MovieReviews WHERE id = ?")) {
+                ps.setString(1, reviewId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) movieId = rs.getString("movie_id");
+                }
+            }
+            if (movieId == null) {
+                conn.rollback();
+                return false;
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM MovieReviews WHERE id = ?")) {
+                ps.setString(1, reviewId);
+                ps.executeUpdate();
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement("""
+                    UPDATE Movies
+                    SET average_rating = COALESCE(
+                        (SELECT AVG(CAST(rating AS DECIMAL(10,2))) FROM MovieReviews WHERE movie_id = ?),
+                        0.00
+                    )
+                    WHERE id = ?
+                    """)) {
+                ps.setString(1, movieId);
+                ps.setString(2, movieId);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) { }
+            }
+            throw new RuntimeException("MovieReviewDAO.deleteByManager failed", e);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) { }
+            }
+        }
+    }
+
+    private void appendReviewFilters(StringBuilder sql, String movieTitle, Integer rating) {
+        if (movieTitle != null && !movieTitle.isBlank()) {
+            sql.append(" AND m.title LIKE ?");
+        }
+        if (rating != null) {
+            sql.append(" AND r.rating = ?");
+        }
+    }
+
+    private int bindReviewFilters(PreparedStatement ps, int startIndex,
+                                   String movieTitle, Integer rating) throws SQLException {
+        int idx = startIndex;
+        if (movieTitle != null && !movieTitle.isBlank()) {
+            ps.setString(idx++, "%" + movieTitle.trim() + "%");
+        }
+        if (rating != null) {
+            ps.setInt(idx++, rating);
+        }
+        return idx;
+    }
+
     /** Đánh giá mới nhất trên toàn hệ thống — /reviews?sort=latest */
     public List<MovieReview> findLatest(int offset, int limit) {
         String sql = "SELECT " + MOVIE_JOIN_COLS + """

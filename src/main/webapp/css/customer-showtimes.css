@@ -157,6 +157,49 @@
   color: var(--text-dim);
 }
 
+/* ── Tab "Movie Info" / "Reviews" (chi tiết phim) ── */
+.dt-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.dt-tab {
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 10px;
+  color: #e0e0e0;
+  background: #262626;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: 0.2s ease;
+}
+
+.dt-tab:hover {
+  color: #fff;
+  background: #333333;
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+.dt-tab--active {
+  color: #fff;
+  background: #e50914;
+  border-color: #e50914;
+  box-shadow: 0 8px 24px rgba(229, 9, 20, 0.35);
+}
+
+.dt-tab--active:hover {
+  background: #e50914;
+}
+
+.dt-tab-panel {
+  display: none;
+}
+
+.dt-tab-panel--active {
+  display: block;
+}
+
 /* ── Showtimes Selector (phần dưới — FR-11) ── */
 .st-selector {
   margin-top: 8px;
@@ -362,6 +405,18 @@
   .st-panel {
     padding: 20px 16px;
   }
+
+  .mi-reviews-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .mi-reviews-form-col {
+    position: static;
+  }
+
+  .dt-tabs {
+    gap: 20px;
+  }
 }
 
 /* ── Similar Movies (Gợi ý phim) ── */
@@ -495,10 +550,20 @@
 
 /* ── Đánh giá phim (FR-20) ──────────────────────────────────── */
 .mi-reviews-section {
-  max-width: 1200px;
-  margin: 0 auto 40px;
-  padding: 0 24px;
+  margin-bottom: 40px;
 }
+
+.mi-reviews-columns {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 32px;
+  align-items: start;
+}
+
+.mi-reviews-list-col {
+  min-width: 0;
+}
+
 .mi-reviews-header {
   display: flex;
   align-items: baseline;
@@ -511,6 +576,54 @@
 .mi-reviews-summary { display: flex; align-items: baseline; gap: 6px; }
 .mi-reviews-avg { font-size: 22px; font-weight: 800; color: #ffd740; }
 .mi-reviews-count { font-size: 13px; color: var(--text-muted); }
+
+.mi-reviews-form-col {
+  position: sticky;
+  top: 88px;
+}
+
+.mi-reviews-form-card {
+  background: rgba(18, 18, 18, 0.6);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(229, 9, 20, 0.25);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.mi-reviews-form-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.mi-reviews-form-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 4px;
+}
+
+.mi-reviews-form-hint-icon {
+  flex-shrink: 0;
+  color: #e50914;
+}
+
+.mi-review-form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
 
 .mi-review-alert {
   padding: 10px 14px;

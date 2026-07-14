@@ -269,6 +269,9 @@ uri="jakarta.tags.functions" %>
                     <a href="${pageContext.request.contextPath}/admin/promotions"
                       >Quản lý voucher</a
                     >
+                    <a href="${pageContext.request.contextPath}/manager/reviews"
+                      >Quản lý đánh giá</a
+                    >
                   </c:if>
                   <c:if test="${sessionScope.userRole == 'ADMIN'}">
                     <a href="${pageContext.request.contextPath}/manager/movies"
@@ -276,6 +279,9 @@ uri="jakarta.tags.functions" %>
                     >
                     <a href="${pageContext.request.contextPath}/manager/genres"
                       >Quản lý thể loại</a
+                    >
+                    <a href="${pageContext.request.contextPath}/manager/reviews"
+                      >Quản lý đánh giá</a
                     >
                     <span class="dropdown-divider-label">Quản trị hệ thống</span>
                     <a href="${pageContext.request.contextPath}/admin/dashboard"
