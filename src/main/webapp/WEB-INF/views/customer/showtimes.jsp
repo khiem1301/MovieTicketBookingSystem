@@ -11,8 +11,20 @@
     <%-- PHẦN 1: THÔNG TIN PHIM --%>
     <jsp:include page="components/movie-info-placeholder.jsp"/>
 
-    <%-- PHẦN 2: LỊCH CHIẾU & PHÒNG CHIẾU --%>
-    <jsp:include page="components/showtimes-selector.jsp"/>
+    <%-- PHẦN 2: TAB "MOVIE INFO" (SUẤT CHIẾU) / "REVIEWS" (ĐÁNH GIÁ) --%>
+    <div class="dt-tabs" id="dtTabs" role="tablist">
+      <button type="button" class="dt-tab dt-tab--active" role="tab" aria-selected="true" data-dt-tab="info">Movie Info</button>
+      <button type="button" class="dt-tab" role="tab" aria-selected="false" data-dt-tab="reviews">Reviews</button>
+    </div>
+
+    <div class="dt-tab-panel dt-tab-panel--active" data-dt-panel="info">
+      <jsp:include page="components/showtimes-selector.jsp"/>
+    </div>
+    <div class="dt-tab-panel" data-dt-panel="reviews" hidden>
+      <jsp:include page="components/movie-reviews.jsp"/>
+    </div>
+
+    <script src="${pageContext.request.contextPath}/js/movie-detail-tabs.js"></script>
 
     <%-- PHẦN 3: GỢI Ý PHIM TƯƠNG TỰ --%>
     <c:if test="${not empty similarMovies}">
