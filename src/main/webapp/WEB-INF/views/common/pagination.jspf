@@ -1,0 +1,112 @@
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%-- Yeu cau: pgPath, pgCurrent, pgTotal; tuy chon: pgPageParam (mac dinh page), pgQueryExtra --%>
+<c:if test="${empty pgPageParam}"><c:set var="pgPageParam" value="page"/></c:if>
+<c:if test="${empty pgQueryExtra}"><c:set var="pgQueryExtra" value=""/></c:if>
+<c:if test="${pgTotal > 1}">
+<style>
+.bh-pagination { display:flex; justify-content:center; margin-top:24px; padding:5px 0 2px; }
+.bh-pagination-pages { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:7px; }
+.bh-pagination .bh-page-btn {
+  box-sizing:border-box; width:31px; height:31px; min-width:31px; padding:0;
+  border-radius:50%; border:1.5px solid rgba(233,188,182,0.45); background:transparent;
+  color:#e9bcb6; font-size:10px; font-weight:700; text-decoration:none;
+  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+  transition:background .2s,border-color .2s,color .2s,box-shadow .2s,transform .15s;
+}
+.bh-pagination .bh-page-btn:hover {
+  color:#fff; border-color:#e50914; background:rgba(229,9,20,0.18); transform:translateY(-1px);
+}
+.bh-pagination .bh-page-btn.is-active {
+  background:#e50914; border-color:#e50914; color:#fff;
+  box-shadow:0 4px 13px rgba(229,9,20,0.45); pointer-events:none; transform:none;
+}
+.bh-pagination .bh-page-btn--wide { width:auto; min-width:31px; padding:0 11px; border-radius:999px; }
+.bh-pagination .bh-page-ellipsis {
+  width:22px; height:31px; display:inline-flex; align-items:center; justify-content:center;
+  color:rgba(233,188,182,0.55); font-size:11px; font-weight:700; letter-spacing:.12em;
+}
+</style>
+  <nav class="bh-pagination" aria-label="Phan trang">
+    <div class="bh-pagination-pages">
+      <c:if test="${pgCurrent > 1}">
+        <a class="bh-page-btn bh-page-btn--nav"
+           href="${pgPath}?${pgPageParam}=${pgCurrent - 1}${pgQueryExtra}"
+           aria-label="Trang truoc">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </c:if>
+
+      <c:choose>
+        <c:when test="${pgTotal <= 7}">
+          <c:forEach begin="1" end="${pgTotal}" var="pg">
+            <a class="bh-page-btn ${pg == pgCurrent ? 'is-active' : ''} ${pg >= 10 ? 'bh-page-btn--wide' : ''}"
+               href="${pgPath}?${pgPageParam}=${pg}${pgQueryExtra}"
+               aria-label="Trang ${pg}"
+               <c:if test="${pg == pgCurrent}">aria-current="page"</c:if>>
+              <c:out value="${pg}"/>
+            </a>
+          </c:forEach>
+        </c:when>
+        <c:otherwise>
+          <a class="bh-page-btn ${pgCurrent == 1 ? 'is-active' : ''}"
+             href="${pgPath}?${pgPageParam}=1${pgQueryExtra}"
+             aria-label="Trang 1"
+             <c:if test="${pgCurrent == 1}">aria-current="page"</c:if>>1</a>
+
+          <c:if test="${pgCurrent > 3}">
+            <span class="bh-page-ellipsis" aria-hidden="true">...</span>
+          </c:if>
+
+          <c:if test="${pgCurrent > 2 and pgCurrent < pgTotal}">
+            <a class="bh-page-btn"
+               href="${pgPath}?${pgPageParam}=${pgCurrent - 1}${pgQueryExtra}"
+               aria-label="Trang ${pgCurrent - 1}">
+              <c:out value="${pgCurrent - 1}"/>
+            </a>
+          </c:if>
+
+          <c:if test="${pgCurrent != 1 and pgCurrent != pgTotal}">
+            <a class="bh-page-btn is-active"
+               href="${pgPath}?${pgPageParam}=${pgCurrent}${pgQueryExtra}"
+               aria-current="page"
+               aria-label="Trang ${pgCurrent}">
+              <c:out value="${pgCurrent}"/>
+            </a>
+          </c:if>
+
+          <c:if test="${pgCurrent < pgTotal - 1}">
+            <a class="bh-page-btn"
+               href="${pgPath}?${pgPageParam}=${pgCurrent + 1}${pgQueryExtra}"
+               aria-label="Trang ${pgCurrent + 1}">
+              <c:out value="${pgCurrent + 1}"/>
+            </a>
+          </c:if>
+
+          <c:if test="${pgCurrent < pgTotal - 2}">
+            <span class="bh-page-ellipsis" aria-hidden="true">...</span>
+          </c:if>
+
+          <a class="bh-page-btn ${pgCurrent == pgTotal ? 'is-active' : ''} ${pgTotal >= 10 ? 'bh-page-btn--wide' : ''}"
+             href="${pgPath}?${pgPageParam}=${pgTotal}${pgQueryExtra}"
+             aria-label="Trang ${pgTotal}"
+             <c:if test="${pgCurrent == pgTotal}">aria-current="page"</c:if>>
+            <c:out value="${pgTotal}"/>
+          </a>
+        </c:otherwise>
+      </c:choose>
+
+      <c:if test="${pgCurrent < pgTotal}">
+        <a class="bh-page-btn bh-page-btn--nav"
+           href="${pgPath}?${pgPageParam}=${pgCurrent + 1}${pgQueryExtra}"
+           aria-label="Trang sau">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </c:if>
+    </div>
+  </nav>
+</c:if>

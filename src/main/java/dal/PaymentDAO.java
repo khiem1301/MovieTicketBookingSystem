@@ -100,17 +100,81 @@ public class PaymentDAO {
         return Optional.empty();
     }
 
+    /**
+     * SePay webhook: tìm payment VietQR PENDING có transaction_code nằm trong nội dung CK
+     * và khớp số tiền (so sánh phần nguyên VND, bỏ qua scale thập phân).
+     */
+    public Optional<PaymentRecord> findPendingVietQRByTransferContent(String transferContentOrCode,
+                                                                      BigDecimal amount) {
+        if (transferContentOrCode == null || transferContentOrCode.isBlank() || amount == null) {
+            return Optional.empty();
+        }
+        String haystack = normalizeTransferText(transferContentOrCode);
+        long amountVnd = amount.setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
+
+        String sql = """
+                SELECT TOP 50 id, booking_id, payment_method, payment_source, transaction_code,
+                       amount, payment_status, paid_at
+                FROM Payments
+                WHERE payment_method = 'VIETQR'
+                  AND payment_source = 'ONLINE'
+                  AND payment_status = 'PENDING'
+                ORDER BY created_at DESC
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                PaymentRecord row = mapRow(rs);
+                if (row.amount() == null) {
+                    continue;
+                }
+                long rowAmount = row.amount().setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+                if (rowAmount != amountVnd) {
+                    continue;
+                }
+                String code = row.transactionCode();
+                if (code == null || code.isBlank()) {
+                    continue;
+                }
+                String normalizedCode = normalizeTransferText(code);
+                if (!normalizedCode.isBlank() && haystack.contains(normalizedCode)) {
+                    return Optional.of(row);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findPendingVietQRByTransferContent failed", e);
+        }
+        return Optional.empty();
+    }
+
+    private static String normalizeTransferText(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        return raw.trim().toUpperCase().replaceAll("[^A-Z0-9]", "");
+    }
+
     public void markSuccess(Connection conn, String paymentId, String externalTransId) throws SQLException {
         String sql = """
                 UPDATE Payments
                 SET payment_status = 'SUCCESS',
-                    paid_at = GETDATE()
+                    paid_at = GETDATE(),
+                    transaction_code = COALESCE(?, transaction_code)
                 WHERE id = ? AND payment_status = 'PENDING'
                 """;
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, paymentId);
+            ps.setString(1, blankToNull(externalTransId));
+            ps.setString(2, paymentId);
             ps.executeUpdate();
         }
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     public void markFailed(Connection conn, String paymentId) throws SQLException {

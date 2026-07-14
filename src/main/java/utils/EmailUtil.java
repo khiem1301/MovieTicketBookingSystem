@@ -178,7 +178,7 @@ public final class EmailUtil {
      */
     public static void sendBookingConfirmationEmail(String toEmail, String customerName,
                                                     BookingDetailDTO detail) {
-        if (!isConfigured() || toEmail == null || toEmail.isBlank()) return;
+        if (!isConfigured() || toEmail == null || toEmail.isBlank() || detail == null) return;
         try {
             Properties props = requireProperties();
             String fromEmail = props.getProperty("mail.from", props.getProperty("mail.smtp.username"));
@@ -210,10 +210,18 @@ public final class EmailUtil {
                 }
             }
 
+            boolean online = "ONLINE".equalsIgnoreCase(detail.getBookingSource());
+            String intro = online
+                    ? "Đặt vé online của bạn tại ÉPCINE đã được thanh toán và xác nhận thành công."
+                    : "Đặt vé của bạn tại quầy ÉPCINE đã được xác nhận thành công.";
+            String outro = online
+                    ? "Vui lòng xuất trình mã vé (trong email hoặc trên trang xác nhận) khi vào rạp."
+                    : "Vui lòng xuất trình mã vé tại quầy khi vào rạp.";
+
             String body = """
                     Xin chào %s,
 
-                    Đặt vé của bạn tại quầy ÉPCINE đã được xác nhận thành công.
+                    %s
 
                     ─────────────────────────────
                     Mã đặt vé : %s
@@ -226,18 +234,20 @@ public final class EmailUtil {
                     Tổng tiền : %,.0f ₫
                     ─────────────────────────────
 
-                    Vui lòng xuất trình mã vé tại quầy khi vào rạp.
+                    %s
 
                     Trân trọng,
                     ÉPCINE
                     """.formatted(
-                    customerName,
+                    customerName != null && !customerName.isBlank() ? customerName : "bạn",
+                    intro,
                     detail.getBookingCode(),
                     detail.getMovieTitle(),
                     detail.getRoomName(),
                     showDate,
                     seatLines,
-                    detail.getFinalAmount() != null ? detail.getFinalAmount().doubleValue() : 0.0);
+                    detail.getFinalAmount() != null ? detail.getFinalAmount().doubleValue() : 0.0,
+                    outro);
 
             MimeMessage message = new MimeMessage(session);
             message.setFrom(new InternetAddress(fromEmail, fromName, "UTF-8"));
@@ -249,6 +259,35 @@ public final class EmailUtil {
         } catch (Exception e) {
             LOG.log(Level.WARNING, "sendBookingConfirmationEmail failed to " + toEmail, e);
         }
+    }
+
+    /**
+     * FR-19 — Gửi email xác nhận bất đồng bộ theo bookingId (dùng chung staff + customer).
+     * Bỏ qua walk-in (không có userId / email).
+     */
+    public static void sendBookingConfirmationEmailAsync(String bookingId) {
+        if (bookingId == null || bookingId.isBlank()) {
+            return;
+        }
+        new Thread(() -> {
+            try {
+                BookingDetailDTO detail = new dal.BookingDAO().getDetailById(bookingId);
+                if (detail == null || detail.getUserId() == null || detail.getUserId().isBlank()) {
+                    return;
+                }
+                String email = new dal.UserDAO().findById(detail.getUserId())
+                        .map(u -> u.getEmail())
+                        .orElse(null);
+                if (email == null || email.isBlank()) {
+                    return;
+                }
+                detail.setLinkedUserEmail(email);
+                String name = detail.getCustomerName();
+                sendBookingConfirmationEmail(email, name, detail);
+            } catch (Exception e) {
+                LOG.log(Level.WARNING, "Async booking confirmation email failed for " + bookingId, e);
+            }
+        }, "epcine-booking-email-" + bookingId).start();
     }
 
     public static String buildVerifyUrl(String contextPath, String token) {

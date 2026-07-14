@@ -1121,4 +1121,11 @@
 .pay-success-movie p { font-size: 13px; color: #e9bcb6; margin-bottom: 4px; }
 .pay-success-amount { font-size: 1.25rem !important; font-weight: 700; color: #ffb4aa !important; margin-top: 8px !important; }
 .pay-success-note { font-size: 13px; color: rgba(233, 188, 182, 0.65); margin-bottom: 24px; }
+.pay-success-tickets { text-align: left; padding: 16px 18px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.06); margin-bottom: 20px; }
+.pay-success-tickets-title { font-size: 0.95rem; font-weight: 700; color: #e5e2e1; margin: 0 0 12px; }
+.pay-success-ticket-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.pay-success-ticket-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; background: rgba(0, 0, 0, 0.25); }
+.pay-success-ticket-seat { font-size: 14px; color: #e9bcb6; font-weight: 600; }
+.pay-success-ticket-code { font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #ffb4aa; letter-spacing: 0.02em; }
+.pay-success-ticket-fallback { font-size: 13px; color: #e9bcb6; margin: 0; }
 .pay-success-actions { display: flex; flex-direction: column; gap: 12px; }

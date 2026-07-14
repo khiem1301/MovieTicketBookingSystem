@@ -2,9 +2,9 @@
 
 Hệ thống đặt vé xem phim — **Java 17 · JSP/Servlet · SQL Server · Maven · Tomcat 10**.
 
-> Chi tiết nghiệp vụ, schema **28 bảng** và 50 FR: [`project_summary_final.md`](project_summary_final.md)  
-> Module Admin (tính năng đã triển khai): [`ADMIN_MODULE_DETAIL.md`](ADMIN_MODULE_DETAIL.md)  
-> Hướng dẫn Database & migration cho nhóm: [`Database/README.md`](Database/README.md)
+> Chi tiết nghiệp vụ, schema **28 bảng** và 50 FR: `[project_summary_final.md](project_summary_final.md)`  
+> Module Admin (tính năng đã triển khai): `[ADMIN_MODULE_DETAIL.md](ADMIN_MODULE_DETAIL.md)`  
+> Hướng dẫn Database & migration cho nhóm: `[Database/README.md](Database/README.md)`
 
 ---
 
@@ -41,8 +41,9 @@ SQL Server là hệ quản trị cơ sở dữ liệu quan hệ lưu trữ toàn
 
 - Database: `MovieTicketDB`
 - **28 bảng** đặt tên **PascalCase** (`Users`, `Bookings`, `Movies`, `SystemConfigLog`, `UserStatusLog`, …)
-- Script khởi tạo: `Database/create_database.sql`
-- Cập nhật schema incremental: `Database/migrations/` — chi tiết [`Database/README.md`](Database/README.md)
+- Script khởi tạo: `Database/create_database.sql` (**một file duy nhất** — đã gộp mọi migration)
+- DB cũ không reset được: xem `[Database/migrations/README.md](Database/migrations/README.md)`
+- Chi tiết: `[Database/README.md](Database/README.md)`
 
 ---
 
@@ -122,14 +123,20 @@ http://localhost:8080/MovieTicketBookingSystem/
 
 ## Clone và chạy nhanh
 
-| Bước | Việc cần làm | Tài liệu |
-| ---- | ------------- | -------- |
-| **1** | Cấu hình Database (`database.properties` + tạo bảng) | [Cấu hình Database](#1-cấu-hình-database) |
-| **2** | Build WAR và chạy Tomcat | [Build và deploy](#2-build-và-deploy) |
-| **3** | Cấu hình Email SMTP | [Cấu hình Email SMTP](#3-cấu-hình-email-smtp) |
-| **4** | Cấu hình Google OAuth | [Cấu hình Google OAuth](#4-cấu-hình-google-oauth) |
 
-> **Thành viên mới:** Làm bước **1 → 2** trước để chạy được app cơ bản. Bước **3 → 4** dùng mail + OAuth chung nhóm; mỗi người chỉ sửa **URL Tomcat** trên máy mình.
+| Bước  | Việc cần làm | Bắt buộc? | Tài liệu |
+| ----- | ------------ | --------- | -------- |
+| **0** | Clone repo + cài Git hook (`scripts\install-git-hooks.bat`) | Có (một lần) | Bên dưới |
+| **1** | `database.properties` + chạy `Database/create_database.sql` | Có | [1. Cấu hình Database](#1-cấu-hình-database) |
+| **2** | `mvn clean package` + deploy Tomcat 10 | Có | [2. Build và deploy](#2-build-và-deploy) |
+| **3** | `email.properties` (SMTP nhóm + `app.base.url` máy bạn) | Cần nếu đăng ký / quên MK / mail vé | [3. Cấu hình Email SMTP](#3-cấu-hình-email-smtp) |
+| **4** | `google.properties` (Client nhóm + `redirect.uri` máy bạn) | Cần nếu đăng nhập Google | [4. Cấu hình Google OAuth](#4-cấu-hình-google-oauth) |
+| **5** | `vietqr.properties` (+ `sepay.properties` nếu muốn tự xác nhận) | Cần nếu thanh toán online VietQR | [5. Thanh toán online](#5-thanh-toán-online-vietqr--sepay) |
+
+
+> **Lần đầu clone — chạy được web ngay:** làm **0 → 1 → 2**, rồi mở URL Tomcat (vd. `http://localhost:8080/MovieTicketBookingSystem_war_exploded/`). Đăng nhập seed: `customer.adult@email.com` / `Password@123` (hoặc admin/manager/staff cùng mật khẩu).  
+> Bước **3 → 5** lấy secret từ admin nhóm (`epcine88@gmail.com`); mỗi máy chỉ sửa **URL Tomcat** (và **ngrok** nếu test SePay webhook).  
+> `scripts\setup.bat` **chỉ** tạo `database.properties` — các file `email` / `google` / `vietqr` / `sepay` phải copy từ `.example` thủ công (xem checklist cuối Getting Started).
 
 ---
 
@@ -239,9 +246,9 @@ Sau đó sửa mật khẩu và chạy `backup-database-properties.bat`.
 #### Lần đầu (máy chưa có `MovieTicketDB`)
 
 1. Bật SQL Server, bật **SQL Server Authentication** cho user `sa` (nếu dùng `sa`).
-2. Mở [`Database/create_database.sql`](Database/create_database.sql) trong SSMS hoặc Azure Data Studio.
-3. Chạy **toàn bộ file** (Ctrl+A → F5) → tạo `MovieTicketDB`, **28 bảng** và **seed data** (users, phim, genres, loyalty config, VAT, …).
-4. **Không cần** chạy `migrations/` nếu vừa dùng bản `create_database.sql` mới nhất trên repo.
+2. Mở `[Database/create_database.sql](Database/create_database.sql)` trong SSMS hoặc Azure Data Studio.
+3. Chạy **toàn bộ file** (Ctrl+A → F5) → tạo `MovieTicketDB`, **28 bảng** và **seed data**.
+4. **Không cần** chạy gì trong `Database/migrations/` — mọi thay đổi schema đã nằm trong `create_database.sql`.
 
 Đảm bảo `db.name` trong `database.properties` trùng tên DB:
 
@@ -249,23 +256,22 @@ Sau đó sửa mật khẩu và chạy `backup-database-properties.bat`.
 db.name=MovieTicketDB
 ```
 
-**Tài khoản seed** (mật khẩu `Password@123`): `admin@movieticket.vn`, `manager@movieticket.vn`, `staff@movieticket.vn`.
+**Tài khoản seed** (mật khẩu chung `Password@123`):
 
-Chi tiết bảng & migration: [`Database/README.md`](Database/README.md).
+| Role | Email |
+|------|-------|
+| ADMIN | `admin@movieticket.vn` |
+| MANAGER | `manager@movieticket.vn` |
+| STAFF | `staff@movieticket.vn` |
+| CUSTOMER (≥18) | `customer.adult@email.com` |
+| CUSTOMER (teen) | `customer.teen@email.com` |
 
-#### Đã có DB cũ — sau `git pull` (thành viên trong nhóm)
+Chi tiết: `[Database/README.md](Database/README.md)`.
 
-Khi pull code có thay đổi schema, chạy migration trong `Database/migrations/` **theo thứ tự**:
+#### Đã có DB cũ — sau `git pull`
 
-| Migration | Khi nào chạy |
-|-----------|----------------|
-| `migrations/add_system_config_log.sql` | Dùng lịch sử chỉnh sửa tích điểm tại `/admin/config` |
-
-```text
-SSMS → mở file migration → F5
-```
-
-Script migration an toàn khi chạy lại (kiểm tra `IF NOT EXISTS`).
+- **Dev / có thể mất data:** chạy lại `create_database.sql` (DROP + seed mới) — cách nhanh nhất, đủ schema.
+- **Phải giữ data:** xem `[Database/migrations/README.md](Database/migrations/README.md)` và chỉ chạy file legacy còn thiếu.
 
 ---
 
@@ -281,7 +287,16 @@ Deploy file WAR lên Tomcat 10:
 target/MovieTicketBookingSystem-1.0-SNAPSHOT.war
 ```
 
-**IntelliJ:** Run → Edit Configurations → **Tomcat Server (Local)** → Deployment → thêm artifact WAR → Run.
+**IntelliJ:** Run → Edit Configurations → **Tomcat Server (Local)** → Deployment → thêm artifact **WAR** hoặc **WAR exploded** → Run.
+
+URL thường gặp (xem tab Deployment / Application context):
+
+```text
+http://localhost:8080/MovieTicketBookingSystem_war_exploded/
+http://localhost:8080/MovieTicketBookingSystem/
+```
+
+Sau bước **1 + 2**, trang chủ / đăng nhập seed đã dùng được. Tiếp tục mục **3–5** khi cần đăng ký email, Google login, hoặc thanh toán VietQR.
 
 ---
 
@@ -318,16 +333,18 @@ mail.from=epcine88@gmail.com
 mail.from.name=ÉPCINE
 ```
 
-| Key | Giá trị nhóm | Ghi chú |
-| --- | ------------ | ------- |
-| `mail.smtp.host` | `smtp.gmail.com` | Server Gmail — **không sửa** |
-| `mail.smtp.port` | `587` | Cổng TLS — **không sửa** |
-| `mail.smtp.auth` | `true` | Bật đăng nhập SMTP — **không sửa** |
-| `mail.smtp.starttls.enable` | `true` | Mã hóa STARTTLS — **không sửa** |
-| `mail.smtp.username` | `epcine88@gmail.com` | Gmail gửi mail — **giống cả nhóm** |
-| `mail.smtp.password` | *(lấy từ admin qua Zalo/Discord)* | **App Password** 16 ký tự — **không** phải mật khẩu đăng nhập Gmail |
-| `mail.from` | `epcine88@gmail.com` | Địa chỉ hiển thị người gửi |
-| `mail.from.name` | `ÉPCINE` | Tên hiển thị: `ÉPCINE <epcine88@gmail.com>` |
+
+| Key                         | Giá trị nhóm                      | Ghi chú                                                             |
+| --------------------------- | --------------------------------- | ------------------------------------------------------------------- |
+| `mail.smtp.host`            | `smtp.gmail.com`                  | Server Gmail — **không sửa**                                        |
+| `mail.smtp.port`            | `587`                             | Cổng TLS — **không sửa**                                            |
+| `mail.smtp.auth`            | `true`                            | Bật đăng nhập SMTP — **không sửa**                                  |
+| `mail.smtp.starttls.enable` | `true`                            | Mã hóa STARTTLS — **không sửa**                                     |
+| `mail.smtp.username`        | `epcine88@gmail.com`              | Gmail gửi mail — **giống cả nhóm**                                  |
+| `mail.smtp.password`        | *(lấy từ admin qua Zalo/Discord)* | **App Password** 16 ký tự — **không** phải mật khẩu đăng nhập Gmail |
+| `mail.from`                 | `epcine88@gmail.com`              | Địa chỉ hiển thị người gửi                                          |
+| `mail.from.name`            | `ÉPCINE`                          | Tên hiển thị: `ÉPCINE <epcine88@gmail.com>`                         |
+
 
 > **Lưu ý:** `mail.smtp.password` là **Mật khẩu ứng dụng** (App Password), không phải mật khẩu bạn dùng đăng nhập Gmail trên trình duyệt.
 
@@ -396,22 +413,26 @@ Dòng cuối (`app.base.url`) — **sửa theo Tomcat trên máy bạn**.
 3. Mở `/register` → đăng ký tài khoản mới (email **chưa có** trong DB)
 4. Kiểm tra hộp thư (kể cả **Spam**)
 
-| Kết quả | Ý nghĩa |
-| ------- | ------- |
-| Trang pending báo **đã gửi email** | SMTP đúng |
+
+| Kết quả                                  | Ý nghĩa                                                               |
+| ---------------------------------------- | --------------------------------------------------------------------- |
+| Trang pending báo **đã gửi email**       | SMTP đúng                                                             |
 | Trang pending hiện **link xác thực dev** | SMTP chưa đúng — vẫn tạo được tài khoản, dùng link trên trang để test |
-| Link trong mail mở **404** | Sửa `app.base.url` cho khớp URL Tomcat |
+| Link trong mail mở **404**               | Sửa `app.base.url` cho khớp URL Tomcat                                |
+
 
 ---
 
 ### 3.6. Lỗi thường gặp (email)
 
-| Lỗi | Cách xử lý |
-| --- | ---------- |
-| `535 Authentication failed` | Kiểm tra App Password; không dùng mật khẩu đăng nhập Gmail thường |
-| Không nhận mail | Xem **Spam**; Rebuild + Restart Tomcat |
-| Link verify `localhost:<PORT>/...` | Chưa điền `app.base.url` — sửa theo mục **3.3** |
-| Sửa file không có hiệu lực | **Rebuild Project** + **Restart Tomcat** |
+
+| Lỗi                                | Cách xử lý                                                        |
+| ---------------------------------- | ----------------------------------------------------------------- |
+| `535 Authentication failed`        | Kiểm tra App Password; không dùng mật khẩu đăng nhập Gmail thường |
+| Không nhận mail                    | Xem **Spam**; Rebuild + Restart Tomcat                            |
+| Link verify `localhost:<PORT>/...` | Chưa điền `app.base.url` — sửa theo mục **3.3**                   |
+| Sửa file không có hiệu lực         | **Rebuild Project** + **Restart Tomcat**                          |
+
 
 > Không commit `email.properties` lên Git (đã có trong `.gitignore`).
 
@@ -446,10 +467,12 @@ google.client.id=<google-client-id>.apps.googleusercontent.com
 google.client.secret=<google-client-secret>
 ```
 
-| Key | Giá trị nhóm |
-| --- | ------------ |
-| `google.client.id` | *(lấy từ admin qua Zalo/Discord)* |
+
+| Key                    | Giá trị nhóm                      |
+| ---------------------- | --------------------------------- |
+| `google.client.id`     | *(lấy từ admin qua Zalo/Discord)* |
 | `google.client.secret` | *(lấy từ admin qua Zalo/Discord)* |
+
 
 > **Cả nhóm dùng chung** — không cần tạo OAuth client riêng trừ khi dev offline hoàn toàn.
 
@@ -504,24 +527,28 @@ Dòng cuối — **sửa theo Tomcat trên máy bạn**.
 2. Mở `/login` → phải thấy nút **Đăng nhập bằng Google**
 3. Bấm nút → chọn Gmail
 
-| Kết quả | Ý nghĩa |
-| ------- | ------- |
-| Vào trang chủ | Gmail đã có trong DB |
-| Form hoàn tất Google (ngày sinh + SĐT) | Gmail mới — điền form rồi vào hệ thống |
-| `redirect_uri_mismatch` | Sai `google.redirect.uri` hoặc chưa add URL trên Console |
-| Trang **404** styled | Chưa có / sai `google.properties` — app coi OAuth chưa cấu hình |
-| `invalid_client` | Kiểm tra lại Client ID / Secret |
+
+| Kết quả                                | Ý nghĩa                                                         |
+| -------------------------------------- | --------------------------------------------------------------- |
+| Vào trang chủ                          | Gmail đã có trong DB                                            |
+| Form hoàn tất Google (ngày sinh + SĐT) | Gmail mới — điền form rồi vào hệ thống                          |
+| `redirect_uri_mismatch`                | Sai `google.redirect.uri` hoặc chưa add URL trên Console        |
+| Trang **404** styled                   | Chưa có / sai `google.properties` — app coi OAuth chưa cấu hình |
+| `invalid_client`                       | Kiểm tra lại Client ID / Secret                                 |
+
 
 ---
 
 ### 4.6. Lỗi thường gặp (Google OAuth)
 
-| Lỗi | Cách xử lý |
-| --- | ---------- |
-| `redirect_uri_mismatch` | Sửa `google.redirect.uri`; nhờ admin thêm URL callback trên Console |
-| `invalid_client` | Copy lại ID/Secret từ mục **4.2** |
-| Google chặn app (Testing) | Admin thêm Gmail của bạn vào **Test users** trên OAuth consent screen |
-| Sửa file không có hiệu lực | Rebuild + Restart Tomcat |
+
+| Lỗi                        | Cách xử lý                                                            |
+| -------------------------- | --------------------------------------------------------------------- |
+| `redirect_uri_mismatch`    | Sửa `google.redirect.uri`; nhờ admin thêm URL callback trên Console   |
+| `invalid_client`           | Copy lại ID/Secret từ mục **4.2**                                     |
+| Google chặn app (Testing)  | Admin thêm Gmail của bạn vào **Test users** trên OAuth consent screen |
+| Sửa file không có hiệu lực | Rebuild + Restart Tomcat                                              |
+
 
 > Không commit `google.properties` lên Git.
 
@@ -547,47 +574,133 @@ http://localhost:9999/MovieTicketBookingSystem_war_exploded/auth/google/callback
 
 ### Phân chia cấu hình Email + Google (tóm tắt)
 
-| Mục | Cả nhóm giống nhau? | Ghi chú |
-| --- | ------------------- | ------- |
-| SMTP host/port/auth/starttls | **Có** | Gmail mặc định |
-| `mail.smtp.username` / `password` / `from` | **Có** | `epcine88@gmail.com` |
-| `mail.from.name` | **Có** | `ÉPCINE` |
-| `app.base.url` | **Không** | URL Tomcat từng máy |
-| `google.client.id` / `secret` | **Có** | OAuth client nhóm |
-| `google.redirect.uri` | **Không** | Gửi admin để add trên Console nếu cần |
+
+| Mục                                        | Cả nhóm giống nhau? | Ghi chú                               |
+| ------------------------------------------ | ------------------- | ------------------------------------- |
+| SMTP host/port/auth/starttls               | **Có**              | Gmail mặc định                        |
+| `mail.smtp.username` / `password` / `from` | **Có**              | `epcine88@gmail.com`                  |
+| `mail.from.name`                           | **Có**              | `ÉPCINE`                              |
+| `app.base.url`                             | **Không**           | URL Tomcat từng máy                   |
+| `google.client.id` / `secret`              | **Có**              | OAuth client nhóm                     |
+| `google.redirect.uri`                      | **Không**           | Gửi admin để add trên Console nếu cần |
+
+
+---
+
+## 5. Thanh toán online (VietQR + SePay)
+
+Thanh toán online hiện tại dùng **VietQR** (bắt buộc để hiện QR) và tùy chọn **SePay** (webhook tự xác nhận khi tiền vào).
+
+File cấu hình local (không commit): `vietqr.properties`, `sepay.properties` — repo chỉ có `.example`.
+
+### 5.1. Cấu hình VietQR (cần để thanh toán online)
+
+Tại thư mục gốc project:
+
+```bat
+copy src\main\resources\vietqr.properties.example src\main\resources\vietqr.properties
+```
+
+Mở `vietqr.properties`, điền tối thiểu:
+
+| Key | Ý nghĩa |
+| --- | ------- |
+| `vietqr.bank.bin` | Mã BIN Napas (vd. `970422` = MB) |
+| `vietqr.bank.name` | Tên ngân hàng hiển thị |
+| `vietqr.account.number` | STK nhận tiền (chỉ số) |
+| `vietqr.account.name` | Chủ TK (viết hoa, không dấu) |
+| `vietqr.template` | Thường để `compact2` |
+
+Rebuild + **Restart Tomcat**. Trên `/payment`, nút tạo QR VietQR sẽ bật khi file hợp lệ.
+
+> Nhóm có thể dùng chung một STK test; mỗi người copy cùng giá trị vào máy mình.
+
+### 5.2. Cấu hình SePay (tuỳ chọn — tự xác nhận)
+
+Không bắt buộc: nếu chưa cấu hình SePay, khách vẫn bấm **Tôi đã chuyển khoản** để hoàn tất (fallback thủ công).
+
+```bat
+copy src\main\resources\sepay.properties.example src\main\resources\sepay.properties
+```
+
+1. Đặt `sepay.enabled=true` và điền `sepay.webhook.api.key` (tạo webhook kiểu **API Key** trên [my.sepay.vn](https://my.sepay.vn) / Test mode — docs: [SePay webhooks](https://docs.sepay.vn/tich-hop-webhooks.html)).
+2. Webhook URL cần **HTTPS công khai** (dev: ngrok trỏ port Tomcat):
+
+```text
+https://<NGROK_HOST>/<CONTEXT_PATH>/payment/sepay/webhook
+```
+
+Ví dụ:
+
+```text
+https://xxxx.ngrok-free.dev/MovieTicketBookingSystem_war_exploded/payment/sepay/webhook
+```
+
+3. Header chứng thực SePay gửi: `Authorization: Apikey <key>` — khớp `sepay.webhook.api.key`.
+4. (Tuỳ chọn) `sepay.account.number` = cùng STK với `vietqr.account.number` để lọc đúng tài khoản.
+
+Rebuild + Restart. Khi SePay bật, trang QR sẽ poll `/payment/status` và chuyển `/payment/success` khi webhook khớp.
+
+> Không commit `vietqr.properties` / `sepay.properties` lên Git.
 
 ---
 
 ## Xử lý lỗi thường gặp
 
 
-| Lỗi                                 | Cách xử lý                                                              |
-| ----------------------------------- | ----------------------------------------------------------------------- |
-| `Missing database.properties`       | Chạy `scripts\restore-database-properties.bat` hoặc `scripts\setup.bat` |
-| Pull xong mất `database.properties` | `backup` → pull → `restore` (xem mục **1 — B**)                    |
-| Login failed for user `sa`          | Kiểm tra mật khẩu, bật Mixed Mode trong SQL Server                      |
-| Cannot open database                | Chạy `create_database.sql` hoặc sửa `db.name` cho khớp                  |
-| Lỗi bảng `SystemConfigLog` không tồn tại | Chạy `Database/migrations/add_system_config_log.sql`              |
-| Trang admin thiếu lịch sử loyalty   | Chạy migration `add_system_config_log.sql` (xem `Database/README.md`)   |
-| Driver not found                    | `mvn clean package` để tải dependency JDBC                              |
-| Tiếng Việt bị lỗi trên form         | Kiểm tra `EncodingFilter` và `pageEncoding="UTF-8"` trên JSP            |
-| `535 Authentication failed` (email) | Kiểm tra App Password Gmail, không dùng mật khẩu đăng nhập thường       |
-| Link xác thực email bị 404          | Sửa `app.base.url` trong `email.properties` cho khớp URL Tomcat         |
-| `redirect_uri_mismatch` (Google)    | Sửa `google.redirect.uri`; nhờ admin thêm URL callback trên Console     |
+| Lỗi                                      | Cách xử lý                                                              |
+| ---------------------------------------- | ----------------------------------------------------------------------- |
+| `Missing database.properties`            | Chạy `scripts\restore-database-properties.bat` hoặc `scripts\setup.bat` |
+| Pull xong mất `database.properties`      | `backup` → pull → `restore` (xem mục **1 — B**)                         |
+| Login failed for user `sa`               | Kiểm tra mật khẩu, bật Mixed Mode trong SQL Server                      |
+| Cannot open database                     | Chạy `create_database.sql` hoặc sửa `db.name` cho khớp                  |
+| Thiếu bảng / constraint sau pull         | Chạy lại `create_database.sql` (reset), hoặc xem `Database/migrations/README.md` |
+| Trang admin thiếu lịch sử loyalty        | DB cũ thiếu `SystemConfigLog` — sync theo `Database/README.md`          |
+| Driver not found                         | `mvn clean package` để tải dependency JDBC                              |
+| Tiếng Việt bị lỗi trên form              | Kiểm tra `EncodingFilter` và `pageEncoding="UTF-8"` trên JSP            |
+| `535 Authentication failed` (email)      | Kiểm tra App Password Gmail, không dùng mật khẩu đăng nhập thường       |
+| Link xác thực email bị 404               | Sửa `app.base.url` trong `email.properties` cho khớp URL Tomcat         |
+| `redirect_uri_mismatch` (Google)         | Sửa `google.redirect.uri`; nhờ admin thêm URL callback trên Console     |
+| VietQR không hiện QR / nút disabled      | Tạo/điền `vietqr.properties` → Rebuild + Restart                        |
+| SePay không tự xác nhận                  | Kiểm tra `sepay.properties`, ngrok webhook URL, API Key                 |
 
 
 ---
 
-## Checklist thành viên mới
+## Checklist thành viên mới (lần đầu clone)
 
-- Clone repo
-- `scripts\install-git-hooks.bat` (một lần)
-- **Bước 1 — Database:** `scripts\setup.bat` → sửa `db.server`, `db.password` → chạy `Database/create_database.sql` (hoặc migration nếu DB đã có) → `scripts\backup-database-properties.bat`
-- **Bước 2 — Build:** `mvn clean package` → cấu hình Tomcat 10 và chạy WAR
-- **Bước 3 — Email:** `copy email.properties.example → email.properties` → copy SMTP nhóm, sửa `app.base.url` (mục **3**)
-- **Bước 4 — Google:** `copy google.properties.example → google.properties` → copy Client ID/Secret, sửa `google.redirect.uri` (mục **4**)
+Làm **theo thứ tự**. Sau bước 2 web đã chạy; 3–5 chỉ khi cần tính năng tương ứng.
 
-> Trước mỗi lần pull: `backup-database-properties.bat` → pull → `restore-database-properties.bat`
+```text
+[ ] Clone repo về máy
+[ ] scripts\install-git-hooks.bat
+[ ] scripts\setup.bat
+[ ] Sửa src/main/resources/database.properties → db.server, db.password (db.name=MovieTicketDB)
+[ ] SSMS: chạy toàn bộ Database/create_database.sql
+[ ] scripts\backup-database-properties.bat
+[ ] mvn clean package
+[ ] IntelliJ: Tomcat 10 + deploy WAR/WAR exploded → Run
+[ ] Mở URL context path máy bạn → login seed (vd. customer.adult@email.com / Password@123)
+
+--- Khi cần đăng ký / mail ---
+[ ] copy email.properties.example → email.properties
+[ ] Copy SMTP nhóm từ admin; sửa app.base.url = URL Tomcat máy bạn (mục 3)
+[ ] Rebuild + Restart → thử đăng ký / quên mật khẩu
+
+--- Khi cần Google login ---
+[ ] copy google.properties.example → google.properties
+[ ] Copy Client ID/Secret nhóm; sửa google.redirect.uri (mục 4)
+[ ] Nhờ admin thêm redirect URI trên Google Console nếu máy bạn port/context khác
+[ ] Rebuild + Restart → thử Đăng nhập với Google
+
+--- Khi cần thanh toán VietQR ---
+[ ] copy vietqr.properties.example → vietqr.properties → điền STK (mục 5.1)
+[ ] (Tuỳ chọn) copy sepay.properties.example → sepay.properties + ngrok webhook (mục 5.2)
+[ ] Rebuild + Restart → đặt ghế → /payment → tạo QR
+```
+
+> Trước mỗi lần `git pull`: `backup-database-properties.bat` → pull → `restore-database-properties.bat`  
+> Nếu pull có schema mới: ưu tiên chạy lại `create_database.sql` (reset). DB cũ giữ data → `Database/migrations/README.md`.
 
 ---
 
@@ -773,6 +886,10 @@ target/
 !**/email.properties.example
 **/google.properties
 !**/google.properties.example
+**/vietqr.properties
+!**/vietqr.properties.example
+**/sepay.properties
+!**/sepay.properties.example
 ```
 
 ### Không được push lên repository
@@ -782,19 +899,24 @@ target/
 - `**database.properties**` — chứa server name và mật khẩu SQL cá nhân.
 - `**email.properties**` — chứa Gmail và App Password SMTP.
 - `**google.properties**` — chứa Google OAuth Client Secret.
+- `**vietqr.properties**` / `**sepay.properties**` — STK / API Key webhook local.
 
 ### Cấu hình database đúng cách
 
 
-| File                          | Trên Git? | Mục đích                    |
-| ----------------------------- | --------- | --------------------------- |
-| `database.properties.example` | Có        | Mẫu cấu hình cho team       |
-| `database.properties`         | **Không** | Cấu hình local từng máy     |
-| `database.properties.backup`  | **Không** | Backup local trước/sau pull |
-| `email.properties.example`    | Có        | Mẫu hướng dẫn Gmail SMTP    |
-| `email.properties`            | **Không** | Gmail + App Password local  |
-| `google.properties.example`   | Có        | Mẫu hướng dẫn Google OAuth  |
-| `google.properties`           | **Không** | Client ID/Secret local      |
+| File                          | Trên Git? | Mục đích                       |
+| ----------------------------- | --------- | ------------------------------ |
+| `database.properties.example` | Có        | Mẫu cấu hình cho team          |
+| `database.properties`         | **Không** | Cấu hình local từng máy        |
+| `database.properties.backup`  | **Không** | Backup local trước/sau pull    |
+| `email.properties.example`    | Có        | Mẫu hướng dẫn Gmail SMTP       |
+| `email.properties`            | **Không** | Gmail + App Password local     |
+| `google.properties.example`   | Có        | Mẫu hướng dẫn Google OAuth     |
+| `google.properties`           | **Không** | Client ID/Secret local         |
+| `vietqr.properties.example`   | Có        | Mẫu hướng dẫn VietQR           |
+| `vietqr.properties`           | **Không** | STK nhận tiền local            |
+| `sepay.properties.example`    | Có        | Mẫu hướng dẫn SePay webhook    |
+| `sepay.properties`            | **Không** | API Key webhook local          |
 
 
 **Thành viên mới sau khi clone:**
@@ -1027,9 +1149,9 @@ MovieTicketBookingSystem
 │   └── google.properties             # Local only — gitignored
 ├── src/test/java/
 ├── Database/
-│   ├── README.md                    # Hướng dẫn DB & migration cho nhóm
-│   ├── create_database.sql          # Khởi tạo đầy đủ 28 bảng + seed
-│   └── migrations/                # Script cập nhật schema incremental
+│   ├── README.md                    # Hướng dẫn DB — script duy nhất
+│   ├── create_database.sql          # Khởi tạo đầy đủ 28 bảng + seed (đã gộp migrations)
+│   └── migrations/                  # Legacy — chỉ DB cũ không reset được
 │       └── add_system_config_log.sql
 ├── scripts/
 │   ├── setup.bat
@@ -1086,12 +1208,14 @@ MovieTicketBookingSystem
 - `email.properties` — Gmail + App Password, **mỗi dev tự tạo local**.
 - `google.properties.example` — mẫu Google OAuth nhóm; chi tiết: mục **4. Cấu hình Google OAuth** trong README.
 - `google.properties` — Client ID/Secret + redirect URI, **mỗi dev tự tạo local**.
+- `vietqr.properties.example` — mẫu VietQR; chi tiết: mục **5** trong README.
+- `vietqr.properties` / `sepay.properties` — STK + SePay API Key, **mỗi dev tự tạo local**.
 
 ### Database (`Database/`)
 
-- `create_database.sql` — tạo `MovieTicketDB`, **28 bảng** + seed.
-- `migrations/` — script cập nhật cho DB đã tồn tại (sau `git pull`).
-- Chi tiết: [`Database/README.md`](Database/README.md).
+- `create_database.sql` — tạo `MovieTicketDB`, **28 bảng** + seed (**một file duy nhất**).
+- `migrations/` — legacy cho DB cũ; xem `migrations/README.md`.
+- Chi tiết: `[Database/README.md](Database/README.md)`.
 
 ---
 

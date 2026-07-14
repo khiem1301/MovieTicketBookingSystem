@@ -177,6 +177,9 @@ public class CheckoutServlet extends HttpServlet {
         SessionUser sessionUser = SessionUtil.getLoggedUser(req);
         String userId = sessionUser != null ? sessionUser.getId() : null;
 
+        // Giải phóng ghế của đơn PENDING đã quá hạn thanh toán trước khi vẽ sơ đồ
+        new BookingDAO().expireStaleOnlinePendingForShowtime(showtimeId);
+
         List<PricingRule> pricingRules = new PricingRuleDAO().getActiveRules();
         BigDecimal effectivePrice = PricingCalculator.calculateEffectivePrice(showtime, pricingRules);
         showtime.setEffectivePrice(effectivePrice);

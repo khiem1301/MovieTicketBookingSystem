@@ -1,5 +1,5 @@
 # Sao chép file này thành vietqr.properties và điền thông tin tài khoản nhận tiền.
-# VietQR dùng dịch vụ img.vietqr.io — không cần đăng ký merchant như MoMo/VNPay.
+# VietQR dùng dịch vụ img.vietqr.io — không cần đăng ký merchant cổng thanh toán.
 #
 # Tra mã BIN ngân hàng: https://vietqr.io/ hoặc https://api.vietqr.io/v2/banks
 

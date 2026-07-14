@@ -13,9 +13,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 import model.dto.BookingDetailDTO;
+import model.dto.BookingHistoryItemDTO;
 import model.entity.Booking;
 import model.entity.Movie;
 import model.entity.PricingRule;
@@ -29,7 +31,8 @@ import utils.SeatHoldException;
 
 public class BookingDAO {
 
-    public static final int ONLINE_EXPIRE_MINUTES = 10;
+    /** TEMP test: 1 phút. Đổi lại 10 trước khi demo/production. */
+    public static final int ONLINE_EXPIRE_MINUTES = 1;
 
     /**
      * FR-35 / FR-38 — Tạo booking tại quầy (OFFLINE).
@@ -589,6 +592,30 @@ public class BookingDAO {
         }
     }
 
+    /** Gia hạn thêm phút cho đơn PENDING khi bắt đầu redirect cổng thanh toán. */
+    public void extendPendingExpiry(String bookingId, int extraMinutes) {
+        if (bookingId == null || bookingId.isBlank() || extraMinutes <= 0) {
+            return;
+        }
+        String sql = """
+                UPDATE Bookings
+                SET expired_at = CASE
+                    WHEN expired_at > GETDATE() THEN DATEADD(minute, ?, expired_at)
+                    ELSE DATEADD(minute, ?, GETDATE())
+                END
+                WHERE id = ? AND booking_status = 'PENDING' AND payment_status = 'UNPAID'
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, extraMinutes);
+            ps.setInt(2, extraMinutes);
+            ps.setString(3, bookingId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("extendPendingExpiry failed", e);
+        }
+    }
+
     /** Đánh dấu payment online thất bại (không đụng booking PENDING). */
     public void failOnlinePayment(String paymentId) {
         try (Connection conn = DBContext.getConnection()) {
@@ -793,6 +820,59 @@ public class BookingDAO {
      * @return true nếu hủy thành công
      */
     public boolean cancelOnlinePendingBooking(String bookingId, String userId) {
+        return releaseOnlinePendingBooking(bookingId, userId, "CANCELLED");
+    }
+
+    /**
+     * Hết hạn đơn ONLINE PENDING — giải phóng ghế (booking_status → EXPIRED).
+     *
+     * @return true nếu cập nhật thành công
+     */
+    public boolean expireOnlinePendingBooking(String bookingId, String userId) {
+        return releaseOnlinePendingBooking(bookingId, userId, "EXPIRED");
+    }
+
+    /**
+     * Đánh EXPIRED mọi đơn ONLINE PENDING đã quá {@code expired_at} trên suất chiếu.
+     * Gọi khi mở sơ đồ ghế để ghế không bị khóa “ma”.
+     */
+    public int expireStaleOnlinePendingForShowtime(String showtimeId) {
+        if (showtimeId == null || showtimeId.isBlank()) {
+            return 0;
+        }
+        String selectSql = """
+                SELECT id, user_id
+                FROM Bookings
+                WHERE showtime_id = ?
+                  AND booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND expired_at IS NOT NULL
+                  AND expired_at <= GETDATE()
+                """;
+        int count = 0;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(selectSql)) {
+            ps.setString(1, showtimeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String bookingId = rs.getString("id");
+                    String userId = rs.getString("user_id");
+                    if (userId != null && expireOnlinePendingBooking(bookingId, userId)) {
+                        count++;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("expireStaleOnlinePendingForShowtime failed", e);
+        }
+        return count;
+    }
+
+    private boolean releaseOnlinePendingBooking(String bookingId, String userId, String newStatus) {
+        if (!"CANCELLED".equals(newStatus) && !"EXPIRED".equals(newStatus)) {
+            throw new IllegalArgumentException("newStatus must be CANCELLED or EXPIRED");
+        }
         String selectSql = """
                 SELECT showtime_id
                 FROM Bookings
@@ -804,7 +884,7 @@ public class BookingDAO {
                 """;
         String updateSql = """
                 UPDATE Bookings
-                SET booking_status = 'CANCELLED'
+                SET booking_status = ?
                 WHERE id = ?
                   AND user_id = ?
                   AND booking_source = 'ONLINE'
@@ -837,8 +917,9 @@ public class BookingDAO {
 
             int updated;
             try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
-                ps.setString(1, bookingId);
-                ps.setString(2, userId);
+                ps.setString(1, newStatus);
+                ps.setString(2, bookingId);
+                ps.setString(3, userId);
                 updated = ps.executeUpdate();
             }
             if (updated == 0) {
@@ -867,7 +948,7 @@ public class BookingDAO {
             if (conn != null) {
                 try { conn.rollback(); } catch (SQLException ignored) { }
             }
-            throw new RuntimeException("cancelOnlinePendingBooking failed", e);
+            throw new RuntimeException("releaseOnlinePendingBooking failed", e);
         } finally {
             if (conn != null) {
                 try {
@@ -1060,6 +1141,112 @@ public class BookingDAO {
     }
 
     /** Số vé đã xác nhận của khách (hiển thị sidebar profile). */
+    private static final Set<String> HISTORY_STATUS_WHITELIST = Set.of(
+            "PENDING", "CONFIRMED", "CANCELLED", "EXPIRED", "REFUNDED"
+    );
+
+    /**
+     * FR-15 — Đếm đơn trong lịch sử của user (tùy chọn lọc booking_status).
+     */
+    public int countHistoryByUserId(String userId, String statusFilter) {
+        String normalized = normalizeHistoryStatus(statusFilter);
+        String sql = """
+                SELECT COUNT(*) AS cnt
+                FROM Bookings b
+                WHERE b.user_id = ?
+                """ + (normalized != null ? " AND b.booking_status = ?" : "");
+
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            if (normalized != null) {
+                ps.setString(2, normalized);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("cnt");
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("countHistoryByUserId failed", e);
+        }
+        return 0;
+    }
+
+    /**
+     * FR-15 — Danh sách đơn đặt vé của user, mới nhất trước.
+     */
+    public List<BookingHistoryItemDTO> findHistoryByUserId(String userId, String statusFilter,
+                                                             int offset, int limit) {
+        String normalized = normalizeHistoryStatus(statusFilter);
+        String sql = """
+                SELECT b.id, b.booking_code, b.booked_at, b.booking_source,
+                       b.booking_status, b.payment_status, b.final_amount, b.expired_at,
+                       m.title AS movie_title, m.poster_url AS movie_poster_url,
+                       cr.room_name, s.start_time,
+                       (SELECT COUNT(*) FROM BookingSeats bs WHERE bs.booking_id = b.id) AS seat_count,
+                       (SELECT STRING_AGG(se.seat_code, ', ') WITHIN GROUP (ORDER BY se.seat_row, se.seat_column)
+                        FROM BookingSeats bs
+                        JOIN Seats se ON se.id = bs.seat_id
+                        WHERE bs.booking_id = b.id) AS seat_codes
+                FROM Bookings b
+                JOIN Showtimes s ON s.id = b.showtime_id
+                JOIN Movies m ON m.id = s.movie_id
+                JOIN CinemaRooms cr ON cr.id = s.room_id
+                WHERE b.user_id = ?
+                """ + (normalized != null ? " AND b.booking_status = ?" : "") + """
+                ORDER BY b.booked_at DESC
+                OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                """;
+
+        List<BookingHistoryItemDTO> items = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int idx = 1;
+            ps.setString(idx++, userId);
+            if (normalized != null) {
+                ps.setString(idx++, normalized);
+            }
+            ps.setInt(idx++, offset);
+            ps.setInt(idx, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    items.add(mapHistoryRow(rs));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findHistoryByUserId failed", e);
+        }
+        return items;
+    }
+
+    private static String normalizeHistoryStatus(String statusFilter) {
+        if (statusFilter == null || statusFilter.isBlank()) {
+            return null;
+        }
+        String s = statusFilter.trim().toUpperCase();
+        return HISTORY_STATUS_WHITELIST.contains(s) ? s : null;
+    }
+
+    private static BookingHistoryItemDTO mapHistoryRow(ResultSet rs) throws SQLException {
+        BookingHistoryItemDTO item = new BookingHistoryItemDTO();
+        item.setBookingId(rs.getString("id"));
+        item.setBookingCode(rs.getString("booking_code"));
+        item.setBookedAt(rs.getTimestamp("booked_at"));
+        item.setBookingSource(rs.getString("booking_source"));
+        item.setBookingStatus(rs.getString("booking_status"));
+        item.setPaymentStatus(rs.getString("payment_status"));
+        item.setFinalAmount(rs.getBigDecimal("final_amount"));
+        item.setExpiredAt(rs.getTimestamp("expired_at"));
+        item.setMovieTitle(rs.getString("movie_title"));
+        item.setMoviePosterUrl(rs.getString("movie_poster_url"));
+        item.setRoomName(rs.getString("room_name"));
+        item.setStartTime(rs.getTimestamp("start_time"));
+        item.setSeatCount(rs.getInt("seat_count"));
+        item.setSeatCodesSummary(rs.getString("seat_codes"));
+        return item;
+    }
+
     public int countConfirmedByUserId(String userId) {
         String sql = """
                 SELECT COUNT(*) AS cnt

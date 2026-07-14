@@ -12,22 +12,24 @@ Hướng dẫn tạo và cập nhật cơ sở dữ liệu cho nhóm phát tri�
 |----------|---------|
 | Tên database | `MovieTicketDB` |
 | Số bảng | **28** (PascalCase) |
-| Script chính | `create_database.sql` — schema đầy đủ + seed data |
-| Migration bổ sung | `migrations/` — cho DB đã tạo trước khi schema gộp vào `create_database.sql` |
+| Script duy nhất | [`create_database.sql`](create_database.sql) — schema đầy đủ + seed (đã gộp mọi migration) |
+| `migrations/` | **Legacy** — chỉ khi DB cũ không reset được; xem [`migrations/README.md`](migrations/README.md) |
 
 ---
 
-## A. Lần đầu setup (máy chưa có DB)
+## A. Lần đầu setup (máy chưa có DB) — làm đúng như thế này
 
 1. Bật SQL Server, bật **SQL Server Authentication** (nếu dùng `sa`).
 2. Mở **SSMS** hoặc **Azure Data Studio**.
 3. Mở file `Database/create_database.sql`.
-4. Chạy toàn bộ file (**Ctrl+A** → **F5**).
+4. Chạy **toàn bộ file** (**Ctrl+A** → **F5**).
+
+**Không** cần chạy thêm file nào trong `migrations/`.
 
 Kết quả:
 
 - Tạo database `MovieTicketDB`
-- Tạo **28 bảng** + index + seed data (roles, users test, phim, genres, loyalty config, VAT 10%, **đơn đặt vé mẫu cho báo cáo**)
+- Tạo **28 bảng** + index + seed data (users, phim, genres, loyalty, VAT, voucher, đơn báo cáo, …)
 
 Đảm bảo `db.name=MovieTicketDB` trong `database.properties`.
 
@@ -48,36 +50,33 @@ Kết quả:
 | ADMIN | admin@movieticket.vn |
 | MANAGER | manager@movieticket.vn |
 | STAFF | staff@movieticket.vn |
+| CUSTOMER (≥18) | customer.adult@email.com |
+| CUSTOMER (teen) | customer.teen@email.com |
 
 ---
 
 ## B. Đã có DB cũ — pull code mới
 
-Khi pull code có thay đổi schema, chạy lại `create_database.sql` để sync (**chú ý: sẽ xóa toàn bộ data cũ và seed lại**).
+**Khuyến nghị (dev):** chạy lại `create_database.sql` để sync schema + seed  
+→ **xóa toàn bộ data cũ** và tạo lại từ đầu.
 
-Nếu muốn giữ data: chạy script trong `Database/migrations/` tương ứng (xem bảng dưới).
+**Giữ data:** chỉ khi không thể reset — xem [`migrations/README.md`](migrations/README.md) và chạy đúng file còn thiếu. Schema chuẩn luôn nằm trong `create_database.sql`.
 
-### Migration scripts (`Database/migrations/`)
-
-| File | Mục đích |
-|------|----------|
-| `add_user_status_log.sql` | Thêm bảng `UserStatusLog` — audit khóa tài khoản |
-| `add_vietqr_payment_method.sql` | Thêm `VIETQR` vào `CK_Payments_Method` |
-| `add_token_purpose.sql` | FR-04 — cột `purpose` trên `PasswordResetTokens` (REGISTER_VERIFY / PASSWORD_RESET / PROFILE_SECURITY) |
-
-> `SystemConfigLog` chỉ có trong `create_database.sql` (không có file migration riêng).
-
-### Schema đã thay đổi so với commit ban đầu
+### Schema đã gộp vào `create_database.sql` (không cần chạy riêng)
 
 | Thay đổi | Mô tả |
 |----------|-------|
-| `Genres.is_active BIT NOT NULL DEFAULT 1` | Trạng thái active/inactive của thể loại |
-| `Genres.description NVARCHAR(500) NULL` | Mô tả thể loại |
-| `Movies.status` — thêm giá trị `EARLY_SHOWING` | Suất chiếu sớm (Early Showing) |
-| Bảng `SystemConfigLog` | Lịch sử chỉnh sửa cấu hình loyalty |
-| Bảng `UserStatusLog` | Lịch sử khóa/mở khóa user (lý do, email_sent) |
-| `PasswordResetTokens.purpose` | FR-04 — phân loại token đăng ký / quên MK / xác minh profile |
-| Seed `SEED-STATS-*` | Đơn PAID mẫu cho báo cáo admin tháng 6/2026 |
+| `Genres.is_active` / `description` | Thể loại active + mô tả |
+| `Movies.status` gồm `EARLY_SHOWING` | Suất chiếu sớm |
+| `SystemConfigLog` | Lịch sử chỉnh sửa loyalty |
+| `UserStatusLog` | Audit khóa/mở khóa user |
+| `PasswordResetTokens.purpose` | REGISTER_VERIFY / PASSWORD_RESET / PROFILE_SECURITY |
+| `Promotions.image_url` | Ảnh voucher |
+| `SeatTypes.seat_span` | Ghế 1 ô / 2 ô (COUPLE, SWEETBOX = 2) |
+| `Tickets.is_printed` | Vé đã in (quầy) |
+| `Payments.cash_received` / `change_amount` | Tiền mặt quầy |
+| `CK_Payments_Method` gồm `VIETQR` | Thanh toán VietQR |
+| Seed `SEED-STATS-*` | Đơn mẫu báo cáo admin |
 
 ---
 
@@ -104,8 +103,8 @@ Nếu muốn giữ data: chạy script trong `Database/migrations/` tương ứn
 
 - **Không** commit `database.properties` lên Git.
 - Chạy lại `create_database.sql` trên DB đang có data sẽ **xóa toàn bộ** bảng và seed lại — chỉ dùng khi reset môi trường dev.
-- Khi thêm cột/bảng mới: cập nhật `create_database.sql`, thêm migration trong `migrations/` (nếu cần upgrade DB cũ), và ghi vào bảng "Schema đã thay đổi" ở mục B.
+- Khi thêm cột/bảng mới: **cập nhật trực tiếp** `create_database.sql` (nguồn chuẩn). Chỉ thêm file trong `migrations/` nếu nhóm còn máy không reset được DB cũ.
 
 ---
 
-*Cập nhật 09/06/2026.*
+*Cập nhật 11/07/2026 — một script duy nhất cho lần clone đầu.*

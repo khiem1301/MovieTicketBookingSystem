@@ -18,7 +18,8 @@ import utils.SeatHoldException;
  */
 public class SeatHoldDAO {
 
-    public static final int HOLD_MINUTES = 10;
+    /** TEMP test: 1 phút. Đổi lại 10 trước khi demo/production. */
+    public static final int HOLD_MINUTES = 1;
 
     /**
      * Trả về mã ghế (seat_code) không thể giữ: đã book hoặc đang bị user khác hold.
@@ -41,7 +42,13 @@ public class SeatHoldDAO {
                           JOIN Bookings b ON b.id = bs.booking_id
                           WHERE bs.seat_id = s.id
                             AND b.showtime_id = sh.id
-                            AND b.booking_status IN ('PENDING', 'CONFIRMED')
+                            AND (
+                                b.booking_status = 'CONFIRMED'
+                                OR (
+                                    b.booking_status = 'PENDING'
+                                    AND (b.expired_at IS NULL OR b.expired_at > GETDATE())
+                                )
+                            )
                       )
                       OR EXISTS (
                           SELECT 1 FROM SeatHolds h
@@ -101,7 +108,7 @@ public class SeatHoldDAO {
     }
 
     /**
-     * Đồng bộ danh sách ghế đang giữ: rỗng → xóa hold; có ghế → thay batch hold 10 phút.
+     * Đồng bộ danh sách ghế đang giữ: rỗng → xóa hold; có ghế → thay batch hold {@link #HOLD_MINUTES} phút.
      *
      * @return expired_at mới, hoặc null nếu không còn ghế nào được giữ
      */
@@ -127,7 +134,7 @@ public class SeatHoldDAO {
     }
 
     /**
-     * Thay thế hold cũ của user trên suất này và tạo hold mới (10 phút).
+     * Thay thế hold cũ của user trên suất này và tạo hold mới ({@link #HOLD_MINUTES} phút).
      *
      * @return expired_at của batch hold vừa tạo
      */

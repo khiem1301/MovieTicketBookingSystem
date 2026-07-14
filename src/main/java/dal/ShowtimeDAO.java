@@ -234,12 +234,18 @@ public class ShowtimeDAO {
         }
     }
 
-    /** Đếm booking còn hiệu lực (PENDING / CONFIRMED). */
+    /** Đếm booking còn hiệu lực (CONFIRMED, hoặc PENDING chưa hết hạn). */
     public int countBookingsByShowtimeId(String showtimeId) {
         String sql = """
                 SELECT COUNT(1) FROM Bookings
                 WHERE showtime_id = ?
-                  AND booking_status IN ('PENDING', 'CONFIRMED')
+                  AND (
+                      booking_status = 'CONFIRMED'
+                      OR (
+                          booking_status = 'PENDING'
+                          AND (expired_at IS NULL OR expired_at > GETDATE())
+                      )
+                  )
                 """;
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
