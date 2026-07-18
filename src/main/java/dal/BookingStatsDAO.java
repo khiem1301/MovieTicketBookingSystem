@@ -134,7 +134,7 @@ public class BookingStatsDAO {
                     %s
                     GROUP BY s2.movie_id
                 ) rev ON rev.movie_id = m.id
-                ORDER BY ticket_stats.ticket_count DESC, rev.revenue DESC, m.title ASC
+                  ORDER BY rev.revenue ASC, ticket_stats.ticket_count ASC, m.title ASC
                 OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
                 """.formatted(PAID_BOOKING_WHERE, dateFilterB, PAID_BOOKING_WHERE, dateFilterB2);
 

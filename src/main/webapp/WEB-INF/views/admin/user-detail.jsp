@@ -117,6 +117,7 @@
             Khóa tài khoản
           </h3>
           <form class="admin-form admin-form--wide" method="post"
+                accept-charset="UTF-8"
                 action="${pageContext.request.contextPath}/admin/users/status"
                 onsubmit="return confirm('Khóa tài khoản này? Người dùng sẽ không thể đăng nhập.');"
                 style="margin-bottom:24px;">
@@ -162,6 +163,7 @@
             Kích hoạt lại tài khoản
           </h3>
           <form class="admin-form admin-form--wide" method="post"
+                accept-charset="UTF-8"
                 action="${pageContext.request.contextPath}/admin/users/status"
                 onsubmit="return confirm('Kích hoạt lại tài khoản này?');"
                 style="margin-bottom:24px;">
@@ -204,28 +206,13 @@
             </form>
           </c:if>
         </div>
-
-        <h2 class="admin-section-title">Đặt lại mật khẩu</h2>
-        <form class="admin-form" method="post"
-              action="${pageContext.request.contextPath}/admin/users/reset-password"
-              onsubmit="return confirm('Đặt lại mật khẩu cho người dùng này?');">
-          <input type="hidden" name="userId" value="${user.id}"/>
-          <div class="admin-field">
-            <label class="admin-label" for="newPassword">Mật khẩu mới</label>
-            <input type="password" id="newPassword" name="newPassword" class="admin-input"
-                   placeholder="Tối thiểu 8 ký tự" minlength="8" required/>
-          </div>
-          <div class="admin-form-actions">
-            <button type="submit" class="admin-btn admin-btn--primary">Đặt lại mật khẩu</button>
-          </div>
-        </form>
       </div>
     </c:if>
 
     <c:if test="${isSelf}">
       <div class="admin-card">
         <p style="color:var(--text-muted);font-size:14px;">
-          Đây là tài khoản của bạn. Không thể khóa hoặc đặt lại mật khẩu tại đây.
+          Đây là tài khoản của bạn. Không thể khóa tại đây.
         </p>
       </div>
     </c:if>
@@ -233,7 +220,7 @@
     <c:if test="${user.roleName == 'ADMIN' && !isSelf}">
       <div class="admin-card">
         <p style="color:var(--text-muted);font-size:14px;">
-          Tài khoản Admin không thể bị khóa hoặc đặt lại mật khẩu qua trang này.
+          Tài khoản Admin không thể bị khóa qua trang này.
         </p>
       </div>
     </c:if>
