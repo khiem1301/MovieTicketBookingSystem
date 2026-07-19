@@ -182,12 +182,14 @@ public final class EmailUtil {
         MimeMessage message = new MimeMessage(session);
         try {
             message.setFrom(new InternetAddress(fromEmail, fromName, "UTF-8"));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail, false));
             message.setSubject(subject, "UTF-8");
-            message.setText(body, "UTF-8");
+            // setContent + saveChanges ổn định hơn setText trên Gmail/Outlook (tiếng Việt + dấu É)
+            message.setContent(body, "text/plain; charset=UTF-8");
+            message.saveChanges();
         } catch (UnsupportedEncodingException ex) {
             throw new MessagingException("Không thể mã hóa nội dung email", ex);
         }
-        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
         Transport.send(message);
     }
 
@@ -270,9 +272,10 @@ public final class EmailUtil {
 
             MimeMessage message = new MimeMessage(session);
             message.setFrom(new InternetAddress(fromEmail, fromName, "UTF-8"));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail, false));
             message.setSubject("ÉPCINE — Xác nhận đặt vé " + detail.getBookingCode(), "UTF-8");
-            message.setText(body, "UTF-8");
-            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail));
+            message.setContent(body, "text/plain; charset=UTF-8");
+            message.saveChanges();
             Transport.send(message);
 
         } catch (Exception e) {
@@ -347,6 +350,8 @@ public final class EmailUtil {
     private static Properties buildMailSessionProperties(Properties fileProps) {
         Properties mailProps = new Properties();
         mailProps.putAll(fileProps);
+        mailProps.putIfAbsent("mail.mime.charset", "UTF-8");
+        mailProps.putIfAbsent("mail.mime.encodeparameters", "true");
         mailProps.putIfAbsent("mail.smtp.ssl.protocols", "TLSv1.2");
         mailProps.putIfAbsent("mail.smtp.ssl.trust", "smtp.gmail.com");
         mailProps.putIfAbsent("mail.smtp.connectiontimeout", "15000");

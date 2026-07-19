@@ -95,7 +95,7 @@
         <div class="admin-module-icon">👥</div>
         <h3 class="admin-module-title">Quản lý người dùng</h3>
         <p class="admin-module-desc">
-          Tạo tài khoản Staff/Manager, khóa tài khoản và đặt lại mật khẩu.
+          Tạo tài khoản Staff/Manager và khóa tài khoản.
         </p>
         <span class="admin-module-link">Truy cập →</span>
       </a>

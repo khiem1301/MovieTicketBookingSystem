@@ -18,7 +18,7 @@
     <div class="admin-page-header">
       <div>
         <h1 class="admin-page-title">Quản lý người dùng</h1>
-        <p class="admin-page-subtitle">Tạo tài khoản Staff/Manager, khóa và đặt lại mật khẩu</p>
+        <p class="admin-page-subtitle">Tạo tài khoản Staff/Manager và khóa tài khoản</p>
       </div>
       <a href="${pageContext.request.contextPath}/admin/users/create" class="admin-btn admin-btn--primary">
         + Tạo tài khoản
