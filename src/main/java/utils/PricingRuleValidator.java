@@ -25,7 +25,9 @@ public final class PricingRuleValidator {
     private static final Set<String> STATUSES = Set.of("ACTIVE", "INACTIVE");
 
     private static final BigDecimal MAX_PERCENT = new BigDecimal("100");
+    private static final BigDecimal MIN_PERCENT = new BigDecimal("-100");
     private static final BigDecimal MAX_FIXED = new BigDecimal("5000000");
+    private static final BigDecimal MIN_FIXED = new BigDecimal("-5000000");
     private static final int MAX_PRIORITY = 9999;
 
     private PricingRuleValidator() {}
@@ -218,18 +220,18 @@ public final class PricingRuleValidator {
             errors.add("Giá trị điều chỉnh phải là số hợp lệ.");
             return null;
         }
+        if (value.compareTo(BigDecimal.ZERO) == 0) {
+            errors.add("Giá trị điều chỉnh phải khác 0.");
+            return null;
+        }
         if ("PERCENTAGE".equals(adjustmentType)) {
-            if (value.compareTo(BigDecimal.ZERO) <= 0 || value.compareTo(MAX_PERCENT) > 0) {
-                errors.add("Phần trăm điều chỉnh phải lớn hơn 0 và không vượt quá 100.");
+            if (value.compareTo(MIN_PERCENT) < 0 || value.compareTo(MAX_PERCENT) > 0) {
+                errors.add("Phần trăm điều chỉnh phải từ -100 đến 100 và khác 0.");
                 return null;
             }
         } else if ("FIXED_AMOUNT".equals(adjustmentType)) {
-            if (value.compareTo(BigDecimal.ZERO) <= 0) {
-                errors.add("Số tiền cố định phải lớn hơn 0.");
-                return null;
-            }
-            if (value.compareTo(MAX_FIXED) > 0) {
-                errors.add("Số tiền cố định tối đa 5.000.000đ.");
+            if (value.compareTo(MIN_FIXED) < 0 || value.compareTo(MAX_FIXED) > 0) {
+                errors.add("Số tiền cố định phải từ -5.000.000đ đến 5.000.000đ và khác 0.");
                 return null;
             }
         }

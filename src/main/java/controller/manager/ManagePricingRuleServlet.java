@@ -3,9 +3,7 @@ package controller.manager;
 import dal.PricingRuleDAO;
 import model.dto.SessionUser;
 import model.entity.PricingRule;
-import model.entity.Showtime;
 import utils.AdminPaginationUtil;
-import utils.PricingCalculator;
 import utils.PricingRuleValidator;
 import utils.SessionUtil;
 
@@ -16,15 +14,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 
 /**
- * FR-49 — Quản lý quy tắc giá động (CRUD + preview).
+ * FR-49 — Quản lý quy tắc giá động (CRUD).
  */
 @WebServlet("/manager/pricing-rules")
 public class ManagePricingRuleServlet extends HttpServlet {
@@ -68,7 +62,6 @@ public class ManagePricingRuleServlet extends HttpServlet {
             case "update" -> handleUpdate(req, resp);
             case "toggle-status" -> handleToggleStatus(req, resp);
             case "delete" -> handleDelete(req, resp);
-            case "preview" -> handlePreview(req, resp);
             default -> handleCreate(req, resp);
         }
     }
@@ -141,62 +134,6 @@ public class ManagePricingRuleServlet extends HttpServlet {
                 + filterQuery(req));
     }
 
-    private void handlePreview(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-        String baseRaw = trim(req.getParameter("previewBasePrice"));
-        String datetimeRaw = trim(req.getParameter("previewDateTime"));
-
-        BigDecimal basePrice = null;
-        if (baseRaw == null) {
-            req.setAttribute("previewError", "Giá gốc preview phải lớn hơn 0.");
-        } else {
-            try {
-                basePrice = new BigDecimal(baseRaw.replace(",", ""));
-                if (basePrice.compareTo(BigDecimal.ZERO) <= 0) {
-                    req.setAttribute("previewError", "Giá gốc preview phải lớn hơn 0.");
-                    basePrice = null;
-                }
-            } catch (NumberFormatException ex) {
-                req.setAttribute("previewError", "Giá gốc preview không hợp lệ.");
-            }
-        }
-
-        Timestamp startTime = null;
-        if (datetimeRaw == null) {
-            req.setAttribute("previewError",
-                    req.getAttribute("previewError") != null
-                            ? req.getAttribute("previewError")
-                            : "Ngày giờ suất mẫu không được để trống.");
-        } else {
-            try {
-                String normalized = datetimeRaw.contains("T")
-                        ? datetimeRaw
-                        : datetimeRaw.replace(' ', 'T');
-                if (normalized.length() == 16) {
-                    normalized = normalized + ":00";
-                }
-                startTime = Timestamp.valueOf(LocalDateTime.parse(normalized));
-            } catch (DateTimeParseException | IllegalArgumentException ex) {
-                req.setAttribute("previewError", "Ngày giờ suất mẫu không đúng định dạng.");
-            }
-        }
-
-        req.setAttribute("previewBasePrice", baseRaw);
-        req.setAttribute("previewDateTime", datetimeRaw);
-
-        if (basePrice != null && startTime != null && req.getAttribute("previewError") == null) {
-            Showtime sample = new Showtime();
-            sample.setBasePrice(basePrice);
-            sample.setStartTime(startTime);
-            BigDecimal effective = PricingCalculator.calculateEffectivePrice(
-                    sample, pricingRuleDAO.getActiveRules());
-            req.setAttribute("previewPrice", effective);
-            req.setAttribute("previewSuccess", Boolean.TRUE);
-        }
-
-        loadAndForward(req, resp);
-    }
-
     private PricingRuleValidator.Result parseForm(HttpServletRequest req) {
         return PricingRuleValidator.parseAndValidate(
                 req.getParameter("ruleName"),
@@ -245,7 +182,7 @@ public class ManagePricingRuleServlet extends HttpServlet {
 
     private void loadAndForward(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        String keyword = trim(req.getParameter("q"));
+        String keyword = trim(req.getParameter("keyword"));
         String status = trim(req.getParameter("status"));
         if (status != null && !"ACTIVE".equals(status) && !"INACTIVE".equals(status)) {
             status = null;
@@ -260,7 +197,7 @@ public class ManagePricingRuleServlet extends HttpServlet {
         List<PricingRule> rules = pricingRuleDAO.findFiltered(keyword, status, offset, PAGE_SIZE);
 
         req.setAttribute("rules", rules);
-        req.setAttribute("filterQ", keyword);
+        req.setAttribute("filterKeyword", keyword);
         req.setAttribute("filterStatus", status);
         req.setAttribute("totalRules", total);
         req.setAttribute("pgCurrent", page);
@@ -268,7 +205,7 @@ public class ManagePricingRuleServlet extends HttpServlet {
         req.setAttribute("pgTotalItems", total);
         req.setAttribute("pgPath", req.getContextPath() + "/manager/pricing-rules");
         req.setAttribute("pgQueryExtra",
-                AdminPaginationUtil.queryParam("q", keyword)
+                AdminPaginationUtil.queryParam("keyword", keyword)
                         + AdminPaginationUtil.queryParam("status", status));
 
         req.getRequestDispatcher("/WEB-INF/views/manager/pricing-rule-list.jsp").forward(req, resp);
@@ -276,7 +213,7 @@ public class ManagePricingRuleServlet extends HttpServlet {
 
     private String filterQuery(HttpServletRequest req) {
         return AdminPaginationUtil.queryParam("page", trim(req.getParameter("page")))
-                + AdminPaginationUtil.queryParam("q", trim(req.getParameter("q")))
+                + AdminPaginationUtil.queryParam("keyword", trim(req.getParameter("keyword")))
                 + AdminPaginationUtil.queryParam("status", trim(req.getParameter("status")));
     }
 
