@@ -131,12 +131,13 @@ http://localhost:8080/MovieTicketBookingSystem/
 | **2** | `mvn clean package` + deploy Tomcat 10 | Có | [2. Build và deploy](#2-build-và-deploy) |
 | **3** | `email.properties` (SMTP nhóm + `app.base.url` máy bạn) | Cần nếu đăng ký / quên MK / mail vé | [3. Cấu hình Email SMTP](#3-cấu-hình-email-smtp) |
 | **4** | `google.properties` (Client nhóm + `redirect.uri` máy bạn) | Cần nếu đăng nhập Google | [4. Cấu hình Google OAuth](#4-cấu-hình-google-oauth) |
-| **5** | `vietqr.properties` (+ `sepay.properties` nếu muốn tự xác nhận) | Cần nếu thanh toán online VietQR | [5. Thanh toán online](#5-thanh-toán-online-vietqr--sepay) |
+| **5** | VietQR (+ SePay/ngrok nếu tự xác nhận) | Cần nếu thanh toán online | [Mục 5](#5-thanh-toán-online-vietqr--sepay) — **5.1** VietQR; **5.3→5.9** ngrok+SePay |
 
 
 > **Lần đầu clone — chạy được web ngay:** làm **0 → 1 → 2**, rồi mở URL Tomcat (vd. `http://localhost:8080/MovieTicketBookingSystem_war_exploded/`). Đăng nhập seed: `customer.adult@email.com` / `Password@123` (hoặc admin/manager/staff cùng mật khẩu).  
-> Bước **3 → 5** lấy secret từ admin nhóm (`epcine88@gmail.com`); mỗi máy chỉ sửa **URL Tomcat** (và **ngrok** nếu test SePay webhook).  
-> `scripts\setup.bat` **chỉ** tạo `database.properties` — các file `email` / `google` / `vietqr` / `sepay` phải copy từ `.example` thủ công (xem checklist cuối Getting Started).
+> Bước **3 → 4** lấy secret từ admin nhóm (`epcine88@gmail.com`); mỗi máy sửa **URL Tomcat**.  
+> Bước **5**: VietQR đủ để thanh toán thủ công; **tự xác nhận** cần SePay + **ngrok** (mục **5.3 → 5.9**).  
+> `scripts\setup.bat` **chỉ** tạo `database.properties` — các file `email` / `google` / `vietqr` / `sepay` phải copy từ `.example` thủ công.
 
 ---
 
@@ -589,59 +590,310 @@ http://localhost:9999/MovieTicketBookingSystem_war_exploded/auth/google/callback
 
 ## 5. Thanh toán online (VietQR + SePay)
 
-Thanh toán online hiện tại dùng **VietQR** (bắt buộc để hiện QR) và tùy chọn **SePay** (webhook tự xác nhận khi tiền vào).
+Thanh toán online dùng **VietQR** (bắt buộc để hiện QR) và tùy chọn **SePay** (webhook tự xác nhận khi tiền vào).
 
-File cấu hình local (không commit): `vietqr.properties`, `sepay.properties` — repo chỉ có `.example`.
+| Thành phần | Bắt buộc? | File |
+| ---------- | --------- | ---- |
+| VietQR | Có (để tạo QR) | `vietqr.properties` |
+| SePay + ngrok | Không — chỉ khi muốn **tự xác nhận** | `sepay.properties` + tunnel HTTPS |
 
-### 5.1. Cấu hình VietQR (cần để thanh toán online)
+Không có SePay: khách vẫn bấm **Tôi đã chuyển khoản** để hoàn tất.
 
-Tại thư mục gốc project:
+> File thật **không commit** Git. Repo chỉ có `.example`.
+
+---
+
+### 5.1. Cấu hình VietQR (làm trước)
+
+Tại thư mục gốc project (nơi có `pom.xml`):
 
 ```bat
 copy src\main\resources\vietqr.properties.example src\main\resources\vietqr.properties
 ```
 
-Mở `vietqr.properties`, điền tối thiểu:
+Mở `src/main/resources/vietqr.properties`, điền:
 
-| Key | Ý nghĩa |
-| --- | ------- |
-| `vietqr.bank.bin` | Mã BIN Napas (vd. `970422` = MB) |
-| `vietqr.bank.name` | Tên ngân hàng hiển thị |
-| `vietqr.account.number` | STK nhận tiền (chỉ số) |
-| `vietqr.account.name` | Chủ TK (viết hoa, không dấu) |
-| `vietqr.template` | Thường để `compact2` |
+| Key | Ý nghĩa | Ví dụ |
+| --- | ------- | ----- |
+| `vietqr.bank.bin` | Mã BIN Napas | `970422` (MB) |
+| `vietqr.bank.name` | Tên ngân hàng hiển thị | `MB Bank` |
+| `vietqr.account.number` | STK nhận tiền (chỉ số) | `0123456789` |
+| `vietqr.account.name` | Chủ TK (hoa, không dấu) | `NGUYEN VAN A` |
+| `vietqr.template` | Kiểu ảnh QR | `compact2` |
 
-Rebuild + **Restart Tomcat**. Trên `/payment`, nút tạo QR VietQR sẽ bật khi file hợp lệ.
+Tra BIN: [vietqr.io](https://vietqr.io/) hoặc [api.vietqr.io/v2/banks](https://api.vietqr.io/v2/banks).
+
+**Rebuild + Restart Tomcat.** Mở `/payment` → nút tạo QR phải **bật** (không xám).
 
 > Nhóm có thể dùng chung một STK test; mỗi người copy cùng giá trị vào máy mình.
 
-### 5.2. Cấu hình SePay (tuỳ chọn — tự xác nhận)
+---
 
-Không bắt buộc: nếu chưa cấu hình SePay, khách vẫn bấm **Tôi đã chuyển khoản** để hoàn tất (fallback thủ công).
+### 5.2. SePay + ngrok — khi nào cần?
 
-```bat
-copy src\main\resources\sepay.properties.example src\main\resources\sepay.properties
-```
+SePay gọi **server-to-server** vào app của bạn. Trình duyệt mở `localhost` **không** đủ — SePay cần URL **HTTPS công khai**.
 
-1. Đặt `sepay.enabled=true` và điền `sepay.webhook.api.key` (tạo webhook kiểu **API Key** trên [my.sepay.vn](https://my.sepay.vn) / Test mode — docs: [SePay webhooks](https://docs.sepay.vn/tich-hop-webhooks.html)).
-2. Webhook URL cần **HTTPS công khai** (dev: ngrok trỏ port Tomcat):
+Trên máy local → dùng **ngrok** để lộ Tomcat ra internet tạm thời.
 
 ```text
-https://<NGROK_HOST>/<CONTEXT_PATH>/payment/sepay/webhook
+[Khách quét VietQR / SePay Test]
+        ↓ tiền vào (hoặc mô phỏng)
+[SePay cloud]
+        ↓ POST HTTPS
+[ngrok] → [Tomcat máy bạn] → /payment/sepay/webhook
+        ↓
+[App xác nhận đơn + phát vé] → trang poll → /payment/success
+```
+
+Docs SePay: [Tích hợp webhooks](https://docs.sepay.vn/tich-hop-webhooks.html) · [Developer](https://developer.sepay.vn/vi)
+
+---
+
+### 5.3. Cài ngrok (Windows) — làm 1 lần
+
+#### 5.3.1. Tải và giải nén
+
+1. Vào [https://ngrok.com/download](https://ngrok.com/download) → chọn **Windows**.
+2. Giải nén `ngrok.exe` vào thư mục cố định, ví dụ:
+
+```text
+C:\Tools\ngrok\ngrok.exe
+```
+
+3. (Tuỳ chọn) Thêm thư mục đó vào **PATH** hệ thống để gõ `ngrok` ở mọi cửa sổ CMD/PowerShell.
+
+#### 5.3.2. Đăng ký tài khoản + Authtoken
+
+1. Đăng ký / đăng nhập [https://dashboard.ngrok.com](https://dashboard.ngrok.com) (gói free đủ dùng).
+2. Vào **Your Authtoken** (hoặc [https://dashboard.ngrok.com/get-started/your-authtoken](https://dashboard.ngrok.com/get-started/your-authtoken)).
+3. Copy token → chạy **một lần** trên máy:
+
+```bat
+ngrok config add-authtoken <DÁN_TOKEN_CỦA_BẠN>
+```
+
+Thành công sẽ có dòng kiểu `Authtoken saved to configuration file`.
+
+#### 5.3.3. Kiểm tra ngrok chạy được
+
+```bat
+ngrok version
+```
+
+Nếu báo không tìm thấy lệnh → dùng full path:
+
+```bat
+C:\Tools\ngrok\ngrok.exe version
+```
+
+---
+
+### 5.4. Mỗi lần test SePay — Tomcat + tunnel ngrok
+
+#### 5.4.1. Xác định port và context path Tomcat
+
+Trong IntelliJ: **Run → Edit Configurations → Tomcat**
+
+| Mục | Cách lấy | Ví dụ |
+| --- | -------- | ----- |
+| **Port HTTP** | Tomcat Server → Server → HTTP port | `8080` hoặc `9999` |
+| **Context path** | Deployment → Application context | `/MovieTicketBookingSystem_war_exploded` hoặc `/MovieTicketBookingSystem` |
+
+URL app trên máy bạn thường là:
+
+```text
+http://localhost:<PORT><CONTEXT_PATH>/
 ```
 
 Ví dụ:
 
 ```text
-https://xxxx.ngrok-free.dev/MovieTicketBookingSystem_war_exploded/payment/sepay/webhook
+http://localhost:8080/MovieTicketBookingSystem_war_exploded/
 ```
 
-3. Header chứng thực SePay gửi: `Authorization: Apikey <key>` — khớp `sepay.webhook.api.key`.
-4. (Tuỳ chọn) `sepay.account.number` = cùng STK với `vietqr.account.number` để lọc đúng tài khoản.
+#### 5.4.2. Chạy app trước
 
-Rebuild + Restart. Khi SePay bật, trang QR sẽ poll `/payment/status` và chuyển `/payment/success` khi webhook khớp.
+1. Start Tomcat trong IntelliJ.
+2. Mở URL local ở trên — trang chủ phải load được.
+3. **Giữ Tomcat chạy** trong suốt lúc test webhook.
+
+#### 5.4.3. Mở tunnel ngrok
+
+Mở **CMD / PowerShell mới** (để chạy song song với Tomcat), gõ đúng **port HTTP** của bạn:
+
+```bat
+ngrok http 8080
+```
+
+Nếu Tomcat dùng port `9999`:
+
+```bat
+ngrok http 9999
+```
+
+Cửa sổ ngrok hiện bảng tương tự:
+
+```text
+Forwarding    https://lash-enlarging-stainable.ngrok-free.dev -> http://localhost:8080
+```
+
+- Phần `https://….ngrok-free.dev` = **NGROK_HOST** (không có `/` cuối).
+- Gói free: mỗi lần tắt/mở ngrok, host **đổi** → phải cập nhật lại URL webhook trên SePay.
+
+Để mở dashboard ngrok trên trình duyệt: [http://127.0.0.1:4040](http://127.0.0.1:4040) (xem request vào tunnel).
+
+#### 5.4.4. Kiểm tra tunnel mở được app
+
+Ghép:
+
+```text
+https://<NGROK_HOST><CONTEXT_PATH>/
+```
+
+Ví dụ:
+
+```text
+https://lash-enlarging-stainable.ngrok-free.dev/MovieTicketBookingSystem_war_exploded/
+```
+
+Mở URL đó trên trình duyệt:
+
+- Lần đầu ngrok free có thể hiện trang cảnh báo → bấm **Visit Site**.
+- Sau đó phải thấy trang chủ ÉPCINE giống `localhost`.
+
+Nếu **502 / connection refused**: Tomcat chưa chạy hoặc `ngrok http` sai port.
+
+Kiểm tra endpoint webhook (PowerShell — bỏ qua trang cảnh báo ngrok):
+
+```powershell
+curl.exe -sS -H "ngrok-skip-browser-warning: true" "https://<NGROK_HOST><CONTEXT_PATH>/payment/sepay/webhook"
+```
+
+Servlet có thể trả lỗi method/body (vì cần POST + JSON) — quan trọng là **không 404** (đúng context path).
+
+---
+
+### 5.5. Tạo file `sepay.properties`
+
+```bat
+copy src\main\resources\sepay.properties.example src\main\resources\sepay.properties
+```
+
+Mở `sepay.properties`, điền tối thiểu:
+
+```properties
+sepay.enabled=true
+sepay.webhook.api.key=<API_KEY_BẠN_TẠO_TRÊN_SEPAY>
+
+# Tuỳ chọn — nên trùng vietqr.account.number
+# sepay.account.number=0123456789
+```
+
+| Key | Bắt buộc | Ghi chú |
+| --- | -------- | ------- |
+| `sepay.enabled` | Có | `true` để bật tự xác nhận |
+| `sepay.webhook.api.key` | Có khi bật | Khớp header SePay gửi: `Authorization: Apikey <key>` |
+| `sepay.account.number` | Không | Để trống = không lọc STK; có thì phải khớp số tài khoản trong payload |
+
+> Chưa có API Key thì để placeholder rồi làm mục **5.6** trước, sau đó quay lại điền key + Rebuild.
+
+---
+
+### 5.6. Cấu hình webhook trên SePay (portal)
+
+1. Đăng nhập [https://my.sepay.vn](https://my.sepay.vn) (hoặc môi trường **Test mode** theo hướng dẫn SePay).
+2. Vào mục **Webhooks** / tích hợp webhook (xem [docs](https://docs.sepay.vn/tich-hop-webhooks.html)).
+3. Tạo webhook mới:
+   - **URL** (full path, HTTPS, **không** `/` cuối):
+
+```text
+https://<NGROK_HOST><CONTEXT_PATH>/payment/sepay/webhook
+```
+
+Ví dụ đúng:
+
+```text
+https://lash-enlarging-stainable.ngrok-free.dev/MovieTicketBookingSystem_war_exploded/payment/sepay/webhook
+```
+
+Ví dụ sai thường gặp:
+
+```text
+https://….ngrok-free.dev/payment/sepay/webhook          ← thiếu context path
+https://….ngrok-free.dev/.../payment/sepay/webhook/     ← thừa /
+http://localhost:8080/.../payment/sepay/webhook         ← SePay không gọi được localhost
+```
+
+4. Kiểu chứng thực: **API Key**.
+5. Copy API Key → dán vào `sepay.webhook.api.key` trong `sepay.properties`.
+6. Lưu webhook trên portal.
+7. **Rebuild + Restart Tomcat** (để nạp `sepay.properties`).
+
+> **Một webhook URL tại một thời điểm trên portal.** Khi bạn test: báo nhóm → cập nhật URL = ngrok **máy bạn**. Không nên 2 người test webhook cùng lúc với 1 tài khoản SePay.
+
+> Mỗi lần restart ngrok (host đổi): sửa lại URL webhook trên SePay cho khớp host mới.
+
+---
+
+### 5.7. Test end-to-end (SePay tự xác nhận)
+
+**Điều kiện:** Tomcat chạy, ngrok online, `vietqr.properties` + `sepay.properties` đúng, URL webhook trên SePay khớp ngrok.
+
+1. Login seed: `customer.adult@email.com` / `Password@123`.
+2. Chọn phim → suất → ghế → **Tiếp tục thanh toán**.
+3. Trên `/payment`: tạo QR VietQR.
+4. Khi `sepay.enabled=true`, trang hiện dòng chờ SePay (poll `/payment/status`).
+5. Thực hiện một trong hai:
+   - **Test mode / mô phỏng** trên SePay (nếu portal hỗ trợ) — gửi webhook giả lập khớp **số tiền** + **nội dung CK** (mã đơn / transfer content trên QR).
+   - **Live:** chuyển khoản thật đúng STK + số tiền + nội dung CK.
+6. Kỳ vọng: trang tự chuyển `/payment/success`, DB `Payments` = `VIETQR`/`SUCCESS`, có `Tickets`, email xác nhận (nếu đã cấu hình mục **3**).
+7. Xem log Tomcat / ngrok dashboard (`127.0.0.1:4040`) nếu không khớp.
+
+**Fallback:** nếu webhook lỗi — vẫn dùng nút xác nhận thủ công trên trang QR.
+
+---
+
+### 5.8. Lỗi thường gặp (ngrok / SePay)
+
+
+| Hiện tượng | Nguyên nhân / cách xử lý |
+| ---------- | ------------------------ |
+| Ngrok `ERR_NGROK_4018` / chưa auth | Chạy lại `ngrok config add-authtoken …` |
+| `502 Bad Gateway` qua ngrok | Tomcat chưa chạy hoặc `ngrok http` sai port |
+| Mở URL ngrok ra 404 app | Sai **context path** (`_war_exploded` vs không) |
+| Trang cảnh báo ngrok free | Bấm Visit Site; webhook server-to-server thường không bị chặn như trình duyệt |
+| SePay không gọi được | URL webhook dùng `http://localhost` — phải HTTPS ngrok |
+| Webhook 401 / invalid API key | `sepay.webhook.api.key` ≠ key trên portal; thiếu prefix `Apikey ` phía SePay (app đã hỗ trợ) |
+| Webhook OK nhưng đơn không paid | Sai **số tiền** hoặc **nội dung CK** so với payment PENDING; xem log `NO MATCH` |
+| Host ngrok đổi sau khi tắt | Cập nhật lại URL trên SePay portal |
+| Nút QR disabled | Chưa có / sai `vietqr.properties` → mục **5.1** |
+| SePay không “tự” dù đã cấu hình | `sepay.enabled` không phải `true`, hoặc chưa Restart Tomcat sau khi sửa properties |
+
 
 > Không commit `vietqr.properties` / `sepay.properties` lên Git.
+
+---
+
+### 5.9. Checklist nhanh — SePay lần đầu
+
+```text
+[ ] 5.1  vietqr.properties → Rebuild → QR bật trên /payment
+[ ] 5.3  Cài ngrok + authtoken
+[ ] 5.4  Tomcat chạy + ngrok http <PORT> + mở được app qua HTTPS ngrok
+[ ] 5.5  copy sepay.properties.example → sepay.properties
+[ ] 5.6  Tạo webhook SePay (API Key) = https://<NGROK>/<CONTEXT>/payment/sepay/webhook
+[ ] 5.5  Dán API Key vào sepay.webhook.api.key, enabled=true → Rebuild + Restart
+[ ] 5.7  Test đặt vé → QR → webhook / Test mode → /payment/success
+```
+
+**Mỗi lần test lại sau khi tắt máy:**
+
+```text
+[ ] Start Tomcat
+[ ] ngrok http <PORT>  → copy host mới
+[ ] Cập nhật URL webhook trên SePay cho khớp host mới
+[ ] Test lại luồng thanh toán
+```
 
 ---
 
@@ -662,7 +914,9 @@ Rebuild + Restart. Khi SePay bật, trang QR sẽ poll `/payment/status` và chu
 | Link xác thực email bị 404               | Sửa `app.base.url` trong `email.properties` cho khớp URL Tomcat         |
 | `redirect_uri_mismatch` (Google)         | Sửa `google.redirect.uri`; nhờ admin thêm URL callback trên Console     |
 | VietQR không hiện QR / nút disabled      | Tạo/điền `vietqr.properties` → Rebuild + Restart                        |
-| SePay không tự xác nhận                  | Kiểm tra `sepay.properties`, ngrok webhook URL, API Key                 |
+| SePay không tự xác nhận                  | Mục **5.3–5.8**: ngrok online, URL webhook khớp host+context, API Key, Restart Tomcat |
+| `502` qua URL ngrok                      | Tomcat chưa chạy hoặc `ngrok http` sai port (mục **5.4**)                               |
+| Ngrok 404 app / webhook                  | Sai context path (`_war_exploded`…) — mục **5.4.1 / 5.6**                               |
 
 
 ---
@@ -695,8 +949,8 @@ Làm **theo thứ tự**. Sau bước 2 web đã chạy; 3–5 chỉ khi cần t
 
 --- Khi cần thanh toán VietQR ---
 [ ] copy vietqr.properties.example → vietqr.properties → điền STK (mục 5.1)
-[ ] (Tuỳ chọn) copy sepay.properties.example → sepay.properties + ngrok webhook (mục 5.2)
-[ ] Rebuild + Restart → đặt ghế → /payment → tạo QR
+[ ] (Tuỳ chọn SePay tự xác nhận) làm checklist mục 5.9: ngrok + webhook + sepay.properties
+[ ] Rebuild + Restart → đặt ghế → /payment → tạo QR → test thủ công hoặc SePay
 ```
 
 > Trước mỗi lần `git pull`: `backup-database-properties.bat` → pull → `restore-database-properties.bat`  
