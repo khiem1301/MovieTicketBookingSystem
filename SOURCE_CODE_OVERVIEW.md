@@ -224,6 +224,8 @@ MovieTicketBookingSystem/
 | `/manager/rooms/save-layout` | `ManageCinemaRoomServlet` | POST | Lưu layout ghế vào DB |
 | `/manager/showtimes` | `ManageShowtimeServlet` | GET, POST | CRUD suất chiếu + kiểm tra trùng lịch |
 | `/manager/seat-types` | `ManageSeatTypeServlet` | GET, POST | CRUD loại ghế + hệ số giá |
+| `/manager/reviews` | `ManageReviewServlet` | GET, POST | Duyệt / xóa đánh giá vi phạm |
+| `/manager/pricing-rules` | `ManagePricingRuleServlet` | GET, POST | FR-49: CRUD quy tắc giá + toggle + preview |
 
 > **Lưu ý:** `AccessControl` cho phép cả **MANAGER** và **ADMIN** vào `/manager/*`. Servlet `isAuthorized()` cũng chấp nhận ADMIN.  
 > Chi tiết module Manager → [`MANAGER_MODULE_DETAIL.md`](MANAGER_MODULE_DETAIL.md)
@@ -380,6 +382,12 @@ MovieTicketBookingSystem/
 - **Delete:** guard `countUsedIn()` — không xóa nếu đang dùng trong layout phòng
 - Hiển thị `usageMap` (số ghế đang dùng mỗi loại); gợi ý tĩnh (`mgr-hint`) trên form
 
+#### `ManagePricingRuleServlet` — `/manager/pricing-rules`
+- FR-49: list + filter (status, tên) + phân trang; create/update/toggle/delete
+- Validate qua `PricingRuleValidator` (condition fields, %/fixed, priority, whitelist enums)
+- Preview: `basePrice` + datetime mẫu → `PricingCalculator` + `getActiveRules()`
+- View: `pricing-rule-list.jsp` + `manager-pricing-rules.css`
+
 ### 5.5 `controller.staff`
 
 #### `CounterBookingServlet` — `/staff/counter`
@@ -423,12 +431,12 @@ MovieTicketBookingSystem/
 
 #### `BookingHistoryServlet` — `/booking-history` (FR-15)
 
-- **GET** `?status=&page=` — `BookingDAO.findHistoryByUserId()` + `countHistoryByUserId()`; lọc `booking_status` (whitelist); phân trang 10/trang
+- **GET** `?status=&page=` — trước list gọi `expireStaleOnlinePendingForUser`; rồi `findHistoryByUserId` / `countHistoryByUserId`; lọc `booking_status` (whitelist); phân trang 10/trang
 - View: `customer/booking-history.jsp`; CSS `customer-booking-history.css`
 
 #### `BookingHistoryDetailServlet` — `/booking-history/detail` (FR-15)
 
-- **GET** `?bookingId=` — `BookingDAO.getDetailById()` + `BookingAccessUtil.isOwner()`; 404 nếu không phải chủ đơn
+- **GET** `?bookingId=` — `getDetailById` + `isOwner`; nếu PENDING quá `expired_at` → `expireOnlinePendingBooking` rồi load lại; 404 nếu không phải chủ đơn
 - View: `customer/booking-history-detail.jsp` — ghế, tổng tiền, vé QR (ONLINE + OFFLINE)
 
 #### `ReviewsServlet` — `/reviews`, `/reviews/mine` (FR-20)
@@ -475,7 +483,7 @@ MovieTicketBookingSystem/
 | `MovieDAO` | `Movies`, `MovieGenres` | Public listing, featured, search, early showtimes; manager CRUD; `getSchedulableMovies()`; `hasActiveShowtimes()`; `getById()` + `loadGenres()` |
 | `GenreDAO` | `Genres` | getAll, getAllActive, getById, create, update, delete, updateStatus; isDuplicate*; hasLinkedMovies, hasActiveOrUpcomingMovies; getMovieCountPerGenre, getGenreIdsInUse, getGenreIdsWithActiveMovies |
 | `ShowtimeDAO` | `Showtimes` | Counter: suất theo phim; Customer: `getUpcomingShowtimesByMovieId`; Manager: `getAllForManager`, create, update, delete, `isOverlapping`, `countBookingsByShowtimeId` |
-| `PricingRuleDAO` | `PricingRules` | `getActiveRules()` — đọc rule ACTIVE cho tính giá động (FR-50) |
+| `PricingRuleDAO` | `PricingRules` | FR-50: `getActiveRules()`; FR-49: `countFiltered` / `findFiltered` / `findById` / `insert` / `update` / `updateStatus` / `delete` |
 | `SeatDAO` | `Seats`, `SeatTypes`, `SeatHolds`, `BookingSeats` | Ghế theo suất + availability (booked + hold); overload `getSeatsForShowtime(id, userId)` cho checkout; `saveLayout()` |
 | `SeatHoldDAO` | `SeatHolds` | FR-13: `findBlockingSeatCodes`, `holdSeats`, **`syncHolds`**, **`releaseHolds`**, `getActiveHoldExpiry`, `getHeldSeatIds`, `deleteExpiredHolds` |
 | `SeatTypeDAO` | `SeatTypes` | getAll, getById, create, update, delete; isDuplicate*; getTypeKeyToIdMap; countUsedIn; **seat_span** |
@@ -595,6 +603,7 @@ MovieTicketBookingSystem/
 | `PromotionImageUpload` | Upload ảnh voucher → `webapp/images/promotions/` (JPG/PNG/WEBP, max 5MB) |
 | `BookingAccessUtil` | FR-15: `isOwner()` — kiểm tra chủ đơn trên `Booking` / `BookingDetailDTO` |
 | `PricingCalculator` | FR-50: tính `effectivePrice` từ `base_price` + `PricingRules` ACTIVE |
+| `PricingRuleValidator` | FR-49: parse/validate form quy tắc giá (condition, %/fixed, day CSV, date/time) |
 | `SeatAvailabilityValidator` | FR-13: validate tuổi T13/T16/T18 từ `Users.date_of_birth` |
 | `SeatHoldException` | FR-13: ngoại lệ conflict khi giữ ghế (race / ghế đã bị chọn) |
 | `AdminPaginationUtil` | Parse page number, `DEFAULT_PAGE_SIZE` cho admin list/report |
@@ -875,7 +884,7 @@ sequenceDiagram
 3. **Không có CSRF token** trên form POST (admin, manager, staff, profile, checkout/payment).
 4. **Không có connection pool** — mỗi DAO gọi `DBContext.getConnection()` trực tiếp.
 5. **~4/28 bảng** chưa có lớp DAO đầy đủ — chỉ schema + seed. Online booking có `BookingDAO`, `PaymentDAO`, `TicketDAO`; `Promotions` / `BookingPromotions` / `MovieReviews` có DAO.
-7. **Checkout — chặn ghế 2 giai đoạn:** (1) click → `SeatHolds` (`HOLD_MINUTES`); (2) tiếp tục thanh toán → `Bookings` PENDING (`ONLINE_EXPIRE_MINUTES`, xóa holds). Hết hạn → `EXPIRED` / `expireStale…` — ghế không còn bị khóa. Poll JSON 2s hai chiều.
+7. **Checkout — chặn ghế 2 giai đoạn:** (1) click → `SeatHolds` (`HOLD_MINUTES`); (2) tiếp tục thanh toán → `Bookings` PENDING (`ONLINE_EXPIRE_MINUTES`, xóa holds). Hết hạn → `EXPIRED` qua countdown `action=expire`, `expireStale…ForShowtime` / `ForUser`, job `BookingExpiryListener` (5 phút). Poll JSON 2s hai chiều.
 8. **FR-22 voucher:** CRUD tại `/admin/promotions` (FR-21, MANAGER được truy cập); customer áp mã trên `/payment`. Validate Java (`validateForApply`) — **start_date phải ≤ hôm nay** mới áp được; admin hiện **SCHEDULED** nếu chưa đến ngày bắt đầu. Sau áp/gỡ voucher cần tạo lại mã QR.
 9. **SQL Server booking ID** — `createOnlineBooking` / `createOfflineBooking` dùng `OUTPUT INSERTED.id` (không dùng `getGeneratedKeys` với `UNIQUEIDENTIFIER`).
 10. **Xóa phòng chiếu** chưa có — chỉ tạo, rename, toggle status.

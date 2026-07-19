@@ -1,0 +1,110 @@
+/* FR-49 — Manager pricing rules: form trái, danh sách phải */
+
+.mpr-layout {
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.mpr-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: calc(var(--header-h, 64px) + 16px);
+}
+
+.mpr-sidebar .admin-card {
+  margin: 0;
+}
+
+.mpr-main .admin-card {
+  margin: 0;
+}
+
+.mpr-page .mpr-section-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 14px;
+}
+
+.mpr-error-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.mpr-empty {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+
+.mpr-inline-form {
+  display: inline;
+  margin: 0;
+}
+
+.mpr-form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mpr-form-actions {
+  margin-top: 18px;
+}
+
+.mpr-preview-btn {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.mpr-day-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-top: 4px;
+}
+
+.mpr-day-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.mpr-inline-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.mpr-hint {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.mpr-hint--block {
+  margin-bottom: 12px;
+}
+
+@media (max-width: 1024px) {
+  .mpr-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mpr-sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 560px) {
+  .mpr-inline-pair {
+    grid-template-columns: 1fr;
+  }
+}

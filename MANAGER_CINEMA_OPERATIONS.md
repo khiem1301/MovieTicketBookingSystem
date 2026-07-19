@@ -672,7 +672,7 @@ Giá vé checkout = `effectivePrice × SeatTypes.price_multiplier`.
 |----------|---------|
 | Xóa phòng chiếu | Chưa có API/UI |
 | Buffer dọn phòng | Overlap chỉ tính theo `end_time` phim |
-| Pricing rules UI (FR-49) | Manager chưa CRUD `PricingRules` — seed trong DB |
+| Pricing rules UI (FR-49) | ✅ `/manager/pricing-rules` — CRUD + preview |
 | Occupancy / suất hiện tại trên card phòng | Placeholder trong `deriveDisplayMeta` |
 | CSRF token | Form POST manager chưa có token |
 | Connection pool | Mỗi DAO mở connection riêng |

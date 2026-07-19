@@ -43,10 +43,10 @@ Module Manager dành cho người dùng có role **MANAGER** — người vận 
 | Báo cáo bán vé | FR-32 | 🟡 Phase 1 tại Admin `/admin/reports` — theo phim/suất + CSV (chưa theo loại ghế) |
 | Quản lý điểm tích lũy | FR-45 | ❌ Chưa có |
 | Quản lý sự cố suất chiếu | FR-46 | ❌ Chưa có |
-| Quản lý quy tắc giá (pricing rules) | FR-49 | ❌ Chưa có |
+| Quản lý quy tắc giá (pricing rules) | FR-49 | ✅ | `/manager/pricing-rules` — CRUD + toggle + preview |
 | Cấu hình hệ thống / thông tin rạp | — | ❌ Chưa có |
 
-> **Ghi chú:** `package-info.java` ghi phạm vi FR-21 – FR-32, FR-45 – FR-49; đã có code cho FR-23, FR-24, **FR-25 (CRUD suất chiếu)**, **FR-26 (CRUD phòng + layout ghế)**, và **FR-27 (CRUD loại ghế)**. FR-30/31/32 (báo cáo) triển khai **Phase 1 ở module Admin** (`/admin/reports`), không có màn hình riêng dưới `/manager/*`.
+> **Ghi chú:** `package-info.java` ghi phạm vi FR-21 – FR-32, FR-45 – FR-49; đã có code cho FR-23, FR-24, **FR-25 (CRUD suất chiếu)**, **FR-26 (CRUD phòng + layout ghế)**, **FR-27 (CRUD loại ghế)**, và **FR-49 (CRUD quy tắc giá)**. FR-30/31/32 (báo cáo) triển khai **Phase 1 ở module Admin** (`/admin/reports`), không có màn hình riêng dưới `/manager/*`.
 
 ---
 
@@ -61,6 +61,8 @@ src/main/java/controller/manager/
 ├── ManageCinemaRoomServlet.java  # /manager/rooms, /manager/rooms/detail, /update, /save-layout
 ├── ManageShowtimeServlet.java    # /manager/showtimes — CRUD suất chiếu + kiểm tra trùng lịch
 ├── ManageSeatTypeServlet.java    # /manager/seat-types — CRUD loại ghế
+├── ManageReviewServlet.java      # /manager/reviews — duyệt/xóa đánh giá
+├── ManagePricingRuleServlet.java # /manager/pricing-rules — CRUD quy tắc giá (FR-49)
 └── package-info.java
 ```
 
@@ -74,6 +76,8 @@ src/main/webapp/WEB-INF/views/manager/
 ├── cinema-room-detail.jsp  # Chi tiết phòng + editor layout ghế (lưu DB)
 ├── showtime-list.jsp       # Form + bảng suất chiếu + filter client-side
 ├── seat-type-list.jsp      # Form + bảng danh sách loại ghế + usage count
+├── review-list.jsp         # Duyệt / xóa đánh giá khách
+├── pricing-rule-list.jsp   # CRUD quy tắc giá động + preview (FR-49)
 └── .gitkeep
 ```
 
@@ -1066,6 +1070,19 @@ CREATE TABLE Showtimes (
 
 **FK:** `movie_id → Movies`, `room_id → CinemaRooms`. Overlap kiểm tra ở app layer (`ShowtimeDAO.isOverlapping`).
 
+### 10.7 Bảng `PricingRules` (FR-49 / FR-50)
+
+| Cột | Mô tả |
+|-----|--------|
+| `condition_type` | `DAY_OF_WEEK` · `TIME_RANGE` · `DATE_RANGE` · `SPECIFIC_DATE` |
+| `adjustment_type` | `PERCENTAGE` · `FIXED_AMOUNT` |
+| `status` | `ACTIVE` · `INACTIVE` |
+| `created_by` | User tạo (MANAGER/ADMIN) |
+
+**URL:** `/manager/pricing-rules`  
+**Actions:** create / update / toggle-status / delete / preview  
+**Công thức khách:** `effectivePrice = base × (1 + Σ%/100) + Σfixed` (không đổi FR-50)
+
 ---
 
 ## 11. Quy tắc nghiệp vụ (Business Rules)
@@ -1157,8 +1174,10 @@ Khi `sessionScope.userRole == 'MANAGER'`:
 | Quản lý suất chiếu | `/manager/showtimes` |
 | Quản lý phòng chiếu | `/manager/rooms` |
 | Quản lý loại ghế | `/manager/seat-types` |
+| Quy tắc giá | `/manager/pricing-rules` |
+| Quản lý đánh giá | `/manager/reviews` |
 
-> ADMIN: menu phim/thể loại (+ admin promotions). MANAGER: đủ rooms / seat-types / showtimes / promotions.
+> ADMIN: menu phim/thể loại/quy tắc giá (+ admin promotions). MANAGER: đủ rooms / seat-types / showtimes / pricing-rules / promotions / reviews.
 
 ---
 
@@ -1182,7 +1201,7 @@ Manager truy cập module qua menu dropdown hoặc URL trực tiếp `/manager/m
 
 | Cách vào | URL |
 |----------|-----|
-| Menu user dropdown | Quản lý phim / thể loại / **suất chiếu** / phòng chiếu / loại ghế |
+| Menu user dropdown | Quản lý phim / thể loại / **suất chiếu** / phòng chiếu / loại ghế / **quy tắc giá** |
 | Trực tiếp | `/manager/movies`, `/manager/genres`, `/manager/showtimes`, `/manager/rooms`, `/manager/rooms/detail?id=...`, `/manager/seat-types` |
 
 Nếu có `?redirect=` hợp lệ (qua `AuthRedirectUtil.isSafeRedirect`), login sẽ ưu tiên redirect đó.
@@ -1221,7 +1240,7 @@ Dựa trên `project_summary_final.md` (Nhóm Manager):
 | FR-32 | Ticket Sales Report | `Bookings`, `BookingSeats` | 🟡 Admin `/admin/reports` — phim/suất + CSV (Phase 1) |
 | FR-45 | Loyalty Points Management | `LoyaltyPointsLog`, `SystemConfig` | ❌ Chưa có |
 | FR-46 | Showtime Incident | `ShowtimeIncidents` | ❌ Chưa có |
-| FR-49 | Pricing Rule Management | `PricingRules` | ❌ Chưa có |
+| FR-49 | Pricing Rule Management | `PricingRules` | ✅ `/manager/pricing-rules` — CRUD, toggle ACTIVE/INACTIVE, hard delete, preview |
 
 **Cải thiện module hiện tại:**
 
