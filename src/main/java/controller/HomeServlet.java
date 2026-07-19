@@ -37,6 +37,7 @@ public class HomeServlet extends HttpServlet {
         String dbError = null;
         try {
             MovieDAO dao = new MovieDAO();
+            dao.promoteReleasedMovies();
             featured = dao.getFeaturedMovies(4);
 
             int totalShowing = dao.countPublicMovies("NOW_SHOWING", null, null, null);

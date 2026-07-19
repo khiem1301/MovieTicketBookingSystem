@@ -175,13 +175,13 @@ uri="jakarta.tags.functions" %>
             </a>
             <div class="dropdown-menu">
               <a href="${pageContext.request.contextPath}/reviews?sort=top">
-                ⭐ Phim đánh giá cao nhất
+                ⭐ Đánh giá cao nhất
               </a>
               <a href="${pageContext.request.contextPath}/reviews?sort=latest">
-                🕐 Đánh giá mới nhất
+                🕐 Mới nhất
               </a>
               <a href="${pageContext.request.contextPath}/reviews?sort=popular">
-                🔥 Phim được yêu thích
+                🔥 Yêu thích nhất
               </a>
               <c:if test="${not empty sessionScope.loggedUser}">
                 <a href="${pageContext.request.contextPath}/reviews/mine">

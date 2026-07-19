@@ -103,6 +103,12 @@
           </p>
         </c:if>
 
+        <c:if test="${not empty movie.language}">
+          <p class="mi-director">
+            <strong>Ngôn ngữ:</strong> <c:out value="${movie.language}"/>
+          </p>
+        </c:if>
+
         <c:choose>
           <c:when test="${not empty movie.description}">
             <p class="mi-description"><c:out value="${movie.description}"/></p>

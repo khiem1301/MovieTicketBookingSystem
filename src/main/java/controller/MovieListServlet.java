@@ -46,6 +46,7 @@ public class MovieListServlet extends HttpServlet {
 
         try {
             MovieDAO dao = new MovieDAO();
+            dao.promoteReleasedMovies();
 
             if (status == null || "NOW_SHOWING".equals(status)) {
                 totalShowing     = dao.countPublicMovies("NOW_SHOWING", genreId, keyword, ageRating);
