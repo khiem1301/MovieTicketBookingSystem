@@ -14,7 +14,7 @@ import utils.BookingAccessUtil;
 import utils.SessionUtil;
 
 /**
- * FR-15 — Chi tiết một đơn trong lịch sử đặt vé (owner only).
+ * FR-15 — Chi tiết đơn đã thanh toán thành công trong lịch sử (owner only).
  */
 @WebServlet("/booking-history/detail")
 public class BookingHistoryDetailServlet extends HttpServlet {
@@ -38,13 +38,20 @@ public class BookingHistoryDetailServlet extends HttpServlet {
         }
 
         BookingDetailDTO detail = new BookingDAO().getDetailById(bookingId);
-        if (!BookingAccessUtil.isOwner(detail, sessionUser.getId())) {
+        if (!BookingAccessUtil.isOwner(detail, sessionUser.getId())
+                || !isCompletedPaid(detail)) {
             req.getRequestDispatcher("/WEB-INF/views/error/404.jsp").forward(req, resp);
             return;
         }
 
         req.setAttribute("detail", detail);
         req.getRequestDispatcher(VIEW).forward(req, resp);
+    }
+
+    private static boolean isCompletedPaid(BookingDetailDTO detail) {
+        return detail != null
+                && "CONFIRMED".equalsIgnoreCase(detail.getBookingStatus())
+                && "PAID".equalsIgnoreCase(detail.getPaymentStatus());
     }
 
     private static String trim(String value) {

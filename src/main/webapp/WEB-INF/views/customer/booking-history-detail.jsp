@@ -18,16 +18,7 @@
 
   <div class="bh-detail-card">
     <div class="bh-detail-header">
-      <span class="bh-badge bh-badge--${fn:toLowerCase(detail.bookingStatus)}">
-        <c:choose>
-          <c:when test="${detail.bookingStatus == 'PENDING'}">Chờ thanh toán</c:when>
-          <c:when test="${detail.bookingStatus == 'CONFIRMED'}">Đã xác nhận</c:when>
-          <c:when test="${detail.bookingStatus == 'CANCELLED'}">Đã hủy</c:when>
-          <c:when test="${detail.bookingStatus == 'EXPIRED'}">Hết hạn</c:when>
-          <c:when test="${detail.bookingStatus == 'REFUNDED'}">Hoàn tiền</c:when>
-          <c:otherwise><c:out value="${detail.bookingStatus}"/></c:otherwise>
-        </c:choose>
-      </span>
+      <span class="bh-badge bh-badge--confirmed">Đã thanh toán</span>
       <span class="bh-detail-source">
         <c:choose>
           <c:when test="${detail.bookingSource == 'ONLINE'}">Đặt online</c:when>
@@ -120,9 +111,6 @@
     </c:if>
 
     <div class="bh-detail-actions">
-      <c:if test="${detail.bookingStatus == 'PENDING' and detail.bookingSource == 'ONLINE'}">
-        <a href="${ctx}/payment?bookingId=${detail.bookingId}" class="bh-btn bh-btn--primary">Tiếp tục thanh toán</a>
-      </c:if>
       <a href="${ctx}/booking-history" class="bh-btn bh-btn--ghost">Quay lại lịch sử</a>
     </div>
   </div>
