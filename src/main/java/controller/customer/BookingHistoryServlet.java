@@ -38,6 +38,8 @@ public class BookingHistoryServlet extends HttpServlet {
 
         BookingDAO bookingDAO = new BookingDAO();
         String userId = sessionUser.getId();
+        // Đơn PENDING quá expired_at → EXPIRED trước khi list (tab "Chờ thanh toán" đúng)
+        bookingDAO.expireStaleOnlinePendingForUser(userId);
         int total = bookingDAO.countHistoryByUserId(userId, statusFilter);
         int totalPages = AdminPaginationUtil.totalPages(total, PAGE_SIZE);
         page = AdminPaginationUtil.clampPage(page, totalPages);

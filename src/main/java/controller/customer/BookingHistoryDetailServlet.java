@@ -1,6 +1,7 @@
 package controller.customer;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 
 import dal.BookingDAO;
 import jakarta.servlet.ServletException;
@@ -37,10 +38,21 @@ public class BookingHistoryDetailServlet extends HttpServlet {
             return;
         }
 
-        BookingDetailDTO detail = new BookingDAO().getDetailById(bookingId);
+        BookingDAO bookingDAO = new BookingDAO();
+        BookingDetailDTO detail = bookingDAO.getDetailById(bookingId);
         if (!BookingAccessUtil.isOwner(detail, sessionUser.getId())) {
             req.getRequestDispatcher("/WEB-INF/views/error/404.jsp").forward(req, resp);
             return;
+        }
+
+        // PENDING quá expired_at → EXPIRED rồi load lại chi tiết
+        if (detail != null
+                && "PENDING".equalsIgnoreCase(detail.getBookingStatus())
+                && detail.getExpiredAt() != null
+                && detail.getExpiredAt().before(new Timestamp(System.currentTimeMillis()))) {
+            if (bookingDAO.expireOnlinePendingBooking(bookingId, sessionUser.getId())) {
+                detail = bookingDAO.getDetailById(bookingId);
+            }
         }
 
         req.setAttribute("detail", detail);

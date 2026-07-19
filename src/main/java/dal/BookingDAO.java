@@ -840,7 +840,8 @@ public class BookingDAO {
         if (showtimeId == null || showtimeId.isBlank()) {
             return 0;
         }
-        String selectSql = """
+        return expireStaleOnlinePending(
+                """
                 SELECT id, user_id
                 FROM Bookings
                 WHERE showtime_id = ?
@@ -849,22 +850,70 @@ public class BookingDAO {
                   AND payment_status = 'UNPAID'
                   AND expired_at IS NOT NULL
                   AND expired_at <= GETDATE()
-                """;
+                """,
+                showtimeId,
+                "expireStaleOnlinePendingForShowtime");
+    }
+
+    /**
+     * Đánh EXPIRED mọi đơn ONLINE PENDING quá hạn của một user.
+     * Gọi khi mở lịch sử đặt vé (FR-15) để tab "Chờ thanh toán" không còn đơn hết giờ.
+     */
+    public int expireStaleOnlinePendingForUser(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return 0;
+        }
+        return expireStaleOnlinePending(
+                """
+                SELECT id, user_id
+                FROM Bookings
+                WHERE user_id = ?
+                  AND booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND expired_at IS NOT NULL
+                  AND expired_at <= GETDATE()
+                """,
+                userId,
+                "expireStaleOnlinePendingForUser");
+    }
+
+    /**
+     * Job nền — đánh EXPIRED mọi đơn ONLINE PENDING đã quá {@code expired_at} trên hệ thống.
+     */
+    public int expireAllStaleOnlinePendingBookings() {
+        return expireStaleOnlinePending(
+                """
+                SELECT id, user_id
+                FROM Bookings
+                WHERE booking_source = 'ONLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND expired_at IS NOT NULL
+                  AND expired_at <= GETDATE()
+                """,
+                null,
+                "expireAllStaleOnlinePendingBookings");
+    }
+
+    private int expireStaleOnlinePending(String selectSql, String bindParam, String opName) {
         int count = 0;
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(selectSql)) {
-            ps.setString(1, showtimeId);
+            if (bindParam != null) {
+                ps.setString(1, bindParam);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String bookingId = rs.getString("id");
-                    String userId = rs.getString("user_id");
-                    if (userId != null && expireOnlinePendingBooking(bookingId, userId)) {
+                    String ownerId = rs.getString("user_id");
+                    if (ownerId != null && expireOnlinePendingBooking(bookingId, ownerId)) {
                         count++;
                     }
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("expireStaleOnlinePendingForShowtime failed", e);
+            throw new RuntimeException(opName + " failed", e);
         }
         return count;
     }
