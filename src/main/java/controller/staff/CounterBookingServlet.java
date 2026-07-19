@@ -2,6 +2,7 @@ package controller.staff;
 
 import dal.BookingDAO;
 import dal.SeatDAO;
+import dal.SeatHoldDAO;
 import dal.ShowtimeDAO;
 import dal.UserDAO;
 import jakarta.servlet.ServletException;
@@ -16,7 +17,10 @@ import model.entity.User;
 import model.dto.SessionUser;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import dal.PaymentDAO;
 import utils.EmailUtil;
+import utils.SePayConfig;
+import utils.SeatHoldException;
 import utils.SessionUtil;
 import utils.VietQRConfig;
 import utils.VietQRUtil;
@@ -75,6 +79,10 @@ public class CounterBookingServlet extends HttpServlet {
             serveMemberLookupJson(req, resp, phone);
             return;
         }
+        if ("paymentStatus".equals(action) && !isBlank(bookingId)) {
+            servePaymentStatusJson(req, resp, bookingId);
+            return;
+        }
 
         // ── Page steps ────────────────────────────────────────────────
         try {
@@ -86,16 +94,20 @@ public class CounterBookingServlet extends HttpServlet {
                 }
                 req.setAttribute("detail", detail);
                 req.setAttribute("vietqrConfigured", VietQRConfig.isConfigured());
-                if (VietQRConfig.isConfigured()
-                        && detail.getFinalAmount() != null
-                        && detail.getFinalAmount().compareTo(java.math.BigDecimal.ZERO) > 0) {
-                    String tc = VietQRUtil.transferContent(detail.getBookingCode());
-                    req.setAttribute("vietqrQrUrl",
-                            VietQRUtil.qrImageUrl(detail.getFinalAmount(), tc));
-                    req.setAttribute("vietqrTransferContent", tc);
-                    req.setAttribute("vietqrBankName",    VietQRConfig.bankName());
-                    req.setAttribute("vietqrAccountNo",   VietQRConfig.accountNumber());
-                    req.setAttribute("vietqrAccountName", VietQRConfig.accountName());
+                req.setAttribute("sepayEnabled", SePayConfig.isEnabled());
+                // Nếu đã tạo QR từ trước, load lại từ session
+                jakarta.servlet.http.HttpSession hs = req.getSession(false);
+                if (hs != null && bookingId.equals(hs.getAttribute("vietqrBookingId"))) {
+                    String qrUrl = (String) hs.getAttribute("vietqrQrUrl");
+                    String tc    = (String) hs.getAttribute("vietqrTransferContent");
+                    if (qrUrl != null && VietQRConfig.isConfigured()) {
+                        req.setAttribute("vietqrActive",          true);
+                        req.setAttribute("vietqrQrUrl",           qrUrl);
+                        req.setAttribute("vietqrTransferContent", tc);
+                        req.setAttribute("vietqrBankName",    VietQRConfig.bankName());
+                        req.setAttribute("vietqrAccountNo",   VietQRConfig.accountNumber());
+                        req.setAttribute("vietqrAccountName", VietQRConfig.accountName());
+                    }
                 }
                 req.getRequestDispatcher(VIEW_PAYMENT).forward(req, resp);
 
@@ -134,8 +146,14 @@ public class CounterBookingServlet extends HttpServlet {
 
         if ("payment".equals(action)) {
             handlePayment(req, resp);
+        } else if ("initVietQR".equals(action)) {
+            handleInitVietQR(req, resp);
+        } else if ("confirmVietQR".equals(action)) {
+            handleConfirmVietQR(req, resp);
         } else if ("markPrinted".equals(action)) {
             handleMarkPrinted(req, resp);
+        } else if ("holdSeats".equals(action)) {
+            handleHoldSeats(req, resp);
         } else {
             handleCreateBooking(req, resp);
         }
@@ -253,27 +271,58 @@ public class CounterBookingServlet extends HttpServlet {
         String[] rawSeatIds  = req.getParameterValues("seatIds");
         String[] rawPrices   = req.getParameterValues("seatPrices");
 
-        if (isBlank(showtimeId))    { forwardError(req, resp, "Thiếu thông tin suất chiếu."); return; }
-        if (isBlank(customerName))  { forwardError(req, resp, "Vui lòng nhập tên khách hàng."); return; }
-        if (isBlank(customerPhone)) { forwardError(req, resp, "Vui lòng nhập số điện thoại."); return; }
+        if (isBlank(showtimeId)) { forwardError(req, resp, "Thiếu thông tin suất chiếu."); return; }
         if (rawSeatIds == null || rawSeatIds.length == 0) {
             forwardError(req, resp, "Vui lòng chọn ít nhất một ghế."); return;
         }
+        if (rawSeatIds.length > 8) {
+            forwardError(req, resp, "Tối đa 8 ghế mỗi lần đặt."); return;
+        }
+        if (isBlank(customerName))  customerName = "Khách vãng lai";
+        if (isBlank(customerPhone)) customerPhone = "";
 
+        // Validate giá ghế
+        if (rawPrices == null || rawPrices.length != rawSeatIds.length) {
+            forwardError(req, resp, "Dữ liệu giá ghế không hợp lệ."); return;
+        }
         List<String> seatIds = Arrays.asList(rawSeatIds);
         List<BigDecimal> seatPrices = new ArrayList<>();
         try {
-            for (String p : rawPrices) seatPrices.add(new BigDecimal(p));
+            for (String p : rawPrices) {
+                BigDecimal price = new BigDecimal(p);
+                if (price.compareTo(BigDecimal.ZERO) < 0) {
+                    forwardError(req, resp, "Giá vé không được âm."); return;
+                }
+                seatPrices.add(price);
+            }
         } catch (NumberFormatException e) {
             forwardError(req, resp, "Dữ liệu giá ghế không hợp lệ."); return;
         }
 
+        // Validate suất chiếu tồn tại và chưa bị hủy
+        model.entity.Showtime showtime = new ShowtimeDAO().getShowtimeById(showtimeId);
+        if (showtime == null) {
+            forwardError(req, resp, "Suất chiếu không tồn tại."); return;
+        }
+        if ("CANCELLED".equals(showtime.getStatus())) {
+            forwardError(req, resp, "Suất chiếu đã bị hủy, không thể đặt vé."); return;
+        }
+
         SessionUser staff = SessionUtil.getLoggedUser(req);
         String userId = isBlank(memberId) ? null : memberId;
+
+        SeatHoldDAO holdDAO = new SeatHoldDAO();
+        List<String> blocked = holdDAO.findBlockingSeatCodes(showtimeId, seatIds, staff.getId());
+        if (!blocked.isEmpty()) {
+            forwardError(req, resp, "Ghế đã bị người khác chọn: " + String.join(", ", blocked));
+            return;
+        }
+
         try {
             String bookingId = new BookingDAO().createOfflineBooking(
                     showtimeId, staff.getId(), userId, customerName, customerPhone,
                     seatIds, seatPrices);
+            holdDAO.releaseHolds(showtimeId, staff.getId());
             resp.sendRedirect(req.getContextPath()
                     + "/staff/counter?step=payment&bookingId=" + bookingId);
         } catch (RuntimeException e) {
@@ -286,19 +335,42 @@ public class CounterBookingServlet extends HttpServlet {
     private void handlePayment(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        String bookingId     = req.getParameter("bookingId");
-        String paymentMethod = req.getParameter("paymentMethod");
+        String bookingId       = req.getParameter("bookingId");
         String cashReceivedStr = req.getParameter("cashReceived");
         String changeAmountStr = req.getParameter("changeAmount");
 
         if (isBlank(bookingId)) { forwardError(req, resp, "Thiếu bookingId."); return; }
 
-        String method = "CARD".equalsIgnoreCase(paymentMethod) ? "CARD" : "CASH";
+        // Quầy vé chỉ nhận tiền mặt
+        String method = "CASH";
+
+        // Validate trạng thái booking — phải còn PENDING/UNPAID
+        BookingDAO dao = new BookingDAO();
+        BookingDetailDTO existing = dao.getDetailById(bookingId);
+        if (existing == null) {
+            forwardError(req, resp, "Không tìm thấy đơn đặt vé."); return;
+        }
+        if (!"PENDING".equals(existing.getBookingStatus()) || !"UNPAID".equals(existing.getPaymentStatus())) {
+            req.setAttribute("errorMessage", "Đơn đặt vé này đã được xử lý rồi.");
+            req.setAttribute("detail", existing);
+            req.getRequestDispatcher(VIEW_PAYMENT).forward(req, resp); return;
+        }
+
         BigDecimal cashReceived = parseBigDecimal(cashReceivedStr);
         BigDecimal changeAmount = parseBigDecimal(changeAmountStr);
 
+        // Số tiền nhận phải >= tổng tiền cần thanh toán
+        {
+            BigDecimal finalAmt = existing.getFinalAmount();
+            if (finalAmt != null && (cashReceived == null || cashReceived.compareTo(finalAmt) < 0)) {
+                req.setAttribute("errorMessage", "Số tiền nhận chưa đủ. Cần ít nhất "
+                        + String.format("%,.0f", finalAmt) + " ₫.");
+                req.setAttribute("detail", existing);
+                req.getRequestDispatcher(VIEW_PAYMENT).forward(req, resp); return;
+            }
+        }
+
         try {
-            BookingDAO dao = new BookingDAO();
             dao.confirmPaymentWithDetails(bookingId, method, cashReceived, changeAmount);
 
             // FR-19 — Gửi email xác nhận nếu khách là thành viên (bất đồng bộ)
@@ -335,13 +407,159 @@ public class CounterBookingServlet extends HttpServlet {
         }
     }
 
+    /** Giữ chỗ tạm cho nhân viên tại quầy — tương tự online SeatHold. */
+    private void handleHoldSeats(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        resp.setContentType("application/json; charset=UTF-8");
+        resp.setStatus(200);
+        String showtimeId = req.getParameter("showtimeId");
+        String[] seatIds  = req.getParameterValues("seatIds");
+        SessionUser staff  = SessionUtil.getLoggedUser(req);
+
+        if (isBlank(showtimeId)) {
+            resp.getWriter().write("{\"ok\":false,\"error\":\"Missing showtimeId\"}");
+            return;
+        }
+        try {
+            SeatHoldDAO holdDAO = new SeatHoldDAO();
+            if (seatIds == null || seatIds.length == 0) {
+                holdDAO.releaseHolds(showtimeId, staff.getId());
+                resp.getWriter().write("{\"ok\":true}");
+            } else {
+                java.sql.Timestamp expiredAt = holdDAO.holdSeats(showtimeId, staff.getId(), Arrays.asList(seatIds));
+                resp.getWriter().write("{\"ok\":true,\"expiredAt\":" + expiredAt.getTime() + "}");
+            }
+        } catch (SeatHoldException e) {
+            String msg = e.getMessage().replace("\\", "\\\\").replace("\"", "\\\"");
+            resp.getWriter().write("{\"ok\":false,\"blocked\":true,\"error\":\"" + msg + "\"}");
+        } catch (Exception e) {
+            log("handleHoldSeats error", e);
+            String msg = (e.getMessage() == null ? "error" : e.getMessage())
+                    .replace("\\", "\\\\").replace("\"", "\\\"");
+            resp.getWriter().write("{\"ok\":false,\"error\":\"" + msg + "\"}");
+        }
+    }
+
+    /** Tạo QR VietQR, lưu Payments PENDING — giống payVietQR của online. */
+    private void handleInitVietQR(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        String bookingId = req.getParameter("bookingId");
+        if (isBlank(bookingId)) { forwardError(req, resp, "Thiếu bookingId."); return; }
+
+        if (!VietQRConfig.isConfigured()) {
+            forwardPaymentError(req, resp, bookingId,
+                    "Chưa cấu hình VietQR. Sao chép vietqr.properties.example → vietqr.properties.");
+            return;
+        }
+        BookingDetailDTO existing = new BookingDAO().getDetailById(bookingId);
+        if (existing == null) { forwardError(req, resp, "Không tìm thấy đơn đặt vé."); return; }
+
+        BigDecimal finalAmount = existing.getFinalAmount();
+        if (finalAmount == null || finalAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            forwardPaymentError(req, resp, bookingId, "Số tiền thanh toán không hợp lệ."); return;
+        }
+
+        String tc    = VietQRUtil.transferContent(existing.getBookingCode());
+        String qrUrl = VietQRUtil.qrImageUrl(finalAmount, tc);
+
+        // Idempotent: chỉ insert nếu chưa có hoặc số tiền/nội dung thay đổi
+        PaymentDAO paymentDAO = new PaymentDAO();
+        Optional<PaymentDAO.PaymentRecord> pr = paymentDAO.findLatestPendingVietQR(bookingId);
+        if (pr.isEmpty()
+                || pr.get().amount().compareTo(finalAmount) != 0
+                || !tc.equals(pr.get().transactionCode())) {
+            paymentDAO.insertPendingOnlineVietQR(bookingId, finalAmount, tc);
+        }
+
+        jakarta.servlet.http.HttpSession hs = req.getSession(true);
+        hs.setAttribute("vietqrBookingId",       bookingId);
+        hs.setAttribute("vietqrQrUrl",           qrUrl);
+        hs.setAttribute("vietqrTransferContent", tc);
+
+        req.setAttribute("detail",               existing);
+        req.setAttribute("vietqrConfigured",     true);
+        req.setAttribute("sepayEnabled",         SePayConfig.isEnabled());
+        req.setAttribute("vietqrActive",         true);
+        req.setAttribute("vietqrQrUrl",          qrUrl);
+        req.setAttribute("vietqrTransferContent",tc);
+        req.setAttribute("vietqrBankName",       VietQRConfig.bankName());
+        req.setAttribute("vietqrAccountNo",      VietQRConfig.accountNumber());
+        req.setAttribute("vietqrAccountName",    VietQRConfig.accountName());
+        req.getRequestDispatcher(VIEW_PAYMENT).forward(req, resp);
+    }
+
+    /** Xác nhận thủ công VietQR (fallback khi SePay chưa webhook). */
+    private void handleConfirmVietQR(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        String bookingId = req.getParameter("bookingId");
+        if (isBlank(bookingId)) { forwardError(req, resp, "Thiếu bookingId."); return; }
+
+        PaymentDAO paymentDAO = new PaymentDAO();
+        Optional<PaymentDAO.PaymentRecord> pr = paymentDAO.findLatestPendingVietQR(bookingId);
+        if (pr.isEmpty()) {
+            forwardPaymentError(req, resp, bookingId,
+                    "Chưa có giao dịch VietQR. Vui lòng tạo mã QR trước."); return;
+        }
+
+        String transId = "VIETQR-" + pr.get().transactionCode();
+        boolean ok = new BookingDAO().completeOnlinePayment(bookingId, pr.get().id(), transId);
+        if (!ok) {
+            forwardPaymentError(req, resp, bookingId,
+                    "Không thể xác nhận thanh toán. Vui lòng thử lại."); return;
+        }
+
+        EmailUtil.sendBookingConfirmationEmailAsync(bookingId);
+        jakarta.servlet.http.HttpSession hs = req.getSession(false);
+        if (hs != null) {
+            hs.removeAttribute("vietqrQrUrl");
+            hs.removeAttribute("vietqrTransferContent");
+            hs.removeAttribute("vietqrBookingId");
+        }
+        resp.sendRedirect(req.getContextPath() + "/staff/counter?step=print&bookingId=" + bookingId);
+    }
+
+    /** Polling trạng thái thanh toán VietQR cho staff — tương tự PaymentStatusServlet. */
+    private void servePaymentStatusJson(HttpServletRequest req, HttpServletResponse resp,
+                                        String bookingId) throws IOException {
+        resp.setContentType("application/json; charset=UTF-8");
+        try {
+            BookingDetailDTO detail = new BookingDAO().getDetailById(bookingId);
+            if (detail == null) {
+                resp.getWriter().write("{\"paid\":false,\"pending\":false}"); return;
+            }
+            boolean paid    = "PAID".equals(detail.getPaymentStatus())
+                           && "CONFIRMED".equals(detail.getBookingStatus());
+            boolean pending = "PENDING".equals(detail.getBookingStatus())
+                           && "UNPAID".equals(detail.getPaymentStatus());
+            if (paid) {
+                String url = req.getContextPath()
+                        + "/staff/counter?step=print&bookingId=" + bookingId;
+                resp.getWriter().write("{\"paid\":true,\"pending\":false,\"successUrl\":\""
+                        + url + "\"}");
+            } else {
+                resp.getWriter().write("{\"paid\":false,\"pending\":" + pending + "}");
+            }
+        } catch (Exception e) {
+            resp.getWriter().write("{\"paid\":false,\"pending\":false}");
+        }
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────
+
 
     private void forwardError(HttpServletRequest req, HttpServletResponse resp, String msg)
             throws ServletException, IOException {
         req.setAttribute("errorMessage", msg);
         loadMainPage(req);
         req.getRequestDispatcher(VIEW_MAIN).forward(req, resp);
+    }
+
+    private void forwardPaymentError(HttpServletRequest req, HttpServletResponse resp,
+                                     String bookingId, String msg)
+            throws ServletException, IOException {
+        req.setAttribute("errorMessage", msg);
+        req.setAttribute("detail", new BookingDAO().getDetailById(bookingId));
+        req.getRequestDispatcher(VIEW_PAYMENT).forward(req, resp);
     }
 
     private boolean isStaff(HttpServletRequest req) {
