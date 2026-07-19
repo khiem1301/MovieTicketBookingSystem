@@ -94,6 +94,36 @@
       </div>
     </div>
 
+    <c:if test="${canEditRole}">
+      <div class="admin-card">
+        <h2 class="admin-section-title">Vai trò tài khoản</h2>
+        <p class="admin-field-hint" style="margin-bottom:16px;">
+          Vai trò hiện tại: <strong><c:out value="${user.roleName}"/></strong>.
+          Admin không thể gán vai trò ADMIN qua trang này.
+        </p>
+        <form class="admin-form admin-form--wide" method="post"
+              accept-charset="UTF-8"
+              action="${pageContext.request.contextPath}/admin/users/update-role"
+              onsubmit="return confirm('Đổi vai trò tài khoản này?');">
+          <input type="hidden" name="userId" value="${user.id}"/>
+          <div class="admin-field">
+            <label class="admin-label" for="roleName">Vai trò mới</label>
+            <select id="roleName" name="roleName" class="admin-select" required>
+              <c:forEach var="role" items="${editableRoles}">
+                <option value="${role.roleName}"
+                        <c:if test="${user.roleName == role.roleName}">selected</c:if>>
+                  <c:out value="${role.roleName}"/> — <c:out value="${role.description}"/>
+                </option>
+              </c:forEach>
+            </select>
+          </div>
+          <div class="admin-form-actions">
+            <button type="submit" class="admin-btn admin-btn--primary">Lưu vai trò</button>
+          </div>
+        </form>
+      </div>
+    </c:if>
+
     <c:if test="${!isSelf && user.roleName != 'ADMIN'}">
       <div class="admin-card">
         <h2 class="admin-section-title">Thao tác quản trị</h2>
