@@ -296,6 +296,18 @@ public class UserDAO {
         }
     }
 
+    public void updateRoleId(String userId, String roleId) {
+        String sql = "UPDATE Users SET role_id = ? WHERE id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, roleId);
+            ps.setString(2, userId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("updateRoleId failed", e);
+        }
+    }
+
     public void updatePasswordHash(String userId, String passwordHash) {
         String sql = "UPDATE Users SET password_hash = ? WHERE id = ?";
         try (Connection conn = DBContext.getConnection();

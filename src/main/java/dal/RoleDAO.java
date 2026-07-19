@@ -63,6 +63,31 @@ public class RoleDAO {
         return result;
     }
 
+    /** CUSTOMER, STAFF, MANAGER — admin có thể gán khi sửa role (không gán ADMIN). */
+    public List<Role> findEditableByAdmin() {
+        String sql = """
+                SELECT id, role_name, description, created_at
+                FROM Roles
+                WHERE role_name IN ('CUSTOMER', 'STAFF', 'MANAGER')
+                ORDER BY CASE role_name
+                    WHEN 'CUSTOMER' THEN 1
+                    WHEN 'STAFF' THEN 2
+                    WHEN 'MANAGER' THEN 3
+                    ELSE 4 END
+                """;
+        List<Role> result = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                result.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findEditableByAdmin failed", e);
+        }
+        return result;
+    }
+
     private Role mapRow(ResultSet rs) throws SQLException {
         Role role = new Role();
         role.setId(rs.getString("id"));

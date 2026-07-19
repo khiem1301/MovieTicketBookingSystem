@@ -1,5 +1,6 @@
 package controller.admin;
 
+import dal.RoleDAO;
 import dal.UserDAO;
 import dal.UserStatusLogDAO;
 import jakarta.servlet.ServletException;
@@ -59,6 +60,8 @@ public class UserDetailServlet extends HttpServlet {
 
         req.setAttribute("user", user);
         req.setAttribute("isSelf", userId.equals(currentUserId));
+        req.setAttribute("canEditRole", !userId.equals(currentUserId) && !"ADMIN".equals(user.getRoleName()));
+        req.setAttribute("editableRoles", new RoleDAO().findEditableByAdmin());
         req.setAttribute("userHasEmail", userHasEmail);
         req.setAttribute("emailConfigured", emailConfigured);
         req.setAttribute("canSendLockEmail", userHasEmail && emailConfigured);
