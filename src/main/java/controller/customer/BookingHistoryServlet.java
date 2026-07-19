@@ -15,7 +15,7 @@ import utils.AdminPaginationUtil;
 import utils.SessionUtil;
 
 /**
- * FR-15 — Lịch sử đặt vé của customer (lọc theo trạng thái + phân trang).
+ * FR-15 — Lịch sử đặt vé: chỉ đơn đã thanh toán thành công (CONFIRMED + PAID).
  */
 @WebServlet("/booking-history")
 public class BookingHistoryServlet extends HttpServlet {
@@ -33,24 +33,21 @@ public class BookingHistoryServlet extends HttpServlet {
             return;
         }
 
-        String statusFilter = trim(req.getParameter("status"));
         int page = AdminPaginationUtil.parsePage(req.getParameter("page"));
 
         BookingDAO bookingDAO = new BookingDAO();
         String userId = sessionUser.getId();
-        int total = bookingDAO.countHistoryByUserId(userId, statusFilter);
+        int total = bookingDAO.countHistoryByUserId(userId);
         int totalPages = AdminPaginationUtil.totalPages(total, PAGE_SIZE);
         page = AdminPaginationUtil.clampPage(page, totalPages);
 
         List<BookingHistoryItemDTO> bookings = bookingDAO.findHistoryByUserId(
                 userId,
-                statusFilter,
                 AdminPaginationUtil.offset(page, PAGE_SIZE),
                 PAGE_SIZE);
 
         String basePath = req.getContextPath() + "/booking-history";
         req.setAttribute("bookings", bookings);
-        req.setAttribute("currentStatus", statusFilter != null ? statusFilter.trim() : "");
         req.setAttribute("currentPage", page);
         req.setAttribute("totalPages", totalPages);
         req.setAttribute("totalBookings", total);
@@ -58,12 +55,8 @@ public class BookingHistoryServlet extends HttpServlet {
         req.setAttribute("pgTotal", totalPages);
         req.setAttribute("pgTotalItems", total);
         req.setAttribute("pgPath", basePath);
-        req.setAttribute("pgQueryExtra", AdminPaginationUtil.queryParam("status", statusFilter));
+        req.setAttribute("pgQueryExtra", "");
 
         req.getRequestDispatcher(VIEW).forward(req, resp);
-    }
-
-    private static String trim(String value) {
-        return value == null ? null : value.trim();
     }
 }

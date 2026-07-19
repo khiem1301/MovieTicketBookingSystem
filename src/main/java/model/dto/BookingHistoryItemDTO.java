@@ -68,20 +68,4 @@ public class BookingHistoryItemDTO {
     public boolean isOnline() {
         return "ONLINE".equalsIgnoreCase(bookingSource);
     }
-
-    public boolean isPendingPayment() {
-        return "PENDING".equalsIgnoreCase(bookingStatus);
-    }
-
-    public boolean isConfirmedPaid() {
-        return "CONFIRMED".equalsIgnoreCase(bookingStatus)
-                && "PAID".equalsIgnoreCase(paymentStatus);
-    }
-
-    public boolean isExpiredPending() {
-        if (!isPendingPayment() || expiredAt == null) {
-            return false;
-        }
-        return expiredAt.before(new Timestamp(System.currentTimeMillis()));
-    }
 }

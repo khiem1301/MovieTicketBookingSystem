@@ -266,6 +266,9 @@ uri="jakarta.tags.functions" %>
                     <a href="${pageContext.request.contextPath}/manager/showtimes"
                       >Quản lý suất chiếu</a
                     >
+                    <a href="${pageContext.request.contextPath}/manager/pricing-rules"
+                      >Quy tắc giá</a
+                    >
                     <a href="${pageContext.request.contextPath}/admin/promotions"
                       >Quản lý voucher</a
                     >
@@ -279,6 +282,9 @@ uri="jakarta.tags.functions" %>
                     >
                     <a href="${pageContext.request.contextPath}/manager/genres"
                       >Quản lý thể loại</a
+                    >
+                    <a href="${pageContext.request.contextPath}/manager/pricing-rules"
+                      >Quy tắc giá</a
                     >
                     <a href="${pageContext.request.contextPath}/manager/reviews"
                       >Quản lý đánh giá</a

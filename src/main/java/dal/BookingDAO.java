@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 import model.dto.BookingDetailDTO;
@@ -1140,28 +1139,21 @@ public class BookingDAO {
         return result;
     }
 
-    /** Số vé đã xác nhận của khách (hiển thị sidebar profile). */
-    private static final Set<String> HISTORY_STATUS_WHITELIST = Set.of(
-            "PENDING", "CONFIRMED", "CANCELLED", "EXPIRED", "REFUNDED"
-    );
-
     /**
-     * FR-15 — Đếm đơn trong lịch sử của user (tùy chọn lọc booking_status).
+     * FR-15 — Đếm đơn đã thanh toán thành công (CONFIRMED + PAID) của user.
      */
-    public int countHistoryByUserId(String userId, String statusFilter) {
-        String normalized = normalizeHistoryStatus(statusFilter);
+    public int countHistoryByUserId(String userId) {
         String sql = """
                 SELECT COUNT(*) AS cnt
                 FROM Bookings b
                 WHERE b.user_id = ?
-                """ + (normalized != null ? " AND b.booking_status = ?" : "");
+                  AND b.booking_status = 'CONFIRMED'
+                  AND b.payment_status = 'PAID'
+                """;
 
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, userId);
-            if (normalized != null) {
-                ps.setString(2, normalized);
-            }
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt("cnt");
@@ -1174,11 +1166,9 @@ public class BookingDAO {
     }
 
     /**
-     * FR-15 — Danh sách đơn đặt vé của user, mới nhất trước.
+     * FR-15 — Danh sách đơn đã thanh toán thành công, mới nhất trước.
      */
-    public List<BookingHistoryItemDTO> findHistoryByUserId(String userId, String statusFilter,
-                                                             int offset, int limit) {
-        String normalized = normalizeHistoryStatus(statusFilter);
+    public List<BookingHistoryItemDTO> findHistoryByUserId(String userId, int offset, int limit) {
         String sql = """
                 SELECT b.id, b.booking_code, b.booked_at, b.booking_source,
                        b.booking_status, b.payment_status, b.final_amount, b.expired_at,
@@ -1194,7 +1184,8 @@ public class BookingDAO {
                 JOIN Movies m ON m.id = s.movie_id
                 JOIN CinemaRooms cr ON cr.id = s.room_id
                 WHERE b.user_id = ?
-                """ + (normalized != null ? " AND b.booking_status = ?" : "") + """
+                  AND b.booking_status = 'CONFIRMED'
+                  AND b.payment_status = 'PAID'
                 ORDER BY b.booked_at DESC
                 OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
                 """;
@@ -1202,13 +1193,9 @@ public class BookingDAO {
         List<BookingHistoryItemDTO> items = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            int idx = 1;
-            ps.setString(idx++, userId);
-            if (normalized != null) {
-                ps.setString(idx++, normalized);
-            }
-            ps.setInt(idx++, offset);
-            ps.setInt(idx, limit);
+            ps.setString(1, userId);
+            ps.setInt(2, offset);
+            ps.setInt(3, limit);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     items.add(mapHistoryRow(rs));
@@ -1218,14 +1205,6 @@ public class BookingDAO {
             throw new RuntimeException("findHistoryByUserId failed", e);
         }
         return items;
-    }
-
-    private static String normalizeHistoryStatus(String statusFilter) {
-        if (statusFilter == null || statusFilter.isBlank()) {
-            return null;
-        }
-        String s = statusFilter.trim().toUpperCase();
-        return HISTORY_STATUS_WHITELIST.contains(s) ? s : null;
     }
 
     private static BookingHistoryItemDTO mapHistoryRow(ResultSet rs) throws SQLException {

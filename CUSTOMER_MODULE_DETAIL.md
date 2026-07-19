@@ -44,7 +44,7 @@ Module Customer phục vụ người dùng có role **CUSTOMER** (và khách ch�
 | Duyệt phim / trang chủ | — | ✅ | Thuộc `common/` (`HomeServlet`, `MovieListServlet`) |
 | Quên / đặt lại mật khẩu | FR-04 | ✅ | `/forgot-password`, `/reset-password` — public; `ForgotPasswordServlet`, `ResetPasswordServlet` |
 | Profile tài khoản | FR-04 / FR-05 | ✅ | `/profile` — sửa họ tên, username, SĐT, avatar; xác minh bảo mật + đổi MK (mọi role đã login) |
-| Lịch sử đặt vé | FR-15 | ✅ | `/booking-history` — lọc trạng thái, phân trang; chi tiết `/booking-history/detail` |
+| Lịch sử đặt vé | FR-15 | ✅ | `/booking-history` — lọc trạng thái, phân trang; mở list/detail **expire** đơn PENDING quá hạn → `EXPIRED` |
 | Webhook SePay tự xác nhận VietQR | FR-16 | ✅ | `/payment/sepay/webhook` (public) + poll `/payment/status` |
 | Email xác nhận vé sau thanh toán | FR-19 | ✅ | `EmailUtil.sendBookingConfirmationEmailAsync` sau confirm/webhook |
 
@@ -90,6 +90,9 @@ src/main/java/controller/
     ├── ReviewSubmitServlet.java   # /reviews/submit — FR-20 (CUSTOMER)
     ├── ReviewDeleteServlet.java   # /reviews/delete — FR-20 (CUSTOMER)
     └── package-info.java
+
+src/main/java/listener/
+└── BookingExpiryListener.java   # Job nền mỗi 5 phút — PENDING quá hạn → EXPIRED
 ```
 
 **Servlet auth dùng chung (public, hành trình khách):**
@@ -219,13 +222,13 @@ Trang load CSS qua `extraCss` trong JSP → `header.jsp` (`customer-showtimes` /
 | `dal/PasswordResetTokenDAO.java` | FR-04: token quên MK + xác minh profile qua email |
 | `dal/MovieDAO.java` | `getById()` + `loadGenres()` — chi tiết phim trên trang lịch chiếu |
 | `dal/ShowtimeDAO.java` | `getUpcomingShowtimesByMovieId()` — suất từ `GETDATE()`, loại `CANCELLED` |
-| `dal/PricingRuleDAO.java` | `getActiveRules()` — rule `status = ACTIVE` cho FR-50 |
+| `dal/PricingRuleDAO.java` | `getActiveRules()` (FR-50) + CRUD/filter (FR-49 Manager) |
 | `model/entity/Movie.java` | Entity phim (+ list `genres`) |
 | `model/entity/Showtime.java` | Entity suất; field transient `effectivePrice` |
 | `model/entity/PricingRule.java` | Entity quy tắc giá động |
 | `dal/SeatDAO.java` | `getSeatsForShowtime(id)` / `(id, userId)` — availability + hold; giá base×multiplier (staff) |
 | `dal/SeatHoldDAO.java` | FR-13: `findBlockingSeatCodes`, **`syncHolds`**, **`releaseHolds`**, `getActiveHoldExpiry`, `getHeldSeatIds`, `deleteExpiredHolds` |
-| `dal/BookingDAO.java` | FR-14/15/16/17/19/20/22: `createOnlineBooking`, **`completeOnlinePayment`**, **`cancelOnlinePendingBooking`**, **`expireOnlinePendingBooking`**, **`expireStaleOnlinePendingForShowtime`**, voucher apply/remove, history, `hasWatchedMovie`, … |
+| `dal/BookingDAO.java` | FR-14/15/16/17/19/20/22: `createOnlineBooking`, **`completeOnlinePayment`**, **`cancelOnlinePendingBooking`**, **`expireOnlinePendingBooking`**, **`expireStaleOnlinePendingForShowtime`**, **`expireStaleOnlinePendingForUser`**, **`expireAllStaleOnlinePendingBookings`**, voucher apply/remove, history, `hasWatchedMovie`, … |
 | `dal/PaymentDAO.java` | FR-16: **`insertPendingOnlineVietQR`**, **`findLatestPendingVietQR`**, **`findPendingVietQRByTransferContent`**, `markSuccess` / `markFailed` |
 | `dal/MovieReviewDAO.java` | FR-20: **`upsert`**, **`delete`**, `findByMovie`, `findByMovieAndUser`, `findLatest`, `findByUser`, `findTopRatedMovies`, `findMostReviewedMovies`, `findReviewedMovieIds`; cập nhật `Movies.average_rating` |
 | `dal/TicketDAO.java` | FR-17: **`issueTicketsForBooking`**, `findBookingSeats` |
@@ -415,7 +418,7 @@ List<PricingRule> getActiveRules()
 // WHERE status = 'ACTIVE' ORDER BY priority DESC, created_at ASC
 ```
 
-Chỉ **đọc** — CRUD pricing rules cho Manager (FR-49) chưa có UI.
+Customer chỉ **đọc** rule ACTIVE. Manager/Admin CRUD tại `/manager/pricing-rules` (FR-49).
 
 ### 5.2 `PricingCalculator`
 
@@ -968,10 +971,10 @@ Seed mã test: `WEEKEND10`, `FLAT20K` (xem `create_database.sql` § SEED FR-50 /
 
 1. **FR-19 email vé** — đã gửi async sau `confirmVietQR` / SePay webhook (`sendBookingConfirmationEmailAsync`).
 2. **VietQR + SePay** — cấu hình `vietqr.properties` (+ `sepay.properties` tuỳ chọn); VNPay đã gỡ.
-3. **Chặn ghế 2 giai đoạn** — hold → PENDING; hết hạn thanh toán → `EXPIRED` / `expireStale…` (ghế giải phóng).
+3. **Chặn ghế 2 giai đoạn** — hold → PENDING; hết hạn thanh toán → `EXPIRED` qua: countdown `action=expire`, mở checkout (`expireStale…ForShowtime`), mở lịch sử (`expireStale…ForUser`), job nền `BookingExpiryListener` mỗi 5 phút (`expireAllStale…`).
 4. **Poll 2s hai chiều** — không realtime; race xử lý bằng validate DB + unique constraint.
 5. **SQL Server booking ID** — `createOnlineBooking` dùng `OUTPUT INSERTED.id` (không `getGeneratedKeys` với `UNIQUEIDENTIFIER`).
-6. **Pricing rules** — chỉ đọc ACTIVE; Manager chưa có UI CRUD (FR-49). Seed demo có sẵn trong `create_database.sql`.
+6. **Pricing rules** — customer chỉ đọc ACTIVE; Manager CRUD tại `/manager/pricing-rules` (FR-49). Seed demo trong `create_database.sql`.
 7. **Voucher validate** — `validateForApply` kiểm tra ACTIVE + date range + usage limit; admin badge **SCHEDULED** ≠ áp được trên customer.
 8. **Suất sau ngày thứ 7** không hiển thị — chỉ 7 tab cố định.
 9. **`ShowtimesServlet` ở `controller`** (public); checkout/payment authenticated ở `controller.customer`.

@@ -18,6 +18,7 @@ public class PricingRule {
     private BigDecimal adjustmentValue;
     private int priority;
     private String status;
+    private String createdBy;
     private Timestamp createdAt;
 
     public PricingRule() {}
@@ -57,6 +58,9 @@ public class PricingRule {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
 
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
