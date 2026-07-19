@@ -8,6 +8,8 @@
   const CTX = document.querySelector('meta[name="ctx"]')?.content ?? '';
 
   // ── State ──────────────────────────────────────────────────────
+  const MAX_SEATS = 8;
+
   let selectedMovieEl  = null;
   let selectedMovieId  = null;
   let selectedMovieTitle = '';
@@ -17,32 +19,26 @@
   let selectedRoomName = '';
   let selectedStartTime = '';
   let selectedSeats    = [];   // [{id, code, type, price}]
+  let memberLocked     = false;
 
   // ── Movie tab / search ─────────────────────────────────────────
   window.switchTab = function (tab) {
     document.getElementById('tabNowShowing').classList.toggle('pos-tab--active', tab === 'now');
     document.getElementById('tabComingSoon').classList.toggle('pos-tab--active', tab === 'coming');
-    filterMoviesByTab(tab);
+    const q = document.getElementById('movieSearch')?.value ?? '';
+    filterMovies(q);
   };
 
   window.filterMovies = function (query) {
-    const q = query.toLowerCase();
+    const q = query.toLowerCase().trim();
+    const activeTab = document.querySelector('.pos-tab--active')?.dataset?.tab ?? 'now';
     document.querySelectorAll('.pos-movie-item').forEach(el => {
-      const title = el.dataset.movieTitle ?? '';
-      el.style.display = title.includes(q) ? '' : 'none';
+      const title  = (el.dataset.movieTitle ?? '').toLowerCase();
+      const status = (el.dataset.movieStatus ?? '').toUpperCase();
+      const tabOk  = activeTab === 'coming' ? status.includes('COMING') : !status.includes('COMING');
+      el.style.display = tabOk && (q === '' || title.includes(q)) ? '' : 'none';
     });
   };
-
-  function filterMoviesByTab(tab) {
-    document.querySelectorAll('.pos-movie-item').forEach(el => {
-      const status = (el.dataset.movieStatus ?? '').toUpperCase();
-      if (tab === 'now') {
-        el.style.display = status.includes('COMING') ? 'none' : '';
-      } else {
-        el.style.display = status.includes('COMING') ? '' : 'none';
-      }
-    });
-  }
 
   // ── Movie selection ────────────────────────────────────────────
   window.selectMovie = function (el) {
@@ -149,6 +145,13 @@
   }
 
   function selectShowtime(st) {
+    if (st.status === 'CANCELLED') {
+      alert(`Suất chiếu ${st.time} đã bị hủy, không thể đặt vé.`);
+      return;
+    }
+    if (selectedShowtimeId && selectedShowtimeId !== st.id) {
+      syncHoldsWithServer(selectedShowtimeId, []);
+    }
     selectedShowtimeId = st.id;
     selectedRoomName   = st.roomName;
     selectedStartTime  = st.date + ' ' + st.time;
@@ -237,6 +240,10 @@
       selectedSeats.splice(idx, 1);
       btn.classList.remove('pos-seat--selected');
     } else {
+      if (selectedSeats.length >= MAX_SEATS) {
+        alert(`Tối đa ${MAX_SEATS} ghế mỗi lần đặt.`);
+        return;
+      }
       selectedSeats.push({
         id:    btn.dataset.seatId,
         code:  btn.dataset.seatCode,
@@ -247,6 +254,16 @@
     }
     updateSummarySeats();
     checkProceedBtn();
+
+    const ids = selectedSeats.map(s => s.id);
+    if (ids.length > 0) {
+      // Khởi động đếm ngược ngay lập tức, không chờ server
+      if (!holdExpiryMs) startCountdown(Date.now() + 10 * 60 * 1000);
+      syncHoldsWithServer(selectedShowtimeId, ids);
+    } else {
+      stopCountdown();
+      syncHoldsWithServer(selectedShowtimeId, []);
+    }
   }
 
   function clearSeats() {
@@ -320,6 +337,7 @@
           document.getElementById('formMemberId').value = data.userId;
 
           const isLocked  = data.status === 'LOCKED' || data.status === 'INACTIVE';
+          memberLocked = isLocked;
           const statusBadge = isLocked
             ? `<span class="member-status-badge member-status-badge--locked">Tạm khóa</span>`
             : `<span class="member-status-badge member-status-badge--active">Hoạt động</span>`;
@@ -344,6 +362,7 @@
               </div>
             </div>`;
         } else {
+          memberLocked = false;
           document.getElementById('formMemberId').value = '';
           resultEl.className = 'pos-member-result pos-member-result--notfound';
           resultEl.innerHTML = `
@@ -366,16 +385,18 @@
 
   // ── Proceed to payment ─────────────────────────────────────────
   window.checkProceedBtn = function () {
-    const name  = (document.getElementById('custName')?.value ?? '').trim();
-    const phone = (document.getElementById('custPhone')?.value ?? '').trim();
-    const ok    = selectedSeats.length > 0 && name && phone && selectedShowtimeId;
-    document.getElementById('proceedBtn').disabled = !ok;
+    const seatsOk = selectedSeats.length > 0 && selectedShowtimeId;
+    const btn = document.getElementById('proceedBtn');
+    btn.disabled = !seatsOk || memberLocked;
+
+    const warn = document.getElementById('memberLockedWarn');
+    if (warn) warn.style.display = memberLocked ? 'block' : 'none';
   };
 
   window.proceedToPayment = function () {
-    const name  = (document.getElementById('custName')?.value ?? '').trim();
+    const name  = (document.getElementById('custName')?.value ?? '').trim() || 'Khách vãng lai';
     const phone = (document.getElementById('custPhone')?.value ?? '').trim();
-    if (!selectedShowtimeId || selectedSeats.length === 0 || !name || !phone) return;
+    if (!selectedShowtimeId || selectedSeats.length === 0) return;
 
     const form = document.getElementById('bookingForm');
     document.getElementById('formShowtimeId').value = selectedShowtimeId;
@@ -392,6 +413,80 @@
 
     form.submit();
   };
+
+  // ── Seat hold sync ──────────────────────────────────────────────
+  function syncHoldsWithServer(showtimeId, seatIds) {
+    if (!showtimeId) return;
+    const fd = new FormData();
+    fd.append('action', 'holdSeats');
+    fd.append('showtimeId', showtimeId);
+    seatIds.forEach(id => fd.append('seatIds', id));
+
+    fetch(`${CTX}/staff/counter`, { method: 'POST', body: fd })
+      .then(r => r.json())
+      .then(data => {
+        if (data && !data.ok && data.blocked) {
+          loadSeats(showtimeId);
+          stopCountdown();
+          alert('Một ghế vừa bị người khác chọn. Sơ đồ ghế đã được cập nhật.');
+        } else if (data && data.ok) {
+          if (seatIds.length > 0 && data.expiredAt) {
+            // Cập nhật lại thời gian chính xác từ server
+            startCountdown(data.expiredAt);
+          } else if (seatIds.length === 0) {
+            stopCountdown();
+          }
+        }
+      })
+      .catch(() => { /* bỏ qua lỗi mạng khi giữ chỗ */ });
+  }
+
+  // ── Seat hold countdown ─────────────────────────────────────────
+  let holdExpiryMs  = null;
+  let countdownTimer = null;
+
+  function startCountdown(expiryMs) {
+    holdExpiryMs = expiryMs;
+    clearInterval(countdownTimer);
+    tickCountdown();
+    countdownTimer = setInterval(tickCountdown, 1000);
+  }
+
+  function stopCountdown() {
+    holdExpiryMs = null;
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+    var el = document.getElementById('holdCountdown');
+    if (el) el.style.display = 'none';
+  }
+
+  function tickCountdown() {
+    var el = document.getElementById('holdCountdown');
+    var timeEl = document.getElementById('holdTime');
+    if (!el || !timeEl || !holdExpiryMs) return;
+
+    var remaining = Math.max(0, holdExpiryMs - Date.now());
+    var totalSecs = Math.floor(remaining / 1000);
+    var mins = Math.floor(totalSecs / 60);
+    var secs = totalSecs % 60;
+
+    timeEl.textContent = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+    el.style.display = 'flex';
+    el.classList.toggle('hold-countdown--warn', totalSecs < 60);
+
+    if (remaining === 0) {
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+      holdExpiryMs = null;
+      // Hết giờ — xoá ghế đã chọn, reload sơ đồ
+      selectedSeats = [];
+      updateSummarySeats();
+      checkProceedBtn();
+      el.style.display = 'none';
+      if (selectedShowtimeId) loadSeats(selectedShowtimeId);
+      alert('Thời gian giữ ghế đã hết (10 phút). Vui lòng chọn lại ghế.');
+    }
+  }
 
   // ── Utils ───────────────────────────────────────────────────────
   function append(form, name, value) {

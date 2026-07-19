@@ -104,12 +104,12 @@
         <div class="payment-method-section">
           <div class="payment-section-title">Phương thức thanh toán</div>
           <div class="payment-method-tabs">
-            <button class="pay-method-btn pay-method-btn--active" id="btnCash"
-                    onclick="setPayMethod('CASH')">
+            <button class="pay-method-btn <c:if test="${not vietqrActive}">pay-method-btn--active</c:if>"
+                    id="btnCash" onclick="setPayMethod('CASH')">
               💵 Tiền mặt
             </button>
-            <button class="pay-method-btn" id="btnVietqr"
-                    onclick="setPayMethod('VIETQR')">
+            <button class="pay-method-btn <c:if test="${vietqrActive}">pay-method-btn--active</c:if>"
+                    id="btnVietqr" onclick="setPayMethod('VIETQR')">
               📱 Chuyển khoản
             </button>
           </div>
@@ -173,14 +173,14 @@
         </div>
 
         <%-- VietQR / Chuyển khoản --%>
-        <div id="vietqrSection" style="display:none">
+        <div id="vietqrSection" style="display:<c:choose><c:when test="${vietqrActive}">block</c:when><c:otherwise>none</c:otherwise></c:choose>">
           <c:choose>
-            <c:when test="${vietqrConfigured and not empty vietqrQrUrl}">
+            <c:when test="${vietqrActive}">
+              <%-- QR đã tạo — hiển thị và chờ --%>
               <div class="vietqr-qr-block">
                 <div style="text-align:center;margin-bottom:10px">
-                  <img src="<c:out value='${vietqrQrUrl}'/>"
-                       alt="Mã QR VietQR" class="vietqr-qr-img"
-                       style="width:200px;height:200px;border-radius:8px;border:2px solid #333"/>
+                  <img src="<c:out value='${vietqrQrUrl}'/>" alt="Mã QR VietQR"
+                       style="width:200px;height:200px;border-radius:8px;border:2px solid #444"/>
                 </div>
                 <div class="vietqr-bank-info">
                   <div class="vietqr-bank-row">
@@ -206,36 +206,84 @@
                     </strong>
                   </div>
                 </div>
-                <p style="font-size:12px;color:#aaa;margin-top:8px;text-align:center">
-                  Hướng màn hình QR về phía khách → khách quét app ngân hàng → xác nhận sau khi nhận CK.
+                <c:choose>
+                  <c:when test="${sepayEnabled}">
+                    <div class="pay-momo-wait-note" id="vietqrWaitBox"
+                         data-vietqr-waiting="true"
+                         data-booking-id="<c:out value='${detail.bookingId}'/>"
+                         data-ctx="${pageContext.request.contextPath}"
+                         style="margin-top:12px;padding:10px 12px;background:#1a1a2e;border:1px solid rgba(255,255,255,0.12);border-radius:8px;font-size:13px;color:#b0b0c0">
+                      ℹ SePay tự xác nhận khi tiền vào — trang sẽ tự chuyển.
+                      <span id="vietqrWaitMsg" style="display:block;margin-top:4px;color:#90caf9">
+                        Đang chờ xác nhận...
+                      </span>
+                    </div>
+                    <form method="post"
+                          action="${pageContext.request.contextPath}/staff/counter?action=confirmVietQR"
+                          style="margin-top:8px;text-align:center">
+                      <input type="hidden" name="bookingId" value="${detail.bookingId}"/>
+                      <button type="submit" class="pos-link-btn"
+                              style="border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:8px 16px">
+                        Xác nhận thủ công (nếu SePay chậm)
+                      </button>
+                    </form>
+                  </c:when>
+                  <c:otherwise>
+                    <p style="font-size:12px;color:#aaa;margin-top:8px;text-align:center">
+                      Hướng màn hình QR về phía khách → khách quét app ngân hàng → tiền vào thì bấm nút bên dưới.
+                    </p>
+                    <form method="post"
+                          action="${pageContext.request.contextPath}/staff/counter?action=confirmVietQR"
+                          style="margin-top:8px">
+                      <input type="hidden" name="bookingId" value="${detail.bookingId}"/>
+                      <button type="submit" class="pos-proceed-btn pos-proceed-btn--green">
+                        ✓ Tiền đã vào — tiếp tục in vé
+                      </button>
+                    </form>
+                  </c:otherwise>
+                </c:choose>
+              </div>
+            </c:when>
+            <c:when test="${vietqrConfigured}">
+              <%-- VietQR cấu hình sẵn nhưng chưa tạo QR --%>
+              <div style="text-align:center;padding:20px 0">
+                <div style="font-size:36px;margin-bottom:8px">📱</div>
+                <p style="color:#ccc;font-size:14px;margin-bottom:16px">
+                  Nhấn để tạo mã QR chuyển khoản cho đơn này.
                 </p>
+                <form method="post"
+                      action="${pageContext.request.contextPath}/staff/counter?action=initVietQR">
+                  <input type="hidden" name="bookingId" value="${detail.bookingId}"/>
+                  <button type="submit" class="pos-proceed-btn" style="margin:0 auto;display:block">
+                    📲 Tạo mã QR chuyển khoản
+                  </button>
+                </form>
               </div>
             </c:when>
             <c:otherwise>
-              <div style="padding:16px;background:#1e1e1e;border-radius:8px;text-align:center;color:#aaa">
+              <div style="padding:16px;text-align:center;color:#aaa">
                 <div style="font-size:32px;margin-bottom:8px">🏦</div>
-                <div style="font-weight:600;color:#fff;margin-bottom:4px">Thanh toán chuyển khoản</div>
                 <p style="font-size:13px">Chưa cấu hình VietQR.<br/>
                   Sao chép <code>vietqr.properties.example</code> → <code>vietqr.properties</code>
-                  và điền thông tin ngân hàng để hiển thị QR tự động.</p>
-                <p style="font-size:12px;margin-top:8px">Nhân viên xác nhận thủ công sau khi khách chuyển khoản.</p>
+                  và điền thông tin ngân hàng.</p>
               </div>
             </c:otherwise>
           </c:choose>
         </div>
 
-        <%-- Nút xác nhận thanh toán --%>
+        <%-- Nút xác nhận tiền mặt — chỉ hiện khi tab CASH --%>
+        <div id="cashConfirmSection" style="display:<c:choose><c:when test="${vietqrActive}">none</c:when><c:otherwise>block</c:otherwise></c:choose>">
         <form method="post" id="paymentForm"
               action="${pageContext.request.contextPath}/staff/counter?action=payment">
-          <input type="hidden" name="bookingId"     value="${detail.bookingId}"/>
-          <input type="hidden" name="paymentMethod" id="hiddenPayMethod"  value="CASH"/>
-          <input type="hidden" name="cashReceived"  id="hiddenCashRecv"   value="0"/>
-          <input type="hidden" name="changeAmount"  id="hiddenChangAmt"   value="0"/>
+          <input type="hidden" name="bookingId"    value="${detail.bookingId}"/>
+          <input type="hidden" name="cashReceived" id="hiddenCashRecv" value="0"/>
+          <input type="hidden" name="changeAmount" id="hiddenChangAmt" value="0"/>
           <button type="button" class="pos-proceed-btn pos-proceed-btn--green"
                   id="markSuccessBtn" onclick="submitPayment()">
             ✓ Xác nhận thanh toán thành công
           </button>
         </form>
+        </div>
 
         <div style="margin-top:12px; text-align:center;">
           <a href="${pageContext.request.contextPath}/staff/counter?step=payment&bookingId=${detail.bookingId}"
@@ -254,19 +302,23 @@
 <script>
   const TOTAL_DUE = <fmt:formatNumber value="${detail.finalAmount}" type="number" groupingUsed="false"/>;
   let receivedRaw = '';
-  let payMethod   = 'CASH';
+  let payMethod   = '${vietqrActive ? "VIETQR" : "CASH"}';
 
   function setPayMethod(method) {
     payMethod = method;
-    document.getElementById('btnCash').classList.toggle('pay-method-btn--active', method === 'CASH');
-    document.getElementById('btnVietqr').classList.toggle('pay-method-btn--active', method === 'VIETQR');
-    document.getElementById('cashSection').style.display   = (method === 'CASH')   ? 'block' : 'none';
-    document.getElementById('vietqrSection').style.display = (method === 'VIETQR') ? 'block' : 'none';
-    const btn = document.getElementById('markSuccessBtn');
-    btn.textContent = method === 'VIETQR'
-        ? '✓ Xác nhận đã nhận chuyển khoản'
-        : '✓ Xác nhận thanh toán thành công';
+    const isCash   = method === 'CASH';
+    document.getElementById('btnCash').classList.toggle('pay-method-btn--active', isCash);
+    document.getElementById('btnVietqr').classList.toggle('pay-method-btn--active', !isCash);
+    document.getElementById('cashSection').style.display       = isCash ? '' : 'none';
+    document.getElementById('cashConfirmSection').style.display = isCash ? '' : 'none';
+    document.getElementById('vietqrSection').style.display     = isCash ? 'none' : '';
   }
+
+  // Khởi tạo trạng thái đúng khi trang load (nếu đã tạo QR thì mở tab VietQR)
+  (function () {
+    var active = '${vietqrActive}' === 'true';
+    if (active) setPayMethod('VIETQR');
+  })();
 
   function numpadPress(digit) {
     if (receivedRaw.length >= 12) return;
@@ -303,21 +355,57 @@
     const received = parseInt(receivedRaw || '0', 10);
     const change   = Math.max(0, received - TOTAL_DUE);
 
-    if (payMethod === 'CASH' && received < TOTAL_DUE) {
+    if (received < TOTAL_DUE) {
       alert('Tiền nhận chưa đủ. Vui lòng nhập đúng số tiền.');
       return;
     }
 
-    document.getElementById('hiddenPayMethod').value = payMethod;
-    document.getElementById('hiddenCashRecv').value  = payMethod === 'CASH' ? received : 0;
-    document.getElementById('hiddenChangAmt').value  = payMethod === 'CASH' ? change   : 0;
-    // VIETQR không cần tiền mặt/tiền thừa — giữ 0 là đúng
+    document.getElementById('hiddenCashRecv').value = received;
+    document.getElementById('hiddenChangAmt').value = change;
     document.getElementById('paymentForm').submit();
   }
 
   function formatVnd(n) {
     return new Intl.NumberFormat('vi-VN').format(n) + ' ₫';
   }
+</script>
+
+<%-- SePay polling — chỉ chạy khi QR đang hiển thị --%>
+<script>
+(function () {
+  var waitBox = document.querySelector('[data-vietqr-waiting="true"]');
+  if (!waitBox) return;
+
+  var ctx       = waitBox.dataset.ctx;
+  var bookingId = waitBox.dataset.bookingId;
+  var msgEl     = document.getElementById('vietqrWaitMsg');
+  var attempts  = 0;
+  var maxAttempts = 90; // ~3 phút
+
+  function poll() {
+    attempts++;
+    fetch(ctx + '/staff/counter?action=paymentStatus&bookingId=' + encodeURIComponent(bookingId), {
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json' }
+    })
+    .then(function (res) { return res.ok ? res.json() : null; })
+    .then(function (data) {
+      if (data && data.paid && data.successUrl) {
+        window.location.href = data.successUrl;
+        return;
+      }
+      if (attempts >= maxAttempts) {
+        if (msgEl) msgEl.textContent = 'Chưa nhận được xác nhận SePay. Dùng nút xác nhận thủ công nếu cần.';
+        return;
+      }
+      if (msgEl) msgEl.textContent = 'Đang chờ SePay xác nhận... (' + attempts + '/' + maxAttempts + ')';
+      setTimeout(poll, 2000);
+    })
+    .catch(function () { if (attempts < maxAttempts) setTimeout(poll, 2000); });
+  }
+
+  poll();
+})();
 </script>
 </body>
 </html>

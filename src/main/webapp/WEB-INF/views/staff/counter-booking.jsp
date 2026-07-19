@@ -1,18 +1,13 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"   uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn"  uri="jakarta.tags.functions" %>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="ctx" content="${pageContext.request.contextPath}"/>
-  <title>Quầy Bán Vé — ÉpCine POS</title>
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/main.css"/>
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/staff.css"/>
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/counter-pos.css"/>
-</head>
-<body class="pos-body">
+
+<c:set var="pageTitle" value="Quầy Bán Vé — ÉpCine POS"/>
+<c:set var="extraCss"  value="staff"/>
+<c:set var="extraCss2" value="counter-pos"/>
+<%@ include file="/WEB-INF/views/common/header.jsp" %>
+<meta name="ctx" content="${pageContext.request.contextPath}"/>
+<script>document.body.classList.add('pos-body');</script>
 
 <div class="pos-container">
 
@@ -28,6 +23,7 @@
       <span class="pos-title">Quầy Bán Vé</span>
     </div>
     <div class="pos-header-right">
+      <a href="${pageContext.request.contextPath}/staff/history" class="hist-back-btn">&#128203; Lịch sử</a>
       <span class="pos-staff-name">
         Nhân viên: <strong><c:out value="${sessionScope.loggedUser.fullName}"/></strong>
       </span>
@@ -57,9 +53,9 @@
 
       <%-- Tabs --%>
       <div class="pos-tab-bar">
-        <button class="pos-tab pos-tab--active" id="tabNowShowing"
+        <button class="pos-tab pos-tab--active" id="tabNowShowing" data-tab="now"
                 onclick="switchTab('now')">Đang chiếu</button>
-        <button class="pos-tab" id="tabComingSoon"
+        <button class="pos-tab" id="tabComingSoon" data-tab="coming"
                 onclick="switchTab('coming')">Sắp chiếu</button>
       </div>
 
@@ -192,21 +188,33 @@
 
       <%-- Thông tin khách hàng --%>
       <div class="pos-customer-section" style="margin-top:8px">
-        <div class="pos-section-label">Thông tin khách hàng</div>
+        <div class="pos-section-label">Thông tin khách hàng
+          <span style="font-size:11px;color:#888;font-weight:400">(tùy chọn — bỏ trống nếu là khách vãng lai)</span>
+        </div>
         <input type="text" id="custName"
                class="pos-form-input"
-               placeholder="Họ tên khách hàng *"
-               oninput="checkProceedBtn()"/>
+               placeholder="Họ tên khách hàng (tùy chọn)"/>
         <input type="tel" id="custPhone"
                class="pos-form-input"
-               placeholder="Số điện thoại *"
-               oninput="checkProceedBtn()"/>
+               placeholder="Số điện thoại (tùy chọn)"/>
+      </div>
+
+      <%-- Đếm ngược giữ ghế --%>
+      <div id="holdCountdown" class="hold-countdown" style="display:none">
+        <span class="hold-countdown__icon">&#9201;</span>
+        <span>Ghế được giữ trong</span>
+        <span id="holdTime" class="hold-countdown__time">10:00</span>
       </div>
 
       <%-- Tổng tiền --%>
       <div class="pos-total-row">
         <span>Tổng tiền</span>
         <strong id="totalDisplay" class="pos-total-amount">0 ₫</strong>
+      </div>
+
+      <%-- Cảnh báo tài khoản bị khóa --%>
+      <div id="memberLockedWarn" class="pos-alert pos-alert--error" style="display:none;margin-bottom:8px;font-size:13px;">
+        &#9888; Tài khoản thành viên này đang bị tạm khóa. Không thể đặt vé.
       </div>
 
       <%-- Nút tiến hành --%>
@@ -229,6 +237,5 @@
   </div><%-- /pos-layout --%>
 </div><%-- /pos-container --%>
 
-<script src="${pageContext.request.contextPath}/js/counter-booking.js"></script>
-</body>
-</html>
+<script src="${pageContext.request.contextPath}/js/counter-booking.js?v=6"></script>
+<%@ include file="/WEB-INF/views/common/footer.jsp" %>

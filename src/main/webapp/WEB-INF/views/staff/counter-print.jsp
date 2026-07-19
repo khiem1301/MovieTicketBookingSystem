@@ -322,10 +322,15 @@
     fetch(`${CTX}/staff/counter?action=markPrinted`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'action=markPrinted&bookingId=' + encodeURIComponent(BOOKING_ID)
+      body: 'bookingId=' + encodeURIComponent(BOOKING_ID)
     })
-    .then(r => r.json())
-    .then(data => {
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    })
+    .then(text => {
+      let data;
+      try { data = JSON.parse(text); } catch (e) { throw new Error('parse'); }
       if (data.ok) {
         btn.textContent = '✓ Đã lưu trạng thái in';
         btn.style.background = '#2e7d32';
@@ -336,10 +341,14 @@
         alert('Lỗi cập nhật: ' + (data.error || 'Không xác định'));
       }
     })
-    .catch(() => {
+    .catch(err => {
       btn.disabled = false;
       btn.textContent = '✓ Xác nhận đã in xong';
-      alert('Không thể kết nối máy chủ.');
+      if (err && err.message === 'HTTP 401') {
+        alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      } else {
+        alert('Không thể lưu trạng thái in. Vui lòng thử lại.');
+      }
     });
   }
 </script>
