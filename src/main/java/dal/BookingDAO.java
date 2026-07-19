@@ -1264,4 +1264,130 @@ public class BookingDAO {
         }
         return 0;
     }
+
+    // ── Sprint 3: Offline booking history ─────────────────────────────
+
+    /**
+     * Lấy danh sách booking OFFLINE có filter + phân trang.
+     *
+     * @param dateFrom   yyyy-MM-dd hoặc null
+     * @param dateTo     yyyy-MM-dd hoặc null
+     * @param status     "CONFIRMED", "PENDING", "CANCELLED" hoặc null (tất cả)
+     * @param search     tìm theo tên hoặc SĐT khách hoặc booking_code, null = không lọc
+     * @param page       trang bắt đầu từ 1
+     * @param pageSize   số bản ghi mỗi trang
+     */
+    public List<model.dto.OfflineBookingDTO> getOfflineBookings(
+            String dateFrom, String dateTo, String status, String search,
+            int page, int pageSize) {
+
+        StringBuilder where = new StringBuilder("WHERE b.booking_source = 'OFFLINE'");
+        List<Object> params = new java.util.ArrayList<>();
+
+        if (dateFrom != null && !dateFrom.isBlank()) {
+            where.append(" AND CAST(b.booked_at AS DATE) >= ?");
+            params.add(dateFrom);
+        }
+        if (dateTo != null && !dateTo.isBlank()) {
+            where.append(" AND CAST(b.booked_at AS DATE) <= ?");
+            params.add(dateTo);
+        }
+        if (status != null && !status.isBlank()) {
+            where.append(" AND b.booking_status = ?");
+            params.add(status);
+        }
+        if (search != null && !search.isBlank()) {
+            where.append(" AND (b.customer_name LIKE ? OR b.customer_phone LIKE ? OR b.booking_code LIKE ?)");
+            String like = "%" + search.trim() + "%";
+            params.add(like); params.add(like); params.add(like);
+        }
+
+        String sql = """
+                SELECT b.id, b.booking_code, b.customer_name, b.customer_phone,
+                       m.title AS movie_title, cr.room_name,
+                       s.start_time, b.booked_at,
+                       (SELECT COUNT(*) FROM BookingSeats bs WHERE bs.booking_id = b.id) AS seat_count,
+                       b.total_amount, b.final_amount,
+                       b.booking_status, b.payment_status,
+                       u.full_name AS staff_name, b.user_id
+                FROM Bookings b
+                JOIN Showtimes s  ON s.id  = b.showtime_id
+                JOIN Movies m     ON m.id  = s.movie_id
+                JOIN CinemaRooms cr ON cr.id = s.room_id
+                LEFT JOIN Users u ON u.id  = b.created_by_staff_id
+                """ + where + """
+                ORDER BY b.booked_at DESC
+                OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
+                """;
+
+        List<model.dto.OfflineBookingDTO> list = new java.util.ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int i = 1;
+            for (Object p : params) ps.setObject(i++, p);
+            ps.setInt(i++, (page - 1) * pageSize);
+            ps.setInt(i,   pageSize);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    model.dto.OfflineBookingDTO dto = new model.dto.OfflineBookingDTO();
+                    dto.setBookingId(rs.getString("id"));
+                    dto.setBookingCode(rs.getString("booking_code"));
+                    dto.setCustomerName(rs.getString("customer_name"));
+                    dto.setCustomerPhone(rs.getString("customer_phone"));
+                    dto.setMovieTitle(rs.getString("movie_title"));
+                    dto.setRoomName(rs.getString("room_name"));
+                    dto.setStartTime(rs.getTimestamp("start_time"));
+                    dto.setBookedAt(rs.getTimestamp("booked_at"));
+                    dto.setSeatCount(rs.getInt("seat_count"));
+                    dto.setTotalAmount(rs.getBigDecimal("total_amount"));
+                    dto.setFinalAmount(rs.getBigDecimal("final_amount"));
+                    dto.setBookingStatus(rs.getString("booking_status"));
+                    dto.setPaymentStatus(rs.getString("payment_status"));
+                    dto.setStaffName(rs.getString("staff_name"));
+                    dto.setUserId(rs.getString("user_id"));
+                    list.add(dto);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("getOfflineBookings failed", e);
+        }
+        return list;
+    }
+
+    /** Đếm tổng booking OFFLINE khớp filter (dùng để tính số trang). */
+    public int countOfflineBookings(String dateFrom, String dateTo, String status, String search) {
+        StringBuilder where = new StringBuilder("WHERE b.booking_source = 'OFFLINE'");
+        List<Object> params = new java.util.ArrayList<>();
+
+        if (dateFrom != null && !dateFrom.isBlank()) {
+            where.append(" AND CAST(b.booked_at AS DATE) >= ?");
+            params.add(dateFrom);
+        }
+        if (dateTo != null && !dateTo.isBlank()) {
+            where.append(" AND CAST(b.booked_at AS DATE) <= ?");
+            params.add(dateTo);
+        }
+        if (status != null && !status.isBlank()) {
+            where.append(" AND b.booking_status = ?");
+            params.add(status);
+        }
+        if (search != null && !search.isBlank()) {
+            where.append(" AND (b.customer_name LIKE ? OR b.customer_phone LIKE ? OR b.booking_code LIKE ?)");
+            String like = "%" + search.trim() + "%";
+            params.add(like); params.add(like); params.add(like);
+        }
+
+        String sql = "SELECT COUNT(*) FROM Bookings b " + where;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            int i = 1;
+            for (Object p : params) ps.setObject(i++, p);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("countOfflineBookings failed", e);
+        }
+        return 0;
+    }
 }

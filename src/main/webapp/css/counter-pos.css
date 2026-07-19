@@ -1019,3 +1019,175 @@
 ::-webkit-scrollbar-track  { background: transparent; }
 ::-webkit-scrollbar-thumb  { background: #2a2a2a; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+
+/* ══════════════════════════════════════════════════════════════
+   Sprint 3 — Lịch sử đặt vé tại quầy (/staff/history)
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Back button ─────────────────────────────────────────── */
+.hist-back-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 5px 12px; border-radius: 6px;
+  background: rgba(255,255,255,.08); color: #ccc;
+  font-size: 13px; text-decoration: none;
+  transition: background .15s;
+}
+.hist-back-btn:hover { background: rgba(255,255,255,.15); color: #fff; }
+
+/* ── Seat hold countdown ─────────────────────────────────── */
+.hold-countdown {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(99, 179, 237, .12);
+  border: 1px solid rgba(99, 179, 237, .35);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #90cdf4;
+}
+.hold-countdown__icon { font-size: 16px; }
+.hold-countdown__time {
+  margin-left: auto;
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #63b3ed;
+  letter-spacing: 1px;
+}
+.hold-countdown--warn {
+  background: rgba(252, 129, 74, .12);
+  border-color: rgba(252, 129, 74, .4);
+  color: #fc814a;
+}
+.hold-countdown--warn .hold-countdown__time { color: #fc814a; animation: blink-warn .8s step-end infinite; }
+@keyframes blink-warn { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── Filter form ─────────────────────────────────────────── */
+.hist-filter-form {
+  background: #1a1a1a; border: 1px solid #2a2a2a;
+  border-radius: 10px; padding: 16px 20px; margin-bottom: 12px;
+}
+.hist-filter-row {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+}
+.hist-filter-group { display: flex; flex-direction: column; gap: 4px; }
+.hist-filter-group--search { flex: 1; min-width: 180px; }
+.hist-filter-label {
+  font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: .4px;
+}
+.hist-filter-input {
+  background: #111; border: 1px solid #333; border-radius: 6px;
+  color: #eee; padding: 7px 10px; font-size: 13px;
+  outline: none; transition: border-color .15s;
+}
+.hist-filter-input:focus { border-color: #e50914; }
+.hist-filter-actions { display: flex; gap: 8px; align-items: flex-end; }
+
+/* Quick filters */
+.hist-quick-filters {
+  display: flex; align-items: center; gap: 6px; margin-top: 10px;
+}
+.hist-quick-label { font-size: 12px; color: #666; }
+.hist-quick-btn {
+  font-size: 12px; padding: 3px 10px; border-radius: 12px;
+  border: 1px solid #333; color: #aaa; text-decoration: none;
+  transition: all .15s;
+}
+.hist-quick-btn:hover { border-color: #e50914; color: #e50914; }
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.hist-btn {
+  display: inline-block; padding: 7px 16px; border-radius: 6px;
+  font-size: 13px; font-weight: 600; text-decoration: none;
+  cursor: pointer; border: none; transition: all .15s;
+}
+.hist-btn--primary { background: #e50914; color: #fff; }
+.hist-btn--primary:hover { background: #c40812; }
+.hist-btn--ghost {
+  background: transparent; color: #aaa;
+  border: 1px solid #333;
+}
+.hist-btn--ghost:hover { color: #fff; border-color: #555; }
+.hist-btn--sm { padding: 4px 10px; font-size: 12px; font-weight: 500; }
+.hist-btn--print { background: #1a3a5c; color: #6ab0ff; margin-left: 4px; }
+.hist-btn--print:hover { background: #1e4a77; }
+
+/* ── Stats bar ───────────────────────────────────────────── */
+.hist-stats-bar {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 13px; color: #888; margin-bottom: 10px;
+}
+.hist-stats-bar strong { color: #eee; }
+.hist-filter-active {
+  background: #e50914; color: #fff; font-size: 11px;
+  padding: 2px 8px; border-radius: 10px;
+}
+
+/* ── Table ───────────────────────────────────────────────── */
+.hist-table-wrap {
+  background: #111; border: 1px solid #2a2a2a;
+  border-radius: 10px; overflow-x: auto;
+}
+.hist-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.hist-table thead tr {
+  background: #1a1a1a; border-bottom: 1px solid #2a2a2a;
+}
+.hist-table th {
+  padding: 10px 12px; color: #888; font-weight: 600;
+  text-transform: uppercase; font-size: 11px; letter-spacing: .4px;
+  white-space: nowrap;
+}
+.hist-table td {
+  padding: 10px 12px; border-bottom: 1px solid #1e1e1e;
+  vertical-align: middle; color: #ccc;
+}
+.hist-table tbody tr:last-child td { border-bottom: none; }
+.hist-table tbody tr:hover td { background: rgba(255,255,255,.03); }
+
+.text-center { text-align: center; }
+.text-right  { text-align: right; }
+
+.hist-code   { font-family: monospace; font-size: 12px; color: #e8b86d; }
+.hist-sub    { font-size: 11px; color: #666; margin-top: 2px; }
+.hist-movie  { font-weight: 600; color: #eee; }
+.hist-amount { font-weight: 700; color: #4caf82; font-size: 13px; }
+
+/* Status badges */
+.hist-badge {
+  display: inline-block; padding: 3px 9px; border-radius: 10px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+}
+.hist-badge--confirmed { background: #1a3a1a; color: #4caf82; }
+.hist-badge--pending   { background: #3a2e0a; color: #f5a623; }
+.hist-badge--cancelled { background: #2a1010; color: #e57373; }
+
+/* Member badge */
+.hist-member-badge {
+  display: inline-block; font-size: 10px; padding: 1px 6px;
+  background: #3a2a0a; color: #f5c842; border-radius: 8px;
+  font-weight: 700; margin-top: 2px;
+}
+
+/* ── Empty state ─────────────────────────────────────────── */
+.hist-empty {
+  text-align: center; padding: 60px 20px; color: #555;
+}
+.hist-empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+/* ── Pagination ──────────────────────────────────────────── */
+.hist-pagination {
+  display: flex; justify-content: center; gap: 6px;
+  padding: 16px 0; flex-wrap: wrap;
+}
+.hist-page-btn {
+  display: inline-block; padding: 5px 12px; border-radius: 6px;
+  border: 1px solid #333; color: #aaa; font-size: 13px;
+  text-decoration: none; transition: all .15s;
+}
+.hist-page-btn:hover { border-color: #e50914; color: #e50914; }
+.hist-page-btn--active { background: #e50914; border-color: #e50914; color: #fff; }
+.hist-page-ellipsis { color: #555; padding: 5px 4px; font-size: 13px; }
