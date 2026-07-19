@@ -68,13 +68,20 @@
         <c:if test="${sessionScope.userRole == 'CUSTOMER' and not canReview}">
           <p class="mi-reviews-form-hint">
             <span class="mi-reviews-form-hint-icon">ⓘ</span>
-            Chỉ khách hàng đã mua vé và xem suất chiếu của phim này mới có thể đánh giá.
+            <c:choose>
+              <c:when test="${reviewBanned}">
+                Bạn đã bị xóa đánh giá phim này quá nhiều lần nên không thể đánh giá lại.
+              </c:when>
+              <c:otherwise>
+                Chỉ khách hàng đã mua vé và xem suất chiếu của phim này mới có thể đánh giá.
+              </c:otherwise>
+            </c:choose>
           </p>
         </c:if>
 
         <c:if test="${not empty param.reviewError}">
           <div class="mi-review-alert mi-review-alert--error">
-            Không thể gửi đánh giá. Vui lòng chọn số sao và thử lại.
+            <c:out value="${param.reviewError}"/>
           </div>
         </c:if>
         <c:if test="${not empty param.reviewSuccess}">

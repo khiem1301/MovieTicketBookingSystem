@@ -11,6 +11,8 @@ import model.dto.SessionUser;
 import utils.SessionUtil;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /** FR-20 — Gửi/cập nhật đánh giá phim (1–5 sao + nhận xét) từ trang chi tiết phim. */
 @WebServlet(urlPatterns = {"/reviews/submit"})
@@ -40,7 +42,15 @@ public class ReviewSubmitServlet extends HttpServlet {
         String redirectBack = req.getContextPath() + "/showtimes?movieId=" + movieId;
 
         if (!new BookingDAO().hasWatchedMovie(sessionUser.getId(), movieId)) {
-            resp.sendRedirect(redirectBack + "&reviewError=Ban+can+mua+ve+va+xem+phim+nay+truoc");
+            redirectWithError(resp, redirectBack, "Bạn cần mua vé và xem phim này trước khi đánh giá.");
+            return;
+        }
+
+        MovieReviewDAO reviewDAO = new MovieReviewDAO();
+        if (reviewDAO.countDeletionsByUserAndMovie(sessionUser.getId(), movieId)
+                >= MovieReviewDAO.DELETION_BAN_THRESHOLD) {
+            redirectWithError(resp, redirectBack,
+                    "Bạn đã bị xóa đánh giá phim này quá nhiều lần nên không thể đánh giá lại.");
             return;
         }
 
@@ -48,18 +58,22 @@ public class ReviewSubmitServlet extends HttpServlet {
         try {
             rating = Integer.parseInt(ratingStr);
         } catch (NumberFormatException e) {
-            resp.sendRedirect(redirectBack + "&reviewError=Vui+long+chon+so+sao+danh+gia");
+            redirectWithError(resp, redirectBack, "Vui lòng chọn số sao đánh giá.");
             return;
         }
         if (rating < 1 || rating > 5) {
-            resp.sendRedirect(redirectBack + "&reviewError=So+sao+danh+gia+khong+hop+le");
+            redirectWithError(resp, redirectBack, "Số sao đánh giá không hợp lệ.");
+            return;
+        }
+        if (content != null && content.length() > 2000) {
+            redirectWithError(resp, redirectBack, "Nhận xét tối đa 2000 ký tự.");
             return;
         }
 
         try {
-            new MovieReviewDAO().upsert(movieId, sessionUser.getId(), rating, content);
+            reviewDAO.upsert(movieId, sessionUser.getId(), rating, content);
         } catch (RuntimeException e) {
-            resp.sendRedirect(redirectBack + "&reviewError=Khong+the+luu+danh+gia");
+            redirectWithError(resp, redirectBack, "Không thể lưu đánh giá. Vui lòng thử lại.");
             return;
         }
 
@@ -67,4 +81,10 @@ public class ReviewSubmitServlet extends HttpServlet {
     }
 
     private String trim(String v) { return v == null ? null : v.trim(); }
+
+    private void redirectWithError(HttpServletResponse resp, String redirectBack, String message)
+            throws IOException {
+        resp.sendRedirect(redirectBack + "&reviewError="
+                + URLEncoder.encode(message, StandardCharsets.UTF_8));
+    }
 }

@@ -64,6 +64,13 @@ public class PromotionSaveServlet extends HttpServlet {
             errors.add("Tiêu đề tối đa 255 ký tự.");
         }
 
+        // ── Validate description ─────────────────────────────────────────
+        if (description == null || description.isBlank()) {
+            errors.add("Mô tả không được để trống.");
+        } else if (description.length() > 500) {
+            errors.add("Mô tả tối đa 500 ký tự.");
+        }
+
         // ── Validate discountType ────────────────────────────────────────
         if (!"PERCENTAGE".equals(discountType) && !"FIXED_AMOUNT".equals(discountType)) {
             errors.add("Loại giảm giá không hợp lệ.");
@@ -87,9 +94,13 @@ public class PromotionSaveServlet extends HttpServlet {
             }
         }
 
-        // ── Validate maxDiscountAmount (tuỳ chọn) ───────────────────────
+        // ── Validate maxDiscountAmount (bắt buộc với loại Phần trăm) ────
         BigDecimal maxDiscount = null;
-        if (maxDiscStr != null && !maxDiscStr.isBlank()) {
+        if (maxDiscStr == null || maxDiscStr.isBlank()) {
+            if ("PERCENTAGE".equals(discountType)) {
+                errors.add("Giảm tối đa không được để trống.");
+            }
+        } else {
             try {
                 maxDiscount = new BigDecimal(maxDiscStr);
                 if (maxDiscount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -100,9 +111,11 @@ public class PromotionSaveServlet extends HttpServlet {
             }
         }
 
-        // ── Validate minOrderAmount (tuỳ chọn) ──────────────────────────
+        // ── Validate minOrderAmount ──────────────────────────────────────
         BigDecimal minOrder = null;
-        if (minOrderStr != null && !minOrderStr.isBlank()) {
+        if (minOrderStr == null || minOrderStr.isBlank()) {
+            errors.add("Đơn hàng tối thiểu không được để trống.");
+        } else {
             try {
                 minOrder = new BigDecimal(minOrderStr);
                 if (minOrder.compareTo(BigDecimal.ZERO) <= 0) {
@@ -137,9 +150,11 @@ public class PromotionSaveServlet extends HttpServlet {
             errors.add("Ngày kết thúc phải sau ngày bắt đầu.");
         }
 
-        // ── Validate usageLimit (tuỳ chọn) ──────────────────────────────
+        // ── Validate usageLimit ──────────────────────────────────────────
         Integer usageLimit = null;
-        if (usageLimitStr != null && !usageLimitStr.isBlank()) {
+        if (usageLimitStr == null || usageLimitStr.isBlank()) {
+            errors.add("Giới hạn sử dụng không được để trống.");
+        } else {
             try {
                 usageLimit = Integer.parseInt(usageLimitStr);
                 if (usageLimit <= 0) errors.add("Giới hạn sử dụng phải lớn hơn 0.");
