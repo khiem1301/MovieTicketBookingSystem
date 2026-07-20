@@ -256,6 +256,15 @@
   color: var(--text-muted);
 }
 
+.admin-pagination-info strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.admin-pagination-nav svg {
+  flex-shrink: 0;
+}
+
 /* ── Detail page ─────────────────────────────────────────── */
 .admin-detail-grid {
   display: grid;

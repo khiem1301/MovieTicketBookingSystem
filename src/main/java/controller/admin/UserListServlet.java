@@ -29,7 +29,7 @@ public class UserListServlet extends HttpServlet {
             return;
         }
 
-        String keyword  = trim(req.getParameter("q"));
+        String keyword  = trim(req.getParameter("keyword"));
         String roleName = trim(req.getParameter("role"));
         String status   = trim(req.getParameter("status"));
         int page = AdminPaginationUtil.parsePage(req.getParameter("page"));
@@ -56,7 +56,7 @@ public class UserListServlet extends HttpServlet {
         req.setAttribute("pgTotalItems", total);
         req.setAttribute("pgPath", req.getContextPath() + "/admin/users");
         req.setAttribute("pgQueryExtra",
-                AdminPaginationUtil.queryParam("q", keyword)
+                AdminPaginationUtil.queryParam("keyword", keyword)
                         + AdminPaginationUtil.queryParam("role", roleName)
                         + AdminPaginationUtil.queryParam("status", status));
         req.setAttribute("flashSuccess", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_SUCCESS));
