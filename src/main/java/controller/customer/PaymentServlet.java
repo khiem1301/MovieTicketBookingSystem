@@ -57,6 +57,10 @@ public class PaymentServlet extends HttpServlet {
             return;
         }
 
+        // Tránh Back hiện form thanh toán cũ từ bfcache / disk cache
+        resp.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+        resp.setHeader("Pragma", "no-cache");
+
         BookingDetailDTO detail = new BookingDAO().getDetailById(bookingId);
         if (detail != null
                 && detail.getUserId() != null
@@ -414,6 +418,14 @@ public class PaymentServlet extends HttpServlet {
                               BookingDAO bookingDAO, BookingDetailDTO detail,
                               String bookingId, String userId, String releaseStatus)
             throws IOException, ServletException {
+        // Đơn đã thanh toán — không hủy/expire; đưa về success
+        if (detail != null
+                && detail.getUserId() != null
+                && detail.getUserId().equals(userId)
+                && "PAID".equals(detail.getPaymentStatus())) {
+            resp.sendRedirect(req.getContextPath() + "/payment/success?bookingId=" + bookingId);
+            return;
+        }
         if (detail == null
                 || detail.getUserId() == null
                 || !detail.getUserId().equals(userId)
@@ -501,6 +513,12 @@ public class PaymentServlet extends HttpServlet {
             req.getRequestDispatcher("/WEB-INF/views/error/404.jsp").forward(req, resp);
             return;
         }
+        // Đã thanh toán xong (Back / bấm QR lại) → về success, không đẩy về checkout kèm lỗi
+        if ("ALREADY_PAID".equals(guardError) && detail != null && detail.getBookingId() != null) {
+            resp.sendRedirect(req.getContextPath()
+                    + "/payment/success?bookingId=" + detail.getBookingId());
+            return;
+        }
         // Hết hạn thanh toán: đánh EXPIRED để ghế không còn bị khóa
         if (detail != null
                 && detail.getBookingId() != null
@@ -529,6 +547,10 @@ public class PaymentServlet extends HttpServlet {
         }
         if (!"ONLINE".equals(detail.getBookingSource())) {
             return "NOT_FOUND";
+        }
+        if ("PAID".equals(detail.getPaymentStatus())
+                || "CONFIRMED".equals(detail.getBookingStatus())) {
+            return "ALREADY_PAID";
         }
         if (!"PENDING".equals(detail.getBookingStatus())) {
             return "Đơn đặt vé không còn ở trạng thái chờ thanh toán.";

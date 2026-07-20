@@ -30,8 +30,8 @@ import utils.SeatHoldException;
 
 public class BookingDAO {
 
-    /** TEMP test: 1 phút. Đổi lại 10 trước khi demo/production. */
-    public static final int ONLINE_EXPIRE_MINUTES = 1;
+    /** Thời gian thanh toán online (Customer) — countdown trên /payment. */
+    public static final int ONLINE_EXPIRE_MINUTES = 5;
 
     /**
      * FR-35 / FR-38 — Tạo booking tại quầy (OFFLINE).
