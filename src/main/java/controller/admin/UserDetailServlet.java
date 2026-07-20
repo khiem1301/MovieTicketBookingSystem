@@ -12,6 +12,7 @@ import model.entity.User;
 import model.entity.UserStatusLog;
 import utils.AdminAuthUtil;
 import utils.EmailUtil;
+import utils.IdParamUtil;
 import utils.SessionUtil;
 
 import java.io.IOException;
@@ -21,6 +22,7 @@ import java.util.Optional;
 public class UserDetailServlet extends HttpServlet {
 
     private static final String VIEW = "/WEB-INF/views/admin/user-detail.jsp";
+    private static final String NOT_FOUND_VIEW = "/WEB-INF/views/error/404.jsp";
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
@@ -30,17 +32,21 @@ public class UserDetailServlet extends HttpServlet {
             return;
         }
 
-        String userId = trim(req.getParameter("id"));
-        if (userId == null) {
-            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, "Không tìm thấy người dùng.");
-            resp.sendRedirect(req.getContextPath() + "/admin/users");
+        String userId = IdParamUtil.normalize(req.getParameter("id"));
+        if (!IdParamUtil.isValidUuid(userId)) {
+            showNotFound(req, resp);
             return;
         }
 
-        Optional<User> found = new UserDAO().findById(userId);
+        Optional<User> found;
+        try {
+            found = new UserDAO().findById(userId);
+        } catch (RuntimeException ex) {
+            showNotFound(req, resp);
+            return;
+        }
         if (found.isEmpty()) {
-            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, "Người dùng không tồn tại.");
-            resp.sendRedirect(req.getContextPath() + "/admin/users");
+            showNotFound(req, resp);
             return;
         }
 
@@ -72,7 +78,9 @@ public class UserDetailServlet extends HttpServlet {
         req.getRequestDispatcher(VIEW).forward(req, resp);
     }
 
-    private String trim(String value) {
-        return value == null ? null : value.trim();
+    private void showNotFound(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        req.getRequestDispatcher(NOT_FOUND_VIEW).forward(req, resp);
     }
 }

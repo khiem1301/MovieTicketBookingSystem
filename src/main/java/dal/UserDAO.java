@@ -77,17 +77,21 @@ public class UserDAO {
     }
 
     public Optional<User> findById(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return Optional.empty();
+        }
         String sql = SELECT_WITH_ROLE + " WHERE u.id = ?";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, userId);
+            ps.setString(1, userId.trim());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("findById failed", e);
+            // id sai định dạng uniqueidentifier → coi như không tìm thấy (tránh 500)
+            return Optional.empty();
         }
         return Optional.empty();
     }
