@@ -12,6 +12,33 @@
   var countdownEl = document.getElementById('payCountdown');
   var timerId = null;
 
+  function goToSuccess(url) {
+    if (!url) return;
+    // replace: Back không kẹt lại trang payment đã PAID
+    window.location.replace(url);
+  }
+
+  /** Back/bfcache: nếu đơn đã PAID thì đưa về success ngay. */
+  function redirectIfAlreadyPaid() {
+    if (!bookingId || !ctx) return;
+    fetch(ctx + '/payment/status?bookingId=' + encodeURIComponent(bookingId), {
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    })
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (data) {
+        if (data && data.paid && data.successUrl) {
+          goToSuccess(data.successUrl);
+        }
+      })
+      .catch(function () { /* ignore */ });
+  }
+
+  window.addEventListener('pageshow', function () {
+    redirectIfAlreadyPaid();
+  });
+
   document.addEventListener('DOMContentLoaded', function () {
     startVietqrSepayPoll();
 
@@ -124,7 +151,8 @@
 
       fetch(ctx + '/payment/status?bookingId=' + encodeURIComponent(bookingId), {
         credentials: 'same-origin',
-        headers: { 'Accept': 'application/json' }
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store'
       })
         .then(function (res) {
           if (res.status === 401) {
@@ -138,7 +166,7 @@
         })
         .then(function (data) {
           if (data && data.paid && data.successUrl) {
-            window.location.href = data.successUrl;
+            goToSuccess(data.successUrl);
             return;
           }
           if (attempts >= maxAttempts) {

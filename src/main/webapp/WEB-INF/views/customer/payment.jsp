@@ -346,5 +346,5 @@
   </div>
 </div>
 
-<script charset="UTF-8" src="${ctx}/js/customer-payment.js"></script>
+<script charset="UTF-8" src="${ctx}/js/customer-payment.js?v=2"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
