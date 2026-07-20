@@ -297,7 +297,7 @@ public class BookingDAO {
                        b.customer_name, b.customer_phone,
                        b.booking_status, b.payment_status,
                        b.total_amount, b.discount_amount, b.final_amount, b.vat_rate_snapshot,
-                       b.expired_at,
+                       b.expired_at, b.points_redeemed,
                        m.title AS movie_title, m.poster_url AS movie_poster_url,
                        cr.room_name, s.start_time
                 FROM Bookings b
@@ -348,6 +348,7 @@ public class BookingDAO {
                         dto.setMoviePosterUrl(rs.getString("movie_poster_url"));
                         dto.setRoomName(rs.getString("room_name"));
                         dto.setStartTime(rs.getTimestamp("start_time"));
+                        dto.setPointsRedeemed(rs.getInt("points_redeemed"));
                     }
                 }
             }
@@ -513,7 +514,8 @@ public class BookingDAO {
             conn.setAutoCommit(false);
 
             String statusSql = """
-                    SELECT booking_code, booking_status, payment_status, user_id, showtime_id
+                    SELECT booking_code, booking_status, payment_status, user_id, showtime_id,
+                           final_amount, points_redeemed
                     FROM Bookings WHERE id = ?
                     """;
             String bookingCode;
@@ -521,6 +523,8 @@ public class BookingDAO {
             String paymentStatus;
             String userId;
             String showtimeId;
+            BigDecimal finalAmount;
+            int pointsRedeemed;
             try (PreparedStatement ps = conn.prepareStatement(statusSql)) {
                 ps.setString(1, bookingId);
                 try (ResultSet rs = ps.executeQuery()) {
@@ -533,6 +537,8 @@ public class BookingDAO {
                     paymentStatus = rs.getString("payment_status");
                     userId = rs.getString("user_id");
                     showtimeId = rs.getString("showtime_id");
+                    finalAmount = rs.getBigDecimal("final_amount");
+                    pointsRedeemed = rs.getInt("points_redeemed");
                 }
             }
 
@@ -572,6 +578,16 @@ public class BookingDAO {
                     ps.setString(2, userId);
                     ps.executeUpdate();
                 }
+            }
+
+            // FR-43: trừ điểm đã dùng (nếu có)
+            if (userId != null && pointsRedeemed > 0) {
+                LoyaltyDAO.redeemPoints(conn, userId, bookingId, pointsRedeemed);
+            }
+            // FR-41: cộng điểm tích luỹ từ đơn online
+            if (userId != null && finalAmount != null) {
+                LoyaltyDAO.earnPoints(conn, userId, bookingId, finalAmount,
+                        "Tích điểm từ đặt vé online");
             }
 
             conn.commit();
@@ -1041,7 +1057,7 @@ public class BookingDAO {
 
         String logSql = """
                 INSERT INTO LoyaltyPointsLog (user_id, booking_id, points_delta, transaction_type, note)
-                VALUES (?, ?, ?, 'EARN', N'Tích điểm từ đặt vé tại quầy')
+                VALUES (?, ?, ?, 'EARN', N'Tích điểm từ đặt vé tại quầy (offline)')
                 """;
         try (PreparedStatement ps = conn.prepareStatement(logSql)) {
             ps.setString(1, userId);
