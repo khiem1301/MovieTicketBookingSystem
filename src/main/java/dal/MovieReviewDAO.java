@@ -19,6 +19,9 @@ import java.util.Set;
 /** FR-20 — Đánh giá phim (1–5 sao + nhận xét), mỗi user chỉ review 1 lần / 1 phim. */
 public class MovieReviewDAO {
 
+    /** Số lần bị xóa đánh giá (cùng 1 phim) để bị chặn đánh giá lại phim đó. */
+    public static final int DELETION_BAN_THRESHOLD = 10;
+
     private static final String MOVIE_JOIN_COLS = """
             r.id, r.movie_id, r.user_id, r.rating, r.review_content, r.created_at,
             m.title AS movie_title, m.slug AS movie_slug, m.poster_url AS movie_poster_url,
@@ -253,19 +256,23 @@ public class MovieReviewDAO {
         }
     }
 
-    /** Manager/Admin xóa đánh giá vi phạm của bất kỳ khách hàng nào, rồi tính lại average_rating. */
-    public boolean deleteByManager(String reviewId) {
+    /** Manager/Admin xóa đánh giá vi phạm của bất kỳ khách hàng nào, ghi log lý do, rồi tính lại average_rating. */
+    public boolean deleteByManager(String reviewId, String reason, String deletedByUserId) {
         Connection conn = null;
         try {
             conn = DBContext.getConnection();
             conn.setAutoCommit(false);
 
             String movieId = null;
+            String userId = null;
             try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT movie_id FROM MovieReviews WHERE id = ?")) {
+                    "SELECT movie_id, user_id FROM MovieReviews WHERE id = ?")) {
                 ps.setString(1, reviewId);
                 try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) movieId = rs.getString("movie_id");
+                    if (rs.next()) {
+                        movieId = rs.getString("movie_id");
+                        userId = rs.getString("user_id");
+                    }
                 }
             }
             if (movieId == null) {
@@ -276,6 +283,16 @@ public class MovieReviewDAO {
             try (PreparedStatement ps = conn.prepareStatement(
                     "DELETE FROM MovieReviews WHERE id = ?")) {
                 ps.setString(1, reviewId);
+                ps.executeUpdate();
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO ReviewDeletionLog (movie_id, user_id, reason, deleted_by) VALUES (?,?,?,?)")) {
+                ps.setString(1, movieId);
+                ps.setString(2, userId);
+                ps.setString(3, reason);
+                if (deletedByUserId != null) ps.setString(4, deletedByUserId);
+                else ps.setNull(4, Types.NVARCHAR);
                 ps.executeUpdate();
             }
 
@@ -306,6 +323,21 @@ public class MovieReviewDAO {
                     conn.close();
                 } catch (SQLException ignored) { }
             }
+        }
+    }
+
+    /** Số lần user bị manager xóa đánh giá CHO RIÊNG 1 phim — dùng để chặn đánh giá lại sau 10 lần. */
+    public int countDeletionsByUserAndMovie(String userId, String movieId) {
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT COUNT(*) FROM ReviewDeletionLog WHERE user_id = ? AND movie_id = ?")) {
+            ps.setString(1, userId);
+            ps.setString(2, movieId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("MovieReviewDAO.countDeletionsByUserAndMovie failed", e);
         }
     }
 

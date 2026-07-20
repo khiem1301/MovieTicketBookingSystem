@@ -3,7 +3,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt"       %>
 <%@ taglib prefix="fn"  uri="jakarta.tags.functions" %>
 
-<c:set var="pageTitle" value="Genre Management — ÉPCINE"/>
+<c:set var="pageTitle" value="Quản Lý Thể Loại — ÉPCINE"/>
 <c:set var="extraCss"  value="manager-genres"/>
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 
@@ -11,23 +11,23 @@
 
   <%-- Toast alerts --%>
   <c:if test="${param.success == 'created'}">
-    <div class="genre-alert genre-alert--success">Genre added successfully.</div>
+    <div class="genre-alert genre-alert--success">Thêm thể loại thành công.</div>
   </c:if>
   <c:if test="${param.success == 'updated'}">
-    <div class="genre-alert genre-alert--success">Genre updated successfully.</div>
+    <div class="genre-alert genre-alert--success">Cập nhật thể loại thành công.</div>
   </c:if>
   <c:if test="${param.success == 'deleted'}">
-    <div class="genre-alert genre-alert--success">Genre deleted successfully.</div>
+    <div class="genre-alert genre-alert--success">Xóa thể loại thành công.</div>
   </c:if>
   <c:if test="${param.success == 'status-updated'}">
-    <div class="genre-alert genre-alert--success">Genre status updated successfully.</div>
+    <div class="genre-alert genre-alert--success">Cập nhật trạng thái thể loại thành công.</div>
   </c:if>
 
   <%-- Page Header --%>
   <div class="genre-header">
     <div class="genre-header-left">
-      <h1>Genre Management</h1>
-      <p>Organize and manage your cinema's movie categorization system.</p>
+      <h1>Quản Lý Thể Loại</h1>
+      <p>Tổ chức và quản lý hệ thống phân loại phim của rạp.</p>
     </div>
     <div class="genre-header-right">
       <div class="genre-search">
@@ -36,21 +36,21 @@
              stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <input type="text" id="genreSearch" placeholder="Search genres…" oninput="applyFilters()"/>
+        <input type="text" id="genreSearch" placeholder="Tìm kiếm thể loại…" oninput="applyFilters()"/>
       </div>
-      <button class="btn-add-genre" onclick="openAddModal()">+ Add Genre</button>
+      <button class="btn-add-genre" onclick="openAddModal()">+ Thêm Thể Loại</button>
     </div>
   </div>
 
   <%-- Filter Bar --%>
   <div class="genre-filter-bar">
     <div class="genre-tabs">
-      <button class="genre-tab active" data-filter="all"      onclick="setTab(this)">All</button>
-      <button class="genre-tab"        data-filter="active"   onclick="setTab(this)">Active</button>
-      <button class="genre-tab"        data-filter="inactive" onclick="setTab(this)">Inactive</button>
+      <button class="genre-tab active" data-filter="all"      onclick="setTab(this)">Tất Cả</button>
+      <button class="genre-tab"        data-filter="active"   onclick="setTab(this)">Hoạt Động</button>
+      <button class="genre-tab"        data-filter="inactive" onclick="setTab(this)">Ngừng Hoạt Động</button>
     </div>
     <div class="genre-filter-icons">
-      <div class="genre-filter-icon" title="Filter">
+      <div class="genre-filter-icon" title="Bộ lọc">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="4" y1="6" x2="20" y2="6"/>
@@ -58,7 +58,7 @@
           <line x1="11" y1="18" x2="13" y2="18"/>
         </svg>
       </div>
-      <div class="genre-filter-icon" title="Export CSV" onclick="exportCSV()">
+      <div class="genre-filter-icon" title="Xuất CSV" onclick="exportCSV()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
@@ -73,17 +73,17 @@
   <div class="genre-table-wrap">
     <c:choose>
       <c:when test="${empty genreList}">
-        <div class="genre-empty">No genres found. Click <strong>+ Add Genre</strong> to create one.</div>
+        <div class="genre-empty">Không tìm thấy thể loại nào. Bấm <strong>+ Thêm Thể Loại</strong> để tạo mới.</div>
       </c:when>
       <c:otherwise>
         <table class="genre-table">
           <thead>
             <tr>
-              <th>Genre Name</th>
+              <th>Tên Thể Loại</th>
               <th>Slug</th>
-              <th>Movie Count</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th>Số Phim</th>
+              <th>Trạng Thái</th>
+              <th>Thao Tác</th>
             </tr>
           </thead>
           <tbody id="genreTableBody">
@@ -100,15 +100,15 @@
 
                 <td><span class="genre-slug-badge"><c:out value="${slug}"/></span></td>
 
-                <td>${movieCount} movie${movieCount != 1 ? 's' : ''}</td>
+                <td>${movieCount} phim</td>
 
                 <td>
                   <c:choose>
                     <c:when test="${g.active}">
-                      <span class="status-badge status-badge--active">Active</span>
+                      <span class="status-badge status-badge--active">Hoạt Động</span>
                     </c:when>
                     <c:otherwise>
-                      <span class="status-badge status-badge--inactive">Inactive</span>
+                      <span class="status-badge status-badge--inactive">Ngừng Hoạt Động</span>
                     </c:otherwise>
                   </c:choose>
                 </td>
@@ -119,7 +119,7 @@
                     <c:choose>
                       <c:when test="${inUse}">
                         <button class="genre-action-btn genre-action-btn--disabled"
-                                title="Cannot edit — genre is in use">
+                                title="Không thể sửa — thể loại đang được sử dụng">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                                stroke="currentColor" stroke-width="2"
                                stroke-linecap="round" stroke-linejoin="round">
@@ -129,7 +129,7 @@
                         </button>
                       </c:when>
                       <c:otherwise>
-                        <button class="genre-action-btn genre-action-btn--edit" title="Edit genre"
+                        <button class="genre-action-btn genre-action-btn--edit" title="Sửa thể loại"
                                 onclick="openEditModal('<c:out value="${g.id}"/>', '<c:out value="${g.genreName}"/>', this.closest('tr'))">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                                stroke="currentColor" stroke-width="2"
@@ -145,7 +145,7 @@
                     <c:choose>
                       <c:when test="${hasActiveMov}">
                         <button class="genre-action-btn genre-action-btn--disabled"
-                                title="Cannot change status — genre has now-showing or upcoming movies">
+                                title="Không thể đổi trạng thái — thể loại có phim đang chiếu hoặc sắp chiếu">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                                stroke="currentColor" stroke-width="2"
                                stroke-linecap="round" stroke-linejoin="round">
@@ -159,14 +159,14 @@
                         <form method="post"
                               action="${pageContext.request.contextPath}/manager/genres"
                               style="display:inline"
-                              onsubmit="return confirm('${g.active ? 'Deactivate' : 'Activate'} genre &quot;<c:out value="${g.genreName}"/>&quot;?');">
+                              onsubmit="return confirm('${g.active ? 'Ngừng hoạt động' : 'Kích hoạt'} thể loại &quot;<c:out value="${g.genreName}"/>&quot;?');">
                           <input type="hidden" name="action" value="toggle-status"/>
                           <input type="hidden" name="id"     value="<c:out value='${g.id}'/>"/>
                           <c:choose>
                             <c:when test="${g.active}">
                               <button type="submit"
                                       class="genre-action-btn genre-action-btn--deactivate"
-                                      title="Deactivate genre">
+                                      title="Ngừng hoạt động thể loại">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                                      stroke="currentColor" stroke-width="2"
                                      stroke-linecap="round" stroke-linejoin="round">
@@ -178,7 +178,7 @@
                             <c:otherwise>
                               <button type="submit"
                                       class="genre-action-btn genre-action-btn--activate"
-                                      title="Activate genre">
+                                      title="Kích hoạt thể loại">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                                      stroke="currentColor" stroke-width="2"
                                      stroke-linecap="round" stroke-linejoin="round">
@@ -196,7 +196,7 @@
                     <c:choose>
                       <c:when test="${inUse}">
                         <button class="genre-action-btn genre-action-btn--disabled"
-                                title="Cannot delete — genre is in use">
+                                title="Không thể xóa — thể loại đang được sử dụng">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                                stroke="currentColor" stroke-width="2"
                                stroke-linecap="round" stroke-linejoin="round">
@@ -210,10 +210,10 @@
                         <form method="post"
                               action="${pageContext.request.contextPath}/manager/genres"
                               style="display:inline"
-                              onsubmit="return confirm('Delete genre &quot;<c:out value="${g.genreName}"/>&quot;? This cannot be undone.');">
+                              onsubmit="return confirm('Xóa thể loại &quot;<c:out value="${g.genreName}"/>&quot;? Hành động này không thể hoàn tác.');">
                           <input type="hidden" name="action" value="delete"/>
                           <input type="hidden" name="id"     value="<c:out value='${g.id}'/>"/>
-                          <button type="submit" class="genre-action-btn genre-action-btn--delete" title="Delete genre">
+                          <button type="submit" class="genre-action-btn genre-action-btn--delete" title="Xóa thể loại">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                                  stroke="currentColor" stroke-width="2"
                                  stroke-linecap="round" stroke-linejoin="round">
@@ -247,7 +247,7 @@
 <div class="genre-modal-backdrop" id="addModal">
   <div class="genre-modal">
     <div class="genre-modal-header">
-      <h2>Add Genre</h2>
+      <h2>Thêm Thể Loại</h2>
       <button class="genre-modal-close" onclick="closeAddModal()">✕</button>
     </div>
     <div class="genre-modal-body">
@@ -257,12 +257,12 @@
         </div>
       </c:if>
       <form method="post" action="${pageContext.request.contextPath}/manager/genres">
-        <label for="addGenreName">Genre Name <span class="required">*</span></label>
+        <label for="addGenreName">Tên Thể Loại <span class="required">*</span></label>
         <input id="addGenreName" type="text" name="genreName"
                value="<c:out value='${inputValue}'/>"
-               placeholder="e.g. Science Fiction"
+               placeholder="VD: Khoa Học Viễn Tưởng"
                autocomplete="off"/>
-        <p class="genre-hint">Name is case-insensitive when checking for duplicates.</p>
+        <p class="genre-hint">Không phân biệt hoa thường khi kiểm tra trùng tên.</p>
 
         <label for="addDescription" style="margin-top:14px;display:block">Mô tả</label>
         <textarea id="addDescription" name="description" rows="3"
@@ -270,21 +270,23 @@
                   style="resize:vertical"><c:out value='${descriptionValue}'/></textarea>
         <p class="genre-hint">Tối đa 500 ký tự. Hiển thị khi chọn thể loại cho phim.</p>
 
-        <label style="margin-top:12px;display:block">Status <span class="required">*</span></label>
-        <div class="genre-status-radios">
-          <label class="genre-status-radio">
+        <label style="margin-top:12px;display:block">Trạng Thái <span class="required">*</span></label>
+        <div class="genre-status-toggle" role="radiogroup" aria-label="Trạng Thái">
+          <label class="genre-status-option genre-status-option--active">
             <input type="radio" name="isActive" value="true" checked/>
-            <span class="status-badge status-badge--active">Active</span>
+            <span class="genre-status-dot"></span>
+            <span>Hoạt Động</span>
           </label>
-          <label class="genre-status-radio">
+          <label class="genre-status-option genre-status-option--inactive">
             <input type="radio" name="isActive" value="false"/>
-            <span class="status-badge status-badge--inactive">Inactive</span>
+            <span class="genre-status-dot"></span>
+            <span>Ngừng Hoạt Động</span>
           </label>
         </div>
 
         <div class="genre-modal-actions">
-          <button type="submit" class="btn-modal-primary">Add Genre</button>
-          <button type="button" class="btn-modal-cancel" onclick="closeAddModal()">Cancel</button>
+          <button type="submit" class="btn-modal-primary">Thêm Thể Loại</button>
+          <button type="button" class="btn-modal-cancel" onclick="closeAddModal()">Hủy</button>
         </div>
       </form>
     </div>
@@ -295,7 +297,7 @@
 <div class="genre-modal-backdrop" id="editModal">
   <div class="genre-modal">
     <div class="genre-modal-header">
-      <h2>Edit Genre</h2>
+      <h2>Sửa Thể Loại</h2>
       <button class="genre-modal-close" onclick="closeEditModal()">✕</button>
     </div>
     <div class="genre-modal-body">
@@ -307,10 +309,10 @@
       <form method="post" action="${pageContext.request.contextPath}/manager/genres">
         <input type="hidden" name="action" value="update"/>
         <input type="hidden" name="id"     id="editGenreId"/>
-        <label for="editGenreName">Genre Name <span class="required">*</span></label>
+        <label for="editGenreName">Tên Thể Loại <span class="required">*</span></label>
         <input id="editGenreName" type="text" name="genreName"
                autocomplete="off"/>
-        <p class="genre-hint">Name is case-insensitive when checking for duplicates.</p>
+        <p class="genre-hint">Không phân biệt hoa thường khi kiểm tra trùng tên.</p>
 
         <label for="editDescription" style="margin-top:14px;display:block">Mô tả</label>
         <textarea id="editDescription" name="description" rows="3"
@@ -319,8 +321,8 @@
         <p class="genre-hint">Tối đa 500 ký tự. Hiển thị khi chọn thể loại cho phim.</p>
 
         <div class="genre-modal-actions">
-          <button type="submit" class="btn-modal-primary">Save Changes</button>
-          <button type="button" class="btn-modal-cancel" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn-modal-primary">Lưu Thay Đổi</button>
+          <button type="button" class="btn-modal-cancel" onclick="closeEditModal()">Hủy</button>
         </div>
       </form>
     </div>
@@ -366,8 +368,8 @@
     const infoEl = document.getElementById('paginationInfo');
     if (infoEl) {
       infoEl.textContent = total === 0
-        ? 'No results found'
-        : 'Showing ' + (start + 1) + ' to ' + end + ' of ' + total + ' results';
+        ? 'Không có kết quả'
+        : 'Hiển thị ' + (start + 1) + ' đến ' + end + ' trong ' + total + ' kết quả';
     }
 
     renderPagination(totalPages);
@@ -440,7 +442,7 @@
 
   /* ── Export CSV ────────────────────────────────────────── */
   function exportCSV() {
-    let csv = 'Genre Name,Slug,Movie Count,Status\n';
+    let csv = 'Ten The Loai,Slug,So Phim,Trang Thai\n';
     filteredRows.forEach(row => {
       const cells = row.querySelectorAll('td');
       const name  = cells[0].textContent.trim().replace(/"/g, '""');

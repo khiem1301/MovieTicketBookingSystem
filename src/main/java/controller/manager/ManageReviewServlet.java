@@ -8,10 +8,12 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import model.dto.SessionUser;
 import model.entity.MovieReview;
 import model.entity.User;
 import utils.AdminPaginationUtil;
 import utils.EmailUtil;
+import utils.SessionUtil;
 
 import java.io.IOException;
 import java.util.List;
@@ -65,6 +67,7 @@ public class ManageReviewServlet extends HttpServlet {
 
         String reviewId = trim(req.getParameter("id"));
         String reason = trim(req.getParameter("reason"));
+        boolean sendEmail = "true".equals(req.getParameter("sendEmail"));
         String returnQuery = AdminPaginationUtil.queryParam("page", trim(req.getParameter("page")))
                 + AdminPaginationUtil.queryParam("q", trim(req.getParameter("q")))
                 + AdminPaginationUtil.queryParam("rating", trim(req.getParameter("rating")));
@@ -74,10 +77,11 @@ public class ManageReviewServlet extends HttpServlet {
             return;
         }
 
+        SessionUser manager = SessionUtil.getLoggedUser(req);
         Optional<MovieReview> reviewOpt = reviewDAO.findById(reviewId);
-        boolean deleted = reviewDAO.deleteByManager(reviewId);
+        boolean deleted = reviewDAO.deleteByManager(reviewId, reason, manager != null ? manager.getId() : null);
 
-        if (deleted && reviewOpt.isPresent()) {
+        if (deleted && sendEmail && reviewOpt.isPresent()) {
             notifyCustomer(reviewOpt.get(), reason);
         }
 

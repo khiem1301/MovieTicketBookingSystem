@@ -29,8 +29,9 @@ import java.util.stream.Collectors;
 )
 public class ManageMovieServlet extends HttpServlet {
 
-    private static final Set<String> VALID_STATUS = Set.of("COMING_SOON", "NOW_SHOWING", "EARLY_SHOWING", "ENDED");
+    private static final Set<String> VALID_STATUS = Set.of("COMING_SOON", "NOW_SHOWING", "ENDED");
     private static final Set<String> VALID_AGE   = Set.of("P", "K", "T13", "T16", "T18", "C");
+    private static final int MAX_GENRES = 4;
 
     private final MovieDAO movieDAO = new MovieDAO();
     private final GenreDAO genreDAO = new GenreDAO();
@@ -75,7 +76,7 @@ public class ManageMovieServlet extends HttpServlet {
         try {
             Movie movie = parseMovie(req, null);
             List<String> genreIds = parseGenreIds(req);
-            String error = validate(movie, null);
+            String error = validate(movie, null, genreIds);
 
             if (error != null) {
                 forwardWithError(req, resp, error, movie, genreIds, null);
@@ -102,7 +103,7 @@ public class ManageMovieServlet extends HttpServlet {
             Movie movie = parseMovie(req, existing);
             movie.setId(id);
             List<String> genreIds = parseGenreIds(req);
-            String error = validate(movie, id);
+            String error = validate(movie, id, genreIds);
 
             if (error != null) {
                 forwardWithError(req, resp, error, movie, genreIds, existing);
@@ -133,9 +134,12 @@ public class ManageMovieServlet extends HttpServlet {
     private static final java.util.regex.Pattern URL_PATTERN =
             java.util.regex.Pattern.compile("^https?://.+", java.util.regex.Pattern.CASE_INSENSITIVE);
 
-    private String validate(Movie movie, String excludeId) {
+    private String validate(Movie movie, String excludeId, List<String> genreIds) {
         if (movie.getTitle() == null || movie.getTitle().isBlank()) {
             return "Tên phim không được để trống.";
+        }
+        if (genreIds != null && genreIds.size() > MAX_GENRES) {
+            return "Chỉ được chọn tối đa " + MAX_GENRES + " thể loại.";
         }
         if (movie.getTitle().trim().length() > 255) {
             return "Tên phim tối đa 255 ký tự.";
@@ -146,38 +150,66 @@ public class ManageMovieServlet extends HttpServlet {
         if (movie.getSlug().trim().length() > 255) {
             return "Slug tối đa 255 ký tự.";
         }
-        if (movie.getDurationMinutes() <= 0) {
-            return "Thời lượng phim phải lớn hơn 0 phút.";
+        if (movie.getDurationMinutes() < 60) {
+            return "Thời lượng phim tối thiểu 60 phút.";
         }
-        if (movie.getDurationMinutes() > 999) {
-            return "Thời lượng phim tối đa 999 phút.";
+        if (movie.getDurationMinutes() > 600) {
+            return "Thời lượng phim tối đa 600 phút.";
         }
         if (movie.getStatus() == null || !VALID_STATUS.contains(movie.getStatus())) {
             return "Trạng thái phim không hợp lệ.";
         }
-        if (movie.getAgeRating() != null && !movie.getAgeRating().isBlank()
-                && !VALID_AGE.contains(movie.getAgeRating())) {
+        if (movie.getAgeRating() == null || movie.getAgeRating().isBlank()) {
+            return "Độ tuổi xem không được để trống.";
+        }
+        if (!VALID_AGE.contains(movie.getAgeRating())) {
             return "Độ tuổi xem không hợp lệ.";
         }
-        if (excludeId == null && movie.getReleaseDate() != null
-                && movie.getReleaseDate().toLocalDate().isBefore(LocalDate.now())) {
+        if (movie.getReleaseDate() == null) {
+            return "Ngày phát hành không được để trống.";
+        }
+        if (excludeId == null && movie.getReleaseDate().toLocalDate().isBefore(LocalDate.now())) {
             return "Ngày phát hành không được là ngày trong quá khứ.";
         }
-        if (movie.getDirector() != null && movie.getDirector().length() > 255) {
+        boolean released = !movie.getReleaseDate().toLocalDate().isAfter(LocalDate.now());
+        if ("COMING_SOON".equals(movie.getStatus()) && released) {
+            return "Phim đã đến ngày phát hành, không thể để trạng thái \"Sắp chiếu\".";
+        }
+        if ("NOW_SHOWING".equals(movie.getStatus()) && !released) {
+            return "Phim chưa đến ngày phát hành, không thể để trạng thái \"Đang chiếu\".";
+        }
+        if (movie.getDirector() == null || movie.getDirector().isBlank()) {
+            return "Đạo diễn không được để trống.";
+        }
+        if (movie.getDirector().length() > 255) {
             return "Đạo diễn tối đa 255 ký tự.";
         }
-        if (movie.getLanguage() != null && movie.getLanguage().length() > 50) {
+        if (movie.getLanguage() == null || movie.getLanguage().isBlank()) {
+            return "Ngôn ngữ không được để trống.";
+        }
+        if (movie.getLanguage().length() > 50) {
             return "Ngôn ngữ tối đa 50 ký tự.";
         }
-        if (movie.getSubtitle() != null && movie.getSubtitle().length() > 50) {
+        if (movie.getSubtitle() == null || movie.getSubtitle().isBlank()) {
+            return "Phụ đề không được để trống.";
+        }
+        if (movie.getSubtitle().length() > 50) {
             return "Phụ đề tối đa 50 ký tự.";
         }
-        if (movie.getDescription() != null && movie.getDescription().length() > 4000) {
+        if (movie.getDescription() == null || movie.getDescription().isBlank()) {
+            return "Mô tả không được để trống.";
+        }
+        if (movie.getDescription().length() > 4000) {
             return "Mô tả tối đa 4000 ký tự.";
         }
-        if (movie.getTrailerUrl() != null && !movie.getTrailerUrl().isBlank()
-                && !URL_PATTERN.matcher(movie.getTrailerUrl().trim()).matches()) {
+        if (movie.getTrailerUrl() == null || movie.getTrailerUrl().isBlank()) {
+            return "Trailer URL không được để trống.";
+        }
+        if (!URL_PATTERN.matcher(movie.getTrailerUrl().trim()).matches()) {
             return "Trailer URL không hợp lệ.";
+        }
+        if (genreIds == null || genreIds.isEmpty()) {
+            return "Vui lòng chọn ít nhất 1 thể loại.";
         }
 
         boolean dupTitle = excludeId == null
@@ -289,6 +321,7 @@ public class ManageMovieServlet extends HttpServlet {
 
     private void loadAndForward(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
+        movieDAO.promoteReleasedMovies();
         req.setAttribute("movieList", movieDAO.getAllForManager());
         req.setAttribute("genreList", genreDAO.getAllActive());
         req.setAttribute("movieIdsWithShowtimes", movieDAO.getMovieIdsWithShowtimes());

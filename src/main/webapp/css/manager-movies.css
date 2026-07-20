@@ -864,6 +864,10 @@ body {
 
 .mm-req { color: #e53935; margin-left: 2px; }
 
+.mm-flabel-row { display: flex; align-items: center; justify-content: space-between; }
+.mm-char-count { font-weight: 500; letter-spacing: normal; text-transform: none; color: #555; }
+.mm-char-count.mm-char-count-warn { color: #e53935; }
+
 .mm-field input[type="text"],
 .mm-field input[type="number"],
 .mm-field input[type="date"],

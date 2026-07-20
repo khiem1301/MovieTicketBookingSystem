@@ -577,39 +577,63 @@ body {
   box-shadow: 0 3px 10px rgba(102,187,106,0.25);
 }
 
-/* ── Status radio selector (Add modal) ───────────────────── */
-.genre-status-radios {
+/* ── Status segmented toggle (Add modal) ─────────────────── */
+.genre-status-toggle {
   display: flex;
-  gap: 12px;
-  margin-top: 4px;
+  gap: 10px;
+  margin-top: 6px;
 }
 
-.genre-status-radio {
+.genre-status-option {
+  flex: 1;
+  position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.03);
   cursor: pointer;
   font-size: 13px;
-  font-weight: normal;
+  font-weight: 600;
   text-transform: none;
   letter-spacing: 0;
-  color: var(--text);
+  color: #888;
   margin-bottom: 0;
-  padding: 8px 16px 8px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.09);
-  background: rgba(255,255,255,0.03);
-  transition: border-color 0.18s, background 0.18s;
+  transition: border-color 0.18s, background 0.18s, color 0.18s;
 }
 
-.genre-status-radio:has(input:checked) {
-  border-color: rgba(229, 57, 53, 0.50);
-  background: rgba(229, 57, 53, 0.07);
+.genre-status-option:hover {
+  border-color: rgba(255,255,255,0.22);
 }
 
-.genre-status-radio input[type="radio"] {
-  accent-color: #e53935;
-  width: 15px;
-  height: 15px;
+.genre-status-option input[type="radio"] {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
   cursor: pointer;
+}
+
+.genre-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+.genre-status-option--active:has(input:checked) {
+  color: #66bb6a;
+  border-color: rgba(102,187,106,0.5);
+  background: rgba(102,187,106,0.10);
+}
+
+.genre-status-option--inactive:has(input:checked) {
+  color: #ccc;
+  border-color: rgba(136,136,136,0.5);
+  background: rgba(136,136,136,0.10);
 }
