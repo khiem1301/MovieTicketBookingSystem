@@ -9,9 +9,11 @@ import java.util.Map;
 import java.util.Optional;
 
 import dal.BookingDAO;
+import dal.LoyaltyDAO;
 import dal.PaymentDAO;
 import dal.PaymentDAO.PaymentRecord;
 import dal.PromotionDAO;
+import dal.UserDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -21,6 +23,9 @@ import jakarta.servlet.http.HttpSession;
 import model.dto.BookingDetailDTO;
 import model.dto.SessionUser;
 import model.entity.Promotion;
+import model.entity.User;
+import utils.ConfigKeys;
+import utils.ConfigUtil;
 import utils.PromotionCalculator;
 import utils.SePayConfig;
 import utils.SessionUtil;
@@ -114,6 +119,16 @@ public class PaymentServlet extends HttpServlet {
             return;
         }
 
+        if ("applyPoints".equals(action)) {
+            handleApplyPoints(req, resp, bookingId, sessionUser.getId());
+            return;
+        }
+
+        if ("removePoints".equals(action)) {
+            handleRemovePoints(req, resp, bookingId, sessionUser.getId());
+            return;
+        }
+
         if ("payVietQR".equals(action)) {
             handlePayVietQR(req, resp, detail, bookingId, sessionUser.getId());
             return;
@@ -126,6 +141,42 @@ public class PaymentServlet extends HttpServlet {
 
         forwardPayment(req, resp, bookingId, sessionUser.getId(),
                 "Vui lòng chọn phương thức thanh toán.", null, null);
+    }
+
+    private void handleApplyPoints(HttpServletRequest req, HttpServletResponse resp,
+                                   String bookingId, String userId)
+            throws IOException, ServletException {
+        String raw = trim(req.getParameter("pointsToUse"));
+        int pointsToUse;
+        try {
+            pointsToUse = Integer.parseInt(raw == null ? "0" : raw);
+        } catch (NumberFormatException e) {
+            forwardPayment(req, resp, bookingId, userId, "Số điểm không hợp lệ.", null, null);
+            return;
+        }
+        try {
+            new LoyaltyDAO().applyPointsToBooking(bookingId, userId, pointsToUse);
+            clearVietQRSession(req);
+            forwardPayment(req, resp, bookingId, userId, null,
+                    "Đã áp dụng " + pointsToUse + " điểm. Vui lòng thanh toán.", null);
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            forwardPayment(req, resp, bookingId, userId, ex.getMessage(), null,
+                    loadVietQRSession(req, bookingId));
+        }
+    }
+
+    private void handleRemovePoints(HttpServletRequest req, HttpServletResponse resp,
+                                    String bookingId, String userId)
+            throws IOException, ServletException {
+        try {
+            new LoyaltyDAO().removePointsFromBooking(bookingId, userId);
+            clearVietQRSession(req);
+            forwardPayment(req, resp, bookingId, userId, null,
+                    "Đã gỡ điểm tích luỹ. Vui lòng thanh toán lại.", null);
+        } catch (IllegalStateException ex) {
+            forwardPayment(req, resp, bookingId, userId, ex.getMessage(), null,
+                    loadVietQRSession(req, bookingId));
+        }
     }
 
     private void handlePayVietQR(HttpServletRequest req, HttpServletResponse resp,
@@ -286,6 +337,17 @@ public class PaymentServlet extends HttpServlet {
         req.setAttribute("detail", detail);
         req.setAttribute("vietqrConfigured", VietQRConfig.isConfigured());
         req.setAttribute("sepayEnabled", SePayConfig.isEnabled());
+
+        // FR-43 loyalty points info for the payment form
+        int userPoints = new UserDAO().findById(userId)
+                .map(User::getLoyaltyPoints).orElse(0);
+        req.setAttribute("userLoyaltyPoints", userPoints);
+        req.setAttribute("loyaltyRedeemRate",
+                ConfigUtil.getInt(ConfigKeys.LOYALTY_REDEEM_RATE, 100));
+        req.setAttribute("loyaltyMinRedeem",
+                ConfigUtil.getInt(ConfigKeys.LOYALTY_MIN_REDEEM, 100));
+        req.setAttribute("loyaltyMaxRedeem",
+                ConfigUtil.getInt(ConfigKeys.LOYALTY_MAX_REDEEM_PER_ORDER, 5000));
         VietQRPaymentSession active = vietqr != null ? vietqr : loadVietQRSession(req, bookingId);
         if (active != null) {
             req.setAttribute("vietqrActive", true);

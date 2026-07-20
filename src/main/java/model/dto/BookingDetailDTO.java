@@ -29,6 +29,7 @@ public class BookingDetailDTO {
     private String linkedUserEmail;
     private String appliedPromoCode;
     private String appliedPromoTitle;
+    private int pointsRedeemed;
 
     public static class SeatItem {
         private final String seatCode;
@@ -134,6 +135,9 @@ public class BookingDetailDTO {
 
     public String getAppliedPromoTitle() { return appliedPromoTitle; }
     public void setAppliedPromoTitle(String v) { this.appliedPromoTitle = v; }
+
+    public int getPointsRedeemed() { return pointsRedeemed; }
+    public void setPointsRedeemed(int v) { this.pointsRedeemed = v; }
 
     public boolean hasAppliedPromo() {
         return appliedPromoCode != null && !appliedPromoCode.isBlank();
