@@ -175,13 +175,13 @@ uri="jakarta.tags.functions" %>
             </a>
             <div class="dropdown-menu">
               <a href="${pageContext.request.contextPath}/reviews?sort=top">
-                ⭐ Phim đánh giá cao nhất
+                ⭐ Đánh giá cao nhất
               </a>
               <a href="${pageContext.request.contextPath}/reviews?sort=latest">
-                🕐 Đánh giá mới nhất
+                🕐 Mới nhất
               </a>
               <a href="${pageContext.request.contextPath}/reviews?sort=popular">
-                🔥 Phim được yêu thích
+                🔥 Yêu thích nhất
               </a>
               <c:if test="${not empty sessionScope.loggedUser}">
                 <a href="${pageContext.request.contextPath}/reviews/mine">
@@ -269,6 +269,9 @@ uri="jakarta.tags.functions" %>
                     <a href="${pageContext.request.contextPath}/manager/showtimes"
                       >Quản lý suất chiếu</a
                     >
+                    <a href="${pageContext.request.contextPath}/manager/pricing-rules"
+                      >Quy tắc giá</a
+                    >
                     <a href="${pageContext.request.contextPath}/admin/promotions"
                       >Quản lý voucher</a
                     >
@@ -277,15 +280,6 @@ uri="jakarta.tags.functions" %>
                     >
                   </c:if>
                   <c:if test="${sessionScope.userRole == 'ADMIN'}">
-                    <a href="${pageContext.request.contextPath}/manager/movies"
-                      >Quản lý phim</a
-                    >
-                    <a href="${pageContext.request.contextPath}/manager/genres"
-                      >Quản lý thể loại</a
-                    >
-                    <a href="${pageContext.request.contextPath}/manager/reviews"
-                      >Quản lý đánh giá</a
-                    >
                     <span class="dropdown-divider-label">Quản trị hệ thống</span>
                     <a href="${pageContext.request.contextPath}/admin/dashboard"
                       >Bảng điều khiển</a

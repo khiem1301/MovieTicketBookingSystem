@@ -276,7 +276,7 @@
     const ids = selectedSeats.map(s => s.id);
     if (ids.length > 0) {
       // Khởi động đếm ngược ngay lập tức, không chờ server
-      if (!holdExpiryMs) startCountdown(Date.now() + 10 * 60 * 1000);
+      if (!holdExpiryMs) startCountdown(Date.now() + 1 * 60 * 1000);
       syncHoldsWithServer(selectedShowtimeId, ids);
     } else {
       stopCountdown();
@@ -502,7 +502,7 @@
       checkProceedBtn();
       el.style.display = 'none';
       if (selectedShowtimeId) loadSeats(selectedShowtimeId);
-      alert('Thời gian giữ ghế đã hết (10 phút). Vui lòng chọn lại ghế.');
+      alert('Thời gian giữ ghế đã hết (1 phút). Vui lòng chọn lại ghế.');
     }
   }
 

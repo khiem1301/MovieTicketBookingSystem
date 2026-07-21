@@ -37,11 +37,12 @@
     </c:if>
 
     <div class="admin-card">
-      <form class="admin-filter" method="get" action="${pageContext.request.contextPath}/admin/users">
+      <form class="admin-filter" id="userFilterForm" method="get" action="${pageContext.request.contextPath}/admin/users">
         <div class="admin-field admin-field--grow">
-          <label class="admin-label" for="q">Tìm kiếm</label>
-          <input type="text" id="q" name="q" class="admin-input"
+          <label class="admin-label" for="userKeyword">Tìm kiếm</label>
+          <input type="search" id="userKeyword" name="keyword" class="admin-input"
                  placeholder="Họ tên, email, username, SĐT..."
+                 autocomplete="off"
                  value="<c:out value='${filterQ}'/>"/>
         </div>
         <div class="admin-field">
@@ -65,8 +66,7 @@
             <option value="BANNED"   <c:if test="${filterStatus == 'BANNED'}">selected</c:if>>BANNED</option>
           </select>
         </div>
-        <button type="submit" class="admin-btn admin-btn--ghost">Lọc</button>
-        <a href="${pageContext.request.contextPath}/admin/users" class="admin-btn admin-btn--ghost">Xóa lọc</a>
+        <button type="button" id="userFilterReset" class="admin-btn admin-btn--ghost">Xóa lọc</button>
       </form>
 
       <p class="admin-stats">Tổng: <strong><c:out value="${totalUsers}"/></strong> tài khoản</p>
@@ -95,7 +95,7 @@
                         <c:out value="${user.email}"/><br/>
                       </c:if>
                       <c:if test="${not empty user.username}">
-                        @<c:out value="${user.username}"/>
+                        <c:out value="${user.username}"/>
                       </c:if>
                     </td>
                     <td class="cell-muted"><c:out value="${user.phoneNumber}"/></td>
@@ -150,5 +150,55 @@
 
   </div>
 </main>
+
+<script>
+(function () {
+  var form = document.getElementById('userFilterForm');
+  if (!form) return;
+
+  var keywordInput = document.getElementById('userKeyword');
+  var roleSelect = document.getElementById('role');
+  var statusSelect = document.getElementById('status');
+  var resetBtn = document.getElementById('userFilterReset');
+  var debounceTimer = null;
+  var DEBOUNCE_MS = 350;
+
+  function submitFilters() {
+    if (typeof form.requestSubmit === 'function') {
+      form.requestSubmit();
+    } else {
+      form.submit();
+    }
+  }
+
+  if (keywordInput) {
+    keywordInput.addEventListener('input', function () {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(submitFilters, DEBOUNCE_MS);
+    });
+    keywordInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        clearTimeout(debounceTimer);
+        submitFilters();
+      }
+    });
+  }
+
+  if (roleSelect) {
+    roleSelect.addEventListener('change', submitFilters);
+  }
+
+  if (statusSelect) {
+    statusSelect.addEventListener('change', submitFilters);
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function () {
+      window.location.href = '${pageContext.request.contextPath}/admin/users';
+    });
+  }
+}());
+</script>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

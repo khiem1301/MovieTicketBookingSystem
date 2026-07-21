@@ -57,7 +57,8 @@ public final class PricingCalculator {
 
         BigDecimal base = showtime.getBasePrice();
         BigDecimal multiplier = BigDecimal.ONE.add(sumPercent.divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP));
-        return base.multiply(multiplier).add(sumFixed).setScale(0, RoundingMode.HALF_UP);
+        BigDecimal effective = base.multiply(multiplier).add(sumFixed).setScale(0, RoundingMode.HALF_UP);
+        return effective.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : effective;
     }
 
     public static void applyToShowtimes(List<Showtime> showtimes, List<PricingRule> rules) {

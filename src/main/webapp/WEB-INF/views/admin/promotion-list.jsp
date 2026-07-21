@@ -2,7 +2,7 @@
 <%@ taglib prefix="c"   uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
-<c:set var="pageTitle" value="Promotions &amp; Vouchers — ÉPCINE"/>
+<c:set var="pageTitle" value="Khuyến Mãi &amp; Voucher — ÉPCINE"/>
 <c:set var="extraCss"  value="admin"/>
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 
@@ -345,7 +345,7 @@
 .promo-modal-panel {
   position: relative;
   z-index: 1;
-  width: 620px;
+  width: 760px;
   max-width: 100%;
   max-height: 90vh;
   background: #1a1a1a;
@@ -460,6 +460,9 @@
   border-color: var(--accent);
 }
 .pm-textarea { resize: vertical; min-height: 60px; }
+.pm-label-row { display: flex; align-items: center; justify-content: space-between; }
+.pm-char-count { font-weight: 500; letter-spacing: normal; text-transform: none; color: var(--text-dim); }
+.pm-char-count.pm-char-count-warn { color: #e53935; }
 .pm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .pm-hint { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
 .pm-divider {
@@ -476,12 +479,12 @@
     <div class="container">
       <div class="promo-banner-top">
         <div>
-          <h1>Promotions &amp; Vouchers</h1>
+          <h1>Khuyến Mãi &amp; Voucher</h1>
           <p>Quản lý mã giảm giá, khuyến mãi và ưu đãi dành cho khách hàng</p>
         </div>
-        <button class="promo-create-btn" onclick="openModal('create')">
+        <button class="promo-create-btn" onclick="openCreateModal()">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 13H13v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-          Create Promotion
+          Tạo Mã Giảm Giá
         </button>
       </div>
 
@@ -530,7 +533,7 @@
 
       <%-- Header section --%>
       <div class="promo-section-header">
-        <span class="promo-section-title">All Promotions</span>
+        <span class="promo-section-title">Tất Cả Mã Giảm Giá</span>
         <div class="promo-section-actions">
           <form method="get" action="${pageContext.request.contextPath}/admin/promotions"
                 style="display:contents;">
@@ -540,13 +543,13 @@
             <select name="status" class="promo-filter-select"
                     onchange="this.form.submit()">
               <option value="">Tất cả</option>
-              <option value="ACTIVE"   ${statusFilter == 'ACTIVE'   ? 'selected' : ''}>ACTIVE</option>
-              <option value="INACTIVE" ${statusFilter == 'INACTIVE' ? 'selected' : ''}>INACTIVE</option>
-              <option value="EXPIRED"  ${statusFilter == 'EXPIRED'  ? 'selected' : ''}>EXPIRED</option>
+              <option value="ACTIVE"   ${statusFilter == 'ACTIVE'   ? 'selected' : ''}>Hoạt Động</option>
+              <option value="INACTIVE" ${statusFilter == 'INACTIVE' ? 'selected' : ''}>Ngừng Hoạt Động</option>
+              <option value="EXPIRED"  ${statusFilter == 'EXPIRED'  ? 'selected' : ''}>Hết Hạn</option>
             </select>
             <button type="submit" class="promo-icon-btn">
               <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M3 18h6v-2H3v2zm0-5h12v-2H3v2zm0-7v2h18V6H3z"/></svg>
-              Filter
+              Lọc
             </button>
             <c:if test="${not empty keyword or not empty statusFilter}">
               <a href="${pageContext.request.contextPath}/admin/promotions"
@@ -562,12 +565,12 @@
           <table class="promo-table">
             <thead>
               <tr>
-                <th>Promotion Name</th>
-                <th>Code</th>
-                <th>Value</th>
-                <th>Usage</th>
-                <th>Status / Expiry</th>
-                <th>Actions</th>
+                <th>Tên Khuyến Mãi</th>
+                <th>Mã</th>
+                <th>Giá Trị</th>
+                <th>Lượt Dùng</th>
+                <th>Trạng Thái / Hết Hạn</th>
+                <th>Thao Tác</th>
               </tr>
             </thead>
             <tbody>
@@ -634,7 +637,7 @@
                     <c:choose>
                       <c:when test="${p.discountType == 'PERCENTAGE'}">
                         <span class="promo-value promo-value--pct">
-                          <fmt:formatNumber value="${p.discountValue}" maxFractionDigits="0"/>% Off
+                          Giảm <fmt:formatNumber value="${p.discountValue}" maxFractionDigits="0"/>%
                         </span>
                         <c:if test="${not empty p.maxDiscountAmount}">
                           <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">
@@ -644,7 +647,7 @@
                       </c:when>
                       <c:otherwise>
                         <span class="promo-value promo-value--fixed">
-                          <fmt:formatNumber value="${p.discountValue}" type="number" maxFractionDigits="0"/>₫ Off
+                          Giảm <fmt:formatNumber value="${p.discountValue}" type="number" maxFractionDigits="0"/>₫
                         </span>
                       </c:otherwise>
                     </c:choose>
@@ -686,25 +689,25 @@
                       <c:when test="${p.expired}">
                         <div class="promo-status promo-status--expired">
                           <span class="promo-status-dot"></span>
-                          <span class="promo-status-text">EXPIRED</span>
+                          <span class="promo-status-text">HẾT HẠN</span>
                         </div>
                       </c:when>
                       <c:when test="${p.scheduled}">
                         <div class="promo-status promo-status--inactive">
                           <span class="promo-status-dot"></span>
-                          <span class="promo-status-text">SCHEDULED</span>
+                          <span class="promo-status-text">ĐÃ LÊN LỊCH</span>
                         </div>
                       </c:when>
                       <c:when test="${p.status == 'ACTIVE'}">
                         <div class="promo-status promo-status--active">
                           <span class="promo-status-dot"></span>
-                          <span class="promo-status-text">ACTIVE</span>
+                          <span class="promo-status-text">HOẠT ĐỘNG</span>
                         </div>
                       </c:when>
                       <c:otherwise>
                         <div class="promo-status promo-status--inactive">
                           <span class="promo-status-dot"></span>
-                          <span class="promo-status-text">INACTIVE</span>
+                          <span class="promo-status-text">NGỪNG HOẠT ĐỘNG</span>
                         </div>
                       </c:otherwise>
                     </c:choose>
@@ -730,7 +733,7 @@
                               data-usage-limit="<c:out value='${p.usageLimit}'/>"
                               data-used-count="${p.usedCount}"
                               data-image-url="<c:out value='${p.imageUrl}'/>">
-                        Edit
+                        Sửa
                       </button>
 
                       <%-- Toggle (không áp dụng khi đã hết hạn) --%>
@@ -777,9 +780,9 @@
           <%-- Footer pagination --%>
           <div class="promo-table-footer">
             <span>
-              Showing
+              Hiển thị
               ${(pgCurrent - 1) * 10 + 1}–${pgCurrent * 10 < pgTotalItems ? pgCurrent * 10 : pgTotalItems}
-              of <strong>${pgTotalItems}</strong> promotions
+              trong <strong>${pgTotalItems}</strong> mã giảm giá
             </span>
             <c:if test="${pgTotal > 1}">
               <div class="promo-pagination">
@@ -817,13 +820,13 @@
     <div class="promo-modal-backdrop" onclick="closeModal()"></div>
     <div class="promo-modal-panel">
       <div class="promo-modal-header">
-        <span id="modalHeading" class="promo-modal-heading">Create Promotion</span>
+        <span id="modalHeading" class="promo-modal-heading">Tạo Mã Giảm Giá</span>
         <button class="promo-modal-close" onclick="closeModal()">✕</button>
       </div>
 
       <form id="promoForm" method="post"
             action="${pageContext.request.contextPath}/admin/promotions/save"
-            enctype="multipart/form-data" novalidate>
+            enctype="multipart/form-data">
         <input type="hidden" id="modalPromotionId" name="promotionId" value=""/>
         <input type="hidden" id="modalExistingImageUrl" name="existingImageUrl" value=""/>
 
@@ -832,22 +835,26 @@
           <div class="pm-row">
             <div class="pm-field">
               <label class="pm-label" for="modalCode">Mã voucher *</label>
-              <input type="text" id="modalCode" name="code" class="pm-input"
-                     placeholder="SUMMER25"
+              <input type="text" id="modalCode" name="code" class="pm-input" required
+                     placeholder="SUMMER25" maxlength="50"
                      style="text-transform:uppercase"
                      oninput="this.value=this.value.toUpperCase()"/>
               <span class="pm-hint">Chữ cái, số, gạch ngang, gạch dưới</span>
             </div>
             <div class="pm-field">
               <label class="pm-label" for="modalTitle">Tiêu đề *</label>
-              <input type="text" id="modalTitle" name="title" class="pm-input"
-                     placeholder="Giảm 25% mùa hè"/>
+              <input type="text" id="modalTitle" name="title" class="pm-input" required
+                     placeholder="Giảm 25% mùa hè" maxlength="255"/>
             </div>
           </div>
 
           <div class="pm-field">
-            <label class="pm-label" for="modalDescription">Mô tả</label>
-            <textarea id="modalDescription" name="description" class="pm-textarea"
+            <label class="pm-label pm-label-row">
+              <span>Mô tả *</span>
+              <span class="pm-char-count" id="modalDescriptionCount">0/500</span>
+            </label>
+            <textarea id="modalDescription" name="description" class="pm-textarea" required
+                      maxlength="500"
                       placeholder="Điều kiện, đối tượng áp dụng..."></textarea>
           </div>
 
@@ -883,22 +890,22 @@
             </div>
             <div class="pm-field">
               <label class="pm-label" for="modalDiscountValue">Giá trị giảm *</label>
-              <input type="number" id="modalDiscountValue" name="discountValue" class="pm-input"
+              <input type="number" id="modalDiscountValue" name="discountValue" class="pm-input" required
                      placeholder="25"/>
             </div>
           </div>
 
           <div class="pm-row">
             <div class="pm-field" id="modalMaxDiscField">
-              <label class="pm-label" for="modalMaxDiscount">Giảm tối đa (₫)</label>
+              <label class="pm-label" for="modalMaxDiscount">Giảm tối đa (₫) *</label>
               <input type="number" id="modalMaxDiscount" name="maxDiscountAmount"
-                     class="pm-input" placeholder="Không giới hạn"/>
+                     class="pm-input" required placeholder="100000"/>
               <span class="pm-hint">Chỉ với loại Phần trăm</span>
             </div>
             <div class="pm-field">
-              <label class="pm-label" for="modalMinOrder">Đơn tối thiểu (₫)</label>
-              <input type="number" id="modalMinOrder" name="minOrderAmount"
-                     class="pm-input" placeholder="Không yêu cầu"/>
+              <label class="pm-label" for="modalMinOrder">Đơn tối thiểu (₫) *</label>
+              <input type="number" id="modalMinOrder" name="minOrderAmount" required
+                     class="pm-input" placeholder="50000"/>
             </div>
           </div>
 
@@ -907,18 +914,18 @@
           <div class="pm-row">
             <div class="pm-field">
               <label class="pm-label" for="modalStartDate">Ngày bắt đầu *</label>
-              <input type="date" id="modalStartDate" name="startDate" class="pm-input"/>
+              <input type="date" id="modalStartDate" name="startDate" class="pm-input" required/>
             </div>
             <div class="pm-field">
               <label class="pm-label" for="modalEndDate">Ngày kết thúc *</label>
-              <input type="date" id="modalEndDate" name="endDate" class="pm-input"/>
+              <input type="date" id="modalEndDate" name="endDate" class="pm-input" required/>
             </div>
           </div>
 
           <div class="pm-field" style="max-width:50%;">
-            <label class="pm-label" for="modalUsageLimit">Giới hạn lượt dùng</label>
-            <input type="number" id="modalUsageLimit" name="usageLimit"
-                   class="pm-input" placeholder="Không giới hạn"/>
+            <label class="pm-label" for="modalUsageLimit">Giới hạn lượt dùng *</label>
+            <input type="number" id="modalUsageLimit" name="usageLimit" required
+                   class="pm-input" placeholder="100"/>
           </div>
 
           <div id="modalUsedInfo" style="display:none;font-size:12px;color:var(--text-muted);
@@ -978,6 +985,16 @@ function showImagePreview(src) {
   img.hidden = false;
 }
 
+function updateDescriptionCount() {
+  var field = document.getElementById('modalDescription');
+  var count = document.getElementById('modalDescriptionCount');
+  var len = field.value.length;
+  var max = field.maxLength;
+  count.textContent = len + '/' + max;
+  count.classList.toggle('pm-char-count-warn', len >= max);
+}
+document.getElementById('modalDescription').addEventListener('input', updateDescriptionCount);
+
 function resetImageField() {
   document.getElementById('modalImageFile').value = '';
   document.getElementById('modalImageUrl').value = '';
@@ -987,7 +1004,7 @@ function resetImageField() {
 }
 
 function openCreateModal() {
-  document.getElementById('modalHeading').textContent   = 'Create Promotion';
+  document.getElementById('modalHeading').textContent   = 'Tạo Mã Giảm Giá';
   document.getElementById('modalSubmitBtn').textContent = 'Tạo mã giảm giá';
   document.getElementById('modalPromotionId').value     = '';
   document.getElementById('promoForm').reset();
@@ -1000,12 +1017,13 @@ function openCreateModal() {
   document.getElementById('modalStartDate').value = formatIsoDate(today);
   document.getElementById('modalEndDate').value   = formatIsoDate(end);
   onTypeChange('PERCENTAGE');
+  updateDescriptionCount();
   openModal();
 }
 
 function openEditModal(btn) {
   var d = btn.dataset;
-  document.getElementById('modalHeading').textContent   = 'Edit: ' + d.code;
+  document.getElementById('modalHeading').textContent   = 'Sửa: ' + d.code;
   document.getElementById('modalSubmitBtn').textContent = 'Lưu thay đổi';
   document.getElementById('modalPromotionId').value     = d.id;
   document.getElementById('modalCode').value            = d.code;
@@ -1036,12 +1054,15 @@ function openEditModal(btn) {
     document.getElementById('modalUsedInfo').style.display = 'none';
   }
   onTypeChange(d.discountType);
+  updateDescriptionCount();
   openModal();
 }
 
 function onTypeChange(type) {
-  document.getElementById('modalMaxDiscField').style.display =
-    type === 'PERCENTAGE' ? '' : 'none';
+  var isPct = type === 'PERCENTAGE';
+  document.getElementById('modalMaxDiscField').style.display = isPct ? '' : 'none';
+  document.getElementById('modalMaxDiscount').required = isPct;
+  if (!isPct) document.getElementById('modalMaxDiscount').value = '';
 }
 
 // Khởi tạo

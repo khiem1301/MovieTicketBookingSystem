@@ -51,6 +51,9 @@
 .mrv-modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
 .mrv-modal-movie { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
 .mrv-modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+.mrv-label-row { display: flex; align-items: center; justify-content: space-between; }
+.mrv-char-count { font-weight: 500; color: var(--text-muted); }
+.mrv-char-count.mrv-char-count-warn { color: #e53935; }
 </style>
 
 <main class="admin-page">
@@ -170,7 +173,7 @@
   </div>
 </main>
 
-<%-- ── Modal xóa đánh giá: bắt buộc nhập lý do, hệ thống sẽ gửi email báo cho khách hàng ── --%>
+<%-- ── Modal xóa đánh giá: bắt buộc nhập lý do; gửi email báo khách hàng tùy chọn ── --%>
 <div class="mrv-modal-backdrop" id="mrvDeleteModal">
   <div class="mrv-modal">
     <h2>Xóa đánh giá</h2>
@@ -181,25 +184,54 @@
       <input type="hidden" name="q" value="<c:out value='${filterQ}'/>"/>
       <input type="hidden" name="rating" value="<c:out value='${filterRating}'/>"/>
 
-      <label class="admin-label" for="mrvDeleteReason">Lý do xóa <span class="required">*</span></label>
+      <label class="admin-label mrv-label-row" for="mrvDeleteReason">
+        <span>Lý do xóa <span class="required">*</span></span>
+        <span class="mrv-char-count" id="mrvDeleteReasonCount">0/500</span>
+      </label>
       <p class="admin-field-hint">Bắt buộc — lý do sẽ được gửi qua email cho khách hàng đã đánh giá.</p>
       <textarea id="mrvDeleteReason" name="reason" class="admin-input admin-textarea" rows="4"
                 maxlength="500" required
                 placeholder="VD: Nội dung đánh giá chứa ngôn từ xúc phạm / spam quảng cáo..."></textarea>
 
+      <label class="admin-checkbox" style="margin-top:14px;">
+        <input type="checkbox" id="mrvSendEmail" name="sendEmail" value="true" checked/>
+        Gửi email thông báo lý do xóa cho khách hàng
+      </label>
+
       <div class="mrv-modal-actions">
         <button type="button" class="admin-btn admin-btn--ghost" onclick="closeDeleteModal()">Hủy</button>
-        <button type="submit" class="admin-btn admin-btn--danger">Xóa và gửi thông báo</button>
+        <button type="submit" class="admin-btn admin-btn--danger" id="mrvDeleteSubmitBtn">Xóa và gửi thông báo</button>
       </div>
     </form>
   </div>
 </div>
 
 <script>
+  var mrvReasonField = document.getElementById('mrvDeleteReason');
+  var mrvReasonCount = document.getElementById('mrvDeleteReasonCount');
+  var mrvSendEmail    = document.getElementById('mrvSendEmail');
+  var mrvSubmitBtn    = document.getElementById('mrvDeleteSubmitBtn');
+
+  function updateReasonCount() {
+    var len = mrvReasonField.value.length;
+    var max = mrvReasonField.maxLength;
+    mrvReasonCount.textContent = len + '/' + max;
+    mrvReasonCount.classList.toggle('mrv-char-count-warn', len >= max);
+  }
+  mrvReasonField.addEventListener('input', updateReasonCount);
+
+  function updateSubmitLabel() {
+    mrvSubmitBtn.textContent = mrvSendEmail.checked ? 'Xóa và gửi thông báo' : 'Xóa (không gửi email)';
+  }
+  mrvSendEmail.addEventListener('change', updateSubmitLabel);
+
   function openDeleteModal(reviewId, movieTitle) {
     document.getElementById('mrvDeleteReviewId').value = reviewId;
     document.getElementById('mrvDeleteMovieTitle').textContent = movieTitle;
-    document.getElementById('mrvDeleteReason').value = '';
+    mrvReasonField.value = '';
+    mrvSendEmail.checked = true;
+    updateReasonCount();
+    updateSubmitLabel();
     document.getElementById('mrvDeleteModal').classList.add('open');
   }
   function closeDeleteModal() {

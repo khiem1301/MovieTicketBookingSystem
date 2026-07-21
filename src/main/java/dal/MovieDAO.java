@@ -602,6 +602,22 @@ public class MovieDAO {
         }
     }
 
+    /** Tự động chuyển phim COMING_SOON sang NOW_SHOWING khi đã tới/qua ngày phát hành. */
+    public int promoteReleasedMovies() {
+        String sql = """
+                UPDATE Movies SET status = 'NOW_SHOWING'
+                WHERE status = 'COMING_SOON'
+                  AND release_date IS NOT NULL
+                  AND release_date <= CAST(SYSDATETIME() AS DATE)
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            return ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("promoteReleasedMovies failed", e);
+        }
+    }
+
     /** ID của các phim đã có ít nhất 1 suất chiếu (không được xóa). */
     public Set<String> getMovieIdsWithShowtimes() {
         String sql = "SELECT DISTINCT movie_id FROM Showtimes";

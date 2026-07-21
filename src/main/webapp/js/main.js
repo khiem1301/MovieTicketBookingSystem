@@ -79,12 +79,15 @@ function initHeroSlider() {
 
   function startAuto() {
     clearInterval(timer);
-    timer = setInterval(() => goTo(current + 1), 5000);
+    timer = setInterval(() => goTo(current + 1), 2500);
   }
 
   dots.forEach((dot, i) => {
     dot.addEventListener('click', () => { goTo(i); startAuto(); });
   });
+
+  const nextBtn = document.getElementById('heroNextBtn');
+  nextBtn?.addEventListener('click', () => { goTo(current + 1); startAuto(); });
 
   // Pause khi hover vào hero
   const hero = document.querySelector('.hero');

@@ -20,6 +20,7 @@ Mọi thay đổi schema từng có trong các file dưới đây **đã đượ
 | `add_seat_type_span.sql` | `SeatTypes.seat_span` |
 | `add_vietqr_payment_method.sql` | `CK_Payments_Method` gồm `VIETQR` |
 | `sprint2_counter_pos.sql` | Genres / Tickets / Payments (counter POS) |
+| `add_review_deletion_log.sql` | Bảng `ReviewDeletionLog` |
 
 ---
 

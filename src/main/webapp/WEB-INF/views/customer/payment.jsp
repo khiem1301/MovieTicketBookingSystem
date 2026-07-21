@@ -258,6 +258,55 @@
           </c:choose>
         </div>
 
+        <%-- FR-43: Điểm tích luỹ --%>
+        <div class="pay-promo-block">
+          <label class="pay-promo-label">Điểm tích luỹ</label>
+          <p class="pay-loyalty-balance">
+            Số dư: <strong><fmt:formatNumber value="${userLoyaltyPoints}" type="number" groupingUsed="true"/> điểm</strong>
+          </p>
+          <c:choose>
+            <c:when test="${detail.pointsRedeemed > 0}">
+              <div class="pay-promo-applied">
+                <span class="pay-promo-applied-code"><c:out value="${detail.pointsRedeemed}"/> điểm</span>
+                <span class="pay-promo-applied-title">
+                  (-<fmt:formatNumber value="${detail.pointsRedeemed / loyaltyRedeemRate * 10000}"
+                     type="number" groupingUsed="true" maxFractionDigits="0"/> ₫)
+                </span>
+              </div>
+              <form method="post" action="${ctx}/payment" class="pay-promo-form">
+                <input type="hidden" name="bookingId" value="<c:out value='${detail.bookingId}'/>"/>
+                <input type="hidden" name="action" value="removePoints"/>
+                <button type="submit" class="pay-promo-remove-btn">Gỡ điểm</button>
+              </form>
+            </c:when>
+            <c:when test="${userLoyaltyPoints >= loyaltyMinRedeem}">
+              <form method="post" action="${ctx}/payment" class="pay-promo-form">
+                <input type="hidden" name="bookingId" value="<c:out value='${detail.bookingId}'/>"/>
+                <input type="hidden" name="action" value="applyPoints"/>
+                <div class="pay-promo-row">
+                  <input type="number" name="pointsToUse" class="pay-promo-input"
+                         placeholder="Nhập số điểm"
+                         min="${loyaltyMinRedeem}"
+                         max="${userLoyaltyPoints < loyaltyMaxRedeem ? userLoyaltyPoints : loyaltyMaxRedeem}"
+                         step="${loyaltyRedeemRate}"
+                         value="${loyaltyMinRedeem}"/>
+                  <button type="submit" class="pay-promo-apply-btn">Dùng điểm</button>
+                </div>
+                <p class="pay-stub-note" style="margin-top:4px;">
+                  <c:out value="${loyaltyRedeemRate}"/> điểm = 10.000 ₫ &nbsp;|&nbsp;
+                  Tối đa <c:out value="${loyaltyMaxRedeem}"/> điểm/đơn
+                </p>
+              </form>
+            </c:when>
+            <c:otherwise>
+              <p class="pay-stub-note">
+                Cần tối thiểu <c:out value="${loyaltyMinRedeem}"/> điểm để đổi
+                (bạn có <fmt:formatNumber value="${userLoyaltyPoints}" type="number" groupingUsed="true"/> điểm).
+              </p>
+            </c:otherwise>
+          </c:choose>
+        </div>
+
         <div class="pay-breakdown">
           <div class="pay-breakdown-row">
             <span>Tạm tính</span>
@@ -297,5 +346,5 @@
   </div>
 </div>
 
-<script charset="UTF-8" src="${ctx}/js/customer-payment.js"></script>
+<script charset="UTF-8" src="${ctx}/js/customer-payment.js?v=2"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

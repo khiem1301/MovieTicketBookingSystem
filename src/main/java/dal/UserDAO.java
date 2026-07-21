@@ -77,17 +77,21 @@ public class UserDAO {
     }
 
     public Optional<User> findById(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return Optional.empty();
+        }
         String sql = SELECT_WITH_ROLE + " WHERE u.id = ?";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, userId);
+            ps.setString(1, userId.trim());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return Optional.of(mapRow(rs));
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("findById failed", e);
+            // id sai định dạng uniqueidentifier → coi như không tìm thấy (tránh 500)
+            return Optional.empty();
         }
         return Optional.empty();
     }
@@ -293,6 +297,18 @@ public class UserDAO {
             ps.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("updateStatus failed", e);
+        }
+    }
+
+    public void updateRoleId(String userId, String roleId) {
+        String sql = "UPDATE Users SET role_id = ? WHERE id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, roleId);
+            ps.setString(2, userId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("updateRoleId failed", e);
         }
     }
 

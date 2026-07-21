@@ -432,7 +432,8 @@ public class CounterBookingServlet extends HttpServlet {
                 holdDAO.releaseHolds(showtimeId, staff.getId());
                 resp.getWriter().write("{\"ok\":true}");
             } else {
-                java.sql.Timestamp expiredAt = holdDAO.holdSeats(showtimeId, staff.getId(), Arrays.asList(seatIds));
+                java.sql.Timestamp expiredAt = holdDAO.holdSeats(
+                        showtimeId, staff.getId(), Arrays.asList(seatIds), SeatHoldDAO.STAFF_HOLD_MINUTES);
                 resp.getWriter().write("{\"ok\":true,\"expiredAt\":" + expiredAt.getTime() + "}");
             }
         } catch (SeatHoldException e) {

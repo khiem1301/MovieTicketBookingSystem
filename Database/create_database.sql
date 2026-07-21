@@ -14,6 +14,7 @@
 --   sprint2_counter_pos.sql      → Genres.description/is_active,
 --                                  Tickets.is_printed,
 --                                  Payments.cash_received/change_amount
+--   add_review_deletion_log.sql  → bảng ReviewDeletionLog
 --
 -- Bao gồm:
 --   - 28 bảng (PascalCase) + index
@@ -57,6 +58,7 @@ IF OBJECT_ID('Bookings',              'U') IS NOT NULL DROP TABLE Bookings;
 IF OBJECT_ID('SeatHolds',             'U') IS NOT NULL DROP TABLE SeatHolds;
 IF OBJECT_ID('PricingRules',          'U') IS NOT NULL DROP TABLE PricingRules;
 IF OBJECT_ID('Showtimes',             'U') IS NOT NULL DROP TABLE Showtimes;
+IF OBJECT_ID('ReviewDeletionLog',     'U') IS NOT NULL DROP TABLE ReviewDeletionLog;
 IF OBJECT_ID('MovieReviews',          'U') IS NOT NULL DROP TABLE MovieReviews;
 IF OBJECT_ID('MovieGenres',           'U') IS NOT NULL DROP TABLE MovieGenres;
 IF OBJECT_ID('Genres',                'U') IS NOT NULL DROP TABLE Genres;
@@ -381,6 +383,25 @@ CREATE TABLE MovieReviews (
     CONSTRAINT FK_MovieReviews_User  FOREIGN KEY (user_id)  REFERENCES Users(id),
     CONSTRAINT UK_MovieReviews_UserMovie UNIQUE (movie_id, user_id),
     CONSTRAINT CK_MovieReviews_Rating    CHECK  (rating BETWEEN 1 AND 5)
+);
+GO
+
+-- ------------------------------------------------------------
+-- 13b. ReviewDeletionLog — lịch sử manager xóa đánh giá vi phạm
+--      (dùng để chặn user bị xóa đánh giá >= 10 lần trên cùng 1 phim)
+-- ------------------------------------------------------------
+CREATE TABLE ReviewDeletionLog (
+    id           UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    movie_id     UNIQUEIDENTIFIER NOT NULL,
+    user_id      UNIQUEIDENTIFIER NOT NULL,
+    reason       NVARCHAR(500)    NOT NULL,
+    deleted_by   UNIQUEIDENTIFIER NULL,
+    deleted_at   DATETIME2        NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT PK_ReviewDeletionLog          PRIMARY KEY (id),
+    CONSTRAINT FK_ReviewDeletionLog_Movie     FOREIGN KEY (movie_id)   REFERENCES Movies(id),
+    CONSTRAINT FK_ReviewDeletionLog_User      FOREIGN KEY (user_id)    REFERENCES Users(id),
+    CONSTRAINT FK_ReviewDeletionLog_DeletedBy FOREIGN KEY (deleted_by) REFERENCES Users(id)
 );
 GO
 
@@ -745,6 +766,8 @@ CREATE INDEX IX_Promotions_Status   ON Promotions(status);
 CREATE INDEX IX_Promotions_Dates    ON Promotions(start_date, end_date);
 
 CREATE INDEX IX_MovieReviews_Movie  ON MovieReviews(movie_id);
+
+CREATE INDEX IX_ReviewDeletionLog_UserMovie ON ReviewDeletionLog(user_id, movie_id);
 
 CREATE INDEX IX_SystemConfigLog_UpdatedAt ON SystemConfigLog(updated_at DESC);
 

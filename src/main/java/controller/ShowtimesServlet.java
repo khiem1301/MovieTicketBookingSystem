@@ -80,10 +80,13 @@ public class ShowtimesServlet extends HttpServlet {
         int movieReviewCount = reviewDAO.countByMovie(movie.getId());
         MovieReview myReview = null;
         boolean canReview = false;
+        boolean reviewBanned = false;
         SessionUser sessionUser = SessionUtil.getLoggedUser(req);
         if (sessionUser != null && "CUSTOMER".equals(SessionUtil.getUserRole(req))) {
             myReview = reviewDAO.findByMovieAndUser(movie.getId(), sessionUser.getId()).orElse(null);
-            canReview = new BookingDAO().hasWatchedMovie(sessionUser.getId(), movie.getId());
+            reviewBanned = reviewDAO.countDeletionsByUserAndMovie(sessionUser.getId(), movie.getId())
+                    >= MovieReviewDAO.DELETION_BAN_THRESHOLD;
+            canReview = !reviewBanned && new BookingDAO().hasWatchedMovie(sessionUser.getId(), movie.getId());
         }
 
         req.setAttribute("movie", movie);
@@ -93,6 +96,7 @@ public class ShowtimesServlet extends HttpServlet {
         req.setAttribute("genreList", movieDAO.getAllGenres());
         req.setAttribute("similarMovies", movieDAO.getSimilarMovies(movie.getId(), 6));
         req.setAttribute("canReview", canReview);
+        req.setAttribute("reviewBanned", reviewBanned);
         req.setAttribute("movieReviews", movieReviews);
         req.setAttribute("movieReviewCount", movieReviewCount);
         req.setAttribute("myReview", myReview);

@@ -18,8 +18,12 @@ import utils.SeatHoldException;
  */
 public class SeatHoldDAO {
 
-    /** TEMP test: 1 phút. Đổi lại 10 trước khi demo/production. */
-    public static final int HOLD_MINUTES = 1;
+    /** Customer checkout — giữ ghế khi chọn trên sơ đồ. */
+    public static final int CUSTOMER_HOLD_MINUTES = 5;
+    /** Staff POS — đang 1 phút để dễ test (đổi lại khi demo). */
+    public static final int STAFF_HOLD_MINUTES = 1;
+    /** Alias mặc định = customer (tương thích chỗ gọi cũ). */
+    public static final int HOLD_MINUTES = CUSTOMER_HOLD_MINUTES;
 
     /**
      * Trả về mã ghế (seat_code) không thể giữ: đã book hoặc đang bị user khác hold.
@@ -108,7 +112,7 @@ public class SeatHoldDAO {
     }
 
     /**
-     * Đồng bộ danh sách ghế đang giữ: rỗng → xóa hold; có ghế → thay batch hold {@link #HOLD_MINUTES} phút.
+     * Đồng bộ danh sách ghế đang giữ (Customer): rỗng → xóa hold; có ghế → hold {@link #CUSTOMER_HOLD_MINUTES} phút.
      *
      * @return expired_at mới, hoặc null nếu không còn ghế nào được giữ
      */
@@ -117,7 +121,7 @@ public class SeatHoldDAO {
             releaseHolds(showtimeId, userId);
             return null;
         }
-        return holdSeats(showtimeId, userId, seatIds);
+        return holdSeats(showtimeId, userId, seatIds, CUSTOMER_HOLD_MINUTES);
     }
 
     /** Xóa toàn bộ SeatHolds của user trên suất chiếu. */
@@ -134,13 +138,23 @@ public class SeatHoldDAO {
     }
 
     /**
-     * Thay thế hold cũ của user trên suất này và tạo hold mới ({@link #HOLD_MINUTES} phút).
+     * Thay thế hold cũ — mặc định thời gian {@link #CUSTOMER_HOLD_MINUTES}.
+     */
+    public Timestamp holdSeats(String showtimeId, String userId, List<String> seatIds) {
+        return holdSeats(showtimeId, userId, seatIds, CUSTOMER_HOLD_MINUTES);
+    }
+
+    /**
+     * Thay thế hold cũ của user trên suất này và tạo hold mới theo số phút chỉ định.
      *
      * @return expired_at của batch hold vừa tạo
      */
-    public Timestamp holdSeats(String showtimeId, String userId, List<String> seatIds) {
+    public Timestamp holdSeats(String showtimeId, String userId, List<String> seatIds, int holdMinutes) {
         if (seatIds == null || seatIds.isEmpty()) {
             throw new IllegalArgumentException("seatIds must not be empty");
+        }
+        if (holdMinutes <= 0) {
+            throw new IllegalArgumentException("holdMinutes must be positive");
         }
 
         List<String> blocked = findBlockingSeatCodes(showtimeId, seatIds, userId);
@@ -165,7 +179,7 @@ public class SeatHoldDAO {
                 ps.executeUpdate();
             }
 
-            Timestamp expiredAt = computeExpiry(conn);
+            Timestamp expiredAt = computeExpiry(conn, holdMinutes);
             String insertSql = """
                     INSERT INTO SeatHolds (showtime_id, seat_id, user_id, expired_at)
                     VALUES (?, ?, ?, ?)
@@ -265,10 +279,10 @@ public class SeatHoldDAO {
         }
     }
 
-    private Timestamp computeExpiry(Connection conn) throws SQLException {
+    private Timestamp computeExpiry(Connection conn, int holdMinutes) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(
                 "SELECT DATEADD(MINUTE, ?, GETDATE()) AS expiry")) {
-            ps.setInt(1, HOLD_MINUTES);
+            ps.setInt(1, holdMinutes);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return rs.getTimestamp("expiry");
             }

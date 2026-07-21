@@ -183,7 +183,7 @@
       <div id="holdCountdown" class="hold-countdown" style="display:none">
         <span class="hold-countdown__icon">&#9201;</span>
         <span>Ghế được giữ trong</span>
-        <span id="holdTime" class="hold-countdown__time">10:00</span>
+        <span id="holdTime" class="hold-countdown__time">01:00</span>
       </div>
 
       <%-- Tổng tiền --%>
@@ -217,5 +217,5 @@
   </div><%-- /pos-layout --%>
 </div><%-- /pos-container --%>
 
-<script src="${pageContext.request.contextPath}/js/counter-booking.js?v=6"></script>
+<script src="${pageContext.request.contextPath}/js/counter-booking.js?v=7"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
