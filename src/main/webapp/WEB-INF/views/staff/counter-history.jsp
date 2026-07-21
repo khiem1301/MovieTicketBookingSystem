@@ -1,4 +1,4 @@
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"   uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn"  uri="jakarta.tags.functions" %>
@@ -11,7 +11,7 @@
 
 <c:set var="ctx" value="${pageContext.request.contextPath}"/>
 
-<div class="pos-container" style="max-width:1200px">
+<div class="pos-container" style="max-width:1200px;margin:0 auto;padding:24px 20px">
 
   <%-- Thông báo lỗi --%>
   <c:if test="${not empty errorMessage}">

@@ -283,7 +283,7 @@
 </div><%-- /pos-container --%>
 
 <script>
-  const TOTAL_DUE = <fmt:formatNumber value="${detail.finalAmount}" type="number" groupingUsed="false"/>;
+  const TOTAL_DUE = ${detail.finalAmount};
   const MAX_CASH  = 999999999; // ~999 triệu VND
   let receivedRaw = '';
   let payMethod   = '${vietqrActive ? "VIETQR" : "CASH"}';
