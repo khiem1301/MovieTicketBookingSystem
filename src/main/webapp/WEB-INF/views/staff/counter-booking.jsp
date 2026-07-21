@@ -1,4 +1,4 @@
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"   uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn"  uri="jakarta.tags.functions" %>
 
@@ -10,26 +10,6 @@
 <script>document.body.classList.add('pos-body');</script>
 
 <div class="pos-container">
-
-  <%-- ── POS Header ──────────────────────────────────────────── --%>
-  <div class="pos-header">
-    <div class="pos-header-left">
-      <a href="${pageContext.request.contextPath}/home" class="pos-logo">
-        <img src="${pageContext.request.contextPath}/images/logorapchieuphim.png"
-             alt="ÉpCine" class="pos-logo-img"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"/>
-        <span class="pos-logo-fallback" style="display:none">ÉpCine</span>
-      </a>
-      <span class="pos-title">Quầy Bán Vé</span>
-    </div>
-    <div class="pos-header-right">
-      <a href="${pageContext.request.contextPath}/staff/history" class="hist-back-btn">&#128203; Lịch sử</a>
-      <span class="pos-staff-name">
-        Nhân viên: <strong><c:out value="${sessionScope.loggedUser.fullName}"/></strong>
-      </span>
-      <span class="pos-offline-badge">&#9679; OFFLINE</span>
-    </div>
-  </div>
 
   <%-- Thông báo lỗi --%>
   <c:if test="${not empty errorMessage}">
@@ -186,6 +166,19 @@
         <div id="memberResult" class="pos-member-result" style="display:none"></div>
       </div>
 
+      <%-- Đổi điểm thưởng (ẩn cho đến khi tìm thấy thành viên) --%>
+      <div id="loyaltySection" class="pos-customer-section" style="display:none;margin-top:8px">
+        <div class="pos-section-label">Đổi điểm thưởng</div>
+        <div id="loyaltyBalanceInfo" style="font-size:13px;color:#aaa;margin-bottom:8px"></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input type="number" id="loyaltyPointsInput" class="pos-form-input"
+                 min="0" step="100" placeholder="Nhập số điểm (bội số 100)..."
+                 style="flex:1" oninput="updateLoyaltyDiscount()"/>
+          <button type="button" class="pos-lookup-btn" onclick="applyLoyaltyPoints()">Áp dụng</button>
+        </div>
+        <div id="loyaltyDiscountPreview" style="font-size:13px;margin-top:6px"></div>
+      </div>
+
       <%-- Thông tin khách hàng --%>
       <div class="pos-customer-section" style="margin-top:8px">
         <div class="pos-section-label">Thông tin khách hàng
@@ -204,6 +197,12 @@
         <span class="hold-countdown__icon">&#9201;</span>
         <span>Ghế được giữ trong</span>
         <span id="holdTime" class="hold-countdown__time">01:00</span>
+      </div>
+
+      <%-- Giảm điểm (ẩn khi không áp dụng) --%>
+      <div id="pointsDiscountRow" class="pos-total-row" style="display:none;font-size:13px;color:#66bb6a">
+        <span id="pointsDiscountLabel">Giảm điểm</span>
+        <strong id="pointsDiscountDisplay">-0 ₫</strong>
       </div>
 
       <%-- Tổng tiền --%>
@@ -226,10 +225,11 @@
       <%-- Hidden form gửi lên server --%>
       <form id="bookingForm" method="post"
             action="${pageContext.request.contextPath}/staff/counter">
-        <input type="hidden" name="showtimeId"    id="formShowtimeId"/>
+        <input type="hidden" name="showtimeId"     id="formShowtimeId"/>
         <input type="hidden" name="customerName"  id="formCustName"/>
         <input type="hidden" name="customerPhone" id="formCustPhone"/>
         <input type="hidden" name="memberId"      id="formMemberId" value=""/>
+        <input type="hidden" name="pointsToRedeem" id="formPointsToRedeem" value="0"/>
       </form>
 
     </div><%-- /pos-right --%>
@@ -237,5 +237,5 @@
   </div><%-- /pos-layout --%>
 </div><%-- /pos-container --%>
 
-<script src="${pageContext.request.contextPath}/js/counter-booking.js?v=7"></script>
+<script src="${pageContext.request.contextPath}/js/counter-booking.js?v=8"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

@@ -20,7 +20,10 @@ public class PromotionDAO {
     // ── List (phân trang, lọc theo status và keyword) ────────────────────
     public List<Promotion> findAll(String statusFilter, String keyword, int offset, int limit) {
         StringBuilder sql = new StringBuilder(SELECT_COLUMNS).append("WHERE 1=1 ");
-        if (statusFilter != null && !statusFilter.isBlank()) sql.append("AND status = ? ");
+        if (statusFilter != null && !statusFilter.isBlank()) {
+            if ("EXPIRED".equals(statusFilter)) sql.append("AND end_date < GETDATE() ");
+            else                                sql.append("AND status = ? ");
+        }
         if (keyword != null && !keyword.isBlank())          sql.append("AND (code LIKE ? OR title LIKE ?) ");
         sql.append("ORDER BY created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
 
@@ -28,7 +31,8 @@ public class PromotionDAO {
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             int i = 1;
-            if (statusFilter != null && !statusFilter.isBlank()) ps.setString(i++, statusFilter);
+            if (statusFilter != null && !statusFilter.isBlank() && !"EXPIRED".equals(statusFilter))
+                ps.setString(i++, statusFilter);
             if (keyword != null && !keyword.isBlank()) {
                 String like = "%" + keyword.trim() + "%";
                 ps.setString(i++, like);
@@ -47,13 +51,17 @@ public class PromotionDAO {
 
     public int count(String statusFilter, String keyword) {
         StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM Promotions WHERE 1=1 ");
-        if (statusFilter != null && !statusFilter.isBlank()) sql.append("AND status = ? ");
+        if (statusFilter != null && !statusFilter.isBlank()) {
+            if ("EXPIRED".equals(statusFilter)) sql.append("AND end_date < GETDATE() ");
+            else                                sql.append("AND status = ? ");
+        }
         if (keyword != null && !keyword.isBlank())          sql.append("AND (code LIKE ? OR title LIKE ?) ");
 
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             int i = 1;
-            if (statusFilter != null && !statusFilter.isBlank()) ps.setString(i++, statusFilter);
+            if (statusFilter != null && !statusFilter.isBlank() && !"EXPIRED".equals(statusFilter))
+                ps.setString(i++, statusFilter);
             if (keyword != null && !keyword.isBlank()) {
                 String like = "%" + keyword.trim() + "%";
                 ps.setString(i++, like);

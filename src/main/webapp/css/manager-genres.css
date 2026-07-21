@@ -264,6 +264,7 @@ body {
 }
 
 .status-badge {
+  position: static;
   display: inline-flex;
   align-items: center;
   gap: 6px;

@@ -40,11 +40,37 @@ public class BookingDAO {
     public String createOfflineBooking(String showtimeId, String staffId,
                                        String userId, String customerName, String customerPhone,
                                        List<String> seatIds, List<BigDecimal> seatPrices) {
+        return createOfflineBooking(showtimeId, staffId, userId, customerName, customerPhone,
+                                    seatIds, seatPrices, 0);
+    }
+
+    /** Overload hỗ trợ đổi điểm thưởng tại quầy (FR-43 offline). */
+    public String createOfflineBooking(String showtimeId, String staffId,
+                                       String userId, String customerName, String customerPhone,
+                                       List<String> seatIds, List<BigDecimal> seatPrices,
+                                       int pointsToRedeem) {
         BigDecimal vatRate = scaleMoney(getCurrentVatRate());
         BigDecimal totalAmount = scaleMoney(seatPrices.stream()
                 .reduce(BigDecimal.ZERO, BigDecimal::add));
         BigDecimal finalAmount = scaleMoney(totalAmount.multiply(
                 BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100")))));
+
+        // Tính giảm giá từ điểm thưởng
+        int redeemRate = ConfigUtil.getInt(ConfigKeys.LOYALTY_REDEEM_RATE, 100);
+        int minRedeem  = ConfigUtil.getInt(ConfigKeys.LOYALTY_MIN_REDEEM,  100);
+        int maxRedeem  = ConfigUtil.getInt(ConfigKeys.LOYALTY_MAX_REDEEM_PER_ORDER, 5000);
+        int effectivePoints = 0;
+        BigDecimal pointsDiscount = BigDecimal.ZERO;
+        if (pointsToRedeem > 0 && userId != null) {
+            int capped  = Math.min(pointsToRedeem, maxRedeem);
+            int floored = (capped / redeemRate) * redeemRate;
+            if (floored >= minRedeem) {
+                effectivePoints = floored;
+                pointsDiscount  = BigDecimal.valueOf((long)(effectivePoints / redeemRate) * 10_000);
+                if (pointsDiscount.compareTo(finalAmount) > 0) pointsDiscount = finalAmount;
+            }
+        }
+        BigDecimal discountedFinal = finalAmount.subtract(pointsDiscount).max(BigDecimal.ZERO);
 
         String bookingCode = generateOfflineBookingCode();
 
@@ -52,10 +78,10 @@ public class BookingDAO {
                 INSERT INTO Bookings
                     (booking_code, user_id, showtime_id, booking_source,
                      created_by_staff_id, customer_name, customer_phone,
-                     vat_rate_snapshot, total_amount, discount_amount, final_amount,
+                     vat_rate_snapshot, total_amount, discount_amount, final_amount, points_redeemed,
                      booking_status, payment_status)
                 OUTPUT INSERTED.id
-                VALUES (?, ?, ?, 'OFFLINE', ?, ?, ?, ?, ?, 0, ?, 'PENDING', 'UNPAID')
+                VALUES (?, ?, ?, 'OFFLINE', ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', 'UNPAID')
                 """;
 
         String insertSeat = """
@@ -67,6 +93,20 @@ public class BookingDAO {
             conn.setAutoCommit(false);
             String bookingId;
 
+            // Kiểm tra số dư điểm trước khi tạo booking
+            if (effectivePoints > 0) {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "SELECT loyalty_points FROM Users WHERE id = ?")) {
+                    ps.setString(1, userId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next() || rs.getInt("loyalty_points") < effectivePoints) {
+                            conn.rollback();
+                            throw new IllegalArgumentException("Số dư điểm không đủ để đổi.");
+                        }
+                    }
+                }
+            }
+
             try (PreparedStatement ps = conn.prepareStatement(insertBooking)) {
                 ps.setString(1, bookingCode);
                 if (userId != null) ps.setString(2, userId);
@@ -77,7 +117,9 @@ public class BookingDAO {
                 ps.setString(6, customerPhone);
                 ps.setBigDecimal(7, vatRate);
                 ps.setBigDecimal(8, totalAmount);
-                ps.setBigDecimal(9, finalAmount);
+                ps.setBigDecimal(9, pointsDiscount);
+                ps.setBigDecimal(10, discountedFinal);
+                ps.setInt(11, effectivePoints);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (!rs.next()) throw new SQLException("Không lấy được booking ID");
                     bookingId = rs.getString(1);
@@ -92,6 +134,29 @@ public class BookingDAO {
                     ps.addBatch();
                 }
                 ps.executeBatch();
+            }
+
+            // Trừ điểm và ghi log
+            if (effectivePoints > 0) {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE Users SET loyalty_points = loyalty_points - ? WHERE id = ? AND loyalty_points >= ?")) {
+                    ps.setInt(1, effectivePoints);
+                    ps.setString(2, userId);
+                    ps.setInt(3, effectivePoints);
+                    if (ps.executeUpdate() == 0) {
+                        conn.rollback();
+                        throw new IllegalArgumentException("Không đủ điểm để trừ.");
+                    }
+                }
+                try (PreparedStatement ps = conn.prepareStatement("""
+                        INSERT INTO LoyaltyPointsLog (user_id, booking_id, points_delta, transaction_type, note)
+                        VALUES (?, ?, ?, 'REDEEM', N'Đổi điểm giảm giá đặt vé tại quầy')
+                        """)) {
+                    ps.setString(1, userId);
+                    ps.setString(2, bookingId);
+                    ps.setInt(3, -effectivePoints);
+                    ps.executeUpdate();
+                }
             }
 
             conn.commit();
@@ -445,7 +510,8 @@ public class BookingDAO {
                     if (rs.next()) paymentExists = rs.getInt(1) > 0;
                 }
             }
-            if (!paymentExists) {
+            // Bỏ qua Payments INSERT khi final_amount = 0 (đơn miễn phí do điểm thưởng)
+            if (!paymentExists && finalAmount.compareTo(BigDecimal.ZERO) > 0) {
                 String paymentSql = """
                         INSERT INTO Payments
                             (booking_id, payment_method, payment_source, amount,

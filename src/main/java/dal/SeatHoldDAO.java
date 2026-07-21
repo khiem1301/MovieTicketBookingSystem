@@ -20,8 +20,8 @@ public class SeatHoldDAO {
 
     /** Customer checkout — giữ ghế khi chọn trên sơ đồ. */
     public static final int CUSTOMER_HOLD_MINUTES = 5;
-    /** Staff POS — đang 1 phút để dễ test (đổi lại khi demo). */
-    public static final int STAFF_HOLD_MINUTES = 1;
+    /** Staff POS — giữ ghế 10 phút. */
+    public static final int STAFF_HOLD_MINUTES = 10;
     /** Alias mặc định = customer (tương thích chỗ gọi cũ). */
     public static final int HOLD_MINUTES = CUSTOMER_HOLD_MINUTES;
 
@@ -293,6 +293,18 @@ public class SeatHoldDAO {
     private boolean isUniqueViolation(SQLException e) {
         int code = e.getErrorCode();
         return code == 2627 || code == 2601;
+    }
+
+    /** Xóa toàn bộ SeatHolds của user trên tất cả suất chiếu (dùng khi về trang chủ POS). */
+    public void releaseAllHoldsForUser(String userId) {
+        String sql = "DELETE FROM SeatHolds WHERE user_id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("releaseAllHoldsForUser failed", e);
+        }
     }
 
     /** Loại bỏ trùng lặp, giữ thứ tự. */

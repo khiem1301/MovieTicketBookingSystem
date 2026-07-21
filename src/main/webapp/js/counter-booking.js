@@ -20,6 +20,8 @@
   let selectedStartTime = '';
   let selectedSeats    = [];   // [{id, code, type, price}]
   let memberLocked     = false;
+  let appliedPoints    = 0;    // điểm đã áp dụng để trừ tiền
+  let memberPointsBalance = 0; // số dư điểm của thành viên
 
   // ── Movie tab / search ─────────────────────────────────────────
   window.switchTab = function (tab) {
@@ -32,12 +34,30 @@
   window.filterMovies = function (query) {
     const q = query.toLowerCase().trim();
     const activeTab = document.querySelector('.pos-tab--active')?.dataset?.tab ?? 'now';
+    let visibleCount = 0;
     document.querySelectorAll('.pos-movie-item').forEach(el => {
       const title  = (el.dataset.movieTitle ?? '').toLowerCase();
       const status = (el.dataset.movieStatus ?? '').toUpperCase();
       const tabOk  = activeTab === 'coming' ? status.includes('COMING') : !status.includes('COMING');
-      el.style.display = tabOk && (q === '' || title.includes(q)) ? '' : 'none';
+      const show   = tabOk && (q === '' || title.includes(q));
+      el.style.display = show ? '' : 'none';
+      if (show) visibleCount++;
     });
+
+    let emptyEl = document.getElementById('movieListEmpty');
+    if (!emptyEl) {
+      emptyEl = document.createElement('div');
+      emptyEl.id = 'movieListEmpty';
+      emptyEl.className = 'pos-empty';
+      document.getElementById('movieList').appendChild(emptyEl);
+    }
+    if (visibleCount === 0) {
+      const tabName = activeTab === 'coming' ? 'Sắp chiếu' : 'Đang chiếu';
+      emptyEl.textContent = q ? 'Không tìm thấy phim phù hợp.' : `Không có phim ${tabName}.`;
+      emptyEl.style.display = '';
+    } else {
+      emptyEl.style.display = 'none';
+    }
   };
 
   // ── Movie selection ────────────────────────────────────────────
@@ -314,8 +334,20 @@
         </div>`).join('');
     }
 
-    const total = selectedSeats.reduce((sum, s) => sum + s.price, 0);
-    document.getElementById('totalDisplay').textContent = formatVnd(total);
+    const rawTotal   = selectedSeats.reduce((sum, s) => sum + s.price, 0);
+    const discount   = appliedPoints > 0 ? (appliedPoints / 100) * 10000 : 0;
+    const finalTotal = Math.max(0, rawTotal - discount);
+
+    const discRow     = document.getElementById('pointsDiscountRow');
+    const discDisplay = document.getElementById('pointsDiscountDisplay');
+    const discLabel   = document.getElementById('pointsDiscountLabel');
+    if (discRow) discRow.style.display = discount > 0 ? '' : 'none';
+    if (discount > 0) {
+      if (discDisplay) discDisplay.textContent = '-' + formatVnd(discount);
+      if (discLabel)   discLabel.textContent   = `Giảm (${appliedPoints.toLocaleString('vi-VN')} điểm)`;
+    }
+
+    document.getElementById('totalDisplay').textContent = formatVnd(finalTotal);
   }
 
   // ── FR-42: Member Lookup ────────────────────────────────────────
@@ -342,6 +374,7 @@
             ? `<span class="member-status-badge member-status-badge--locked">Tạm khóa</span>`
             : `<span class="member-status-badge member-status-badge--active">Hoạt động</span>`;
 
+          memberPointsBalance = data.loyaltyPoints || 0;
           resultEl.className = 'pos-member-result pos-member-result--found';
           resultEl.innerHTML = `
             <div class="member-card">
@@ -352,18 +385,29 @@
                   <strong>${escHtml(data.fullName)}</strong>
                   ${statusBadge}
                 </div>
-                ${data.email ? `<div class="member-card-row"><span class="member-card-icon">✉</span>${escHtml(data.email)}</div>` : ''}
+                ${data.email ? `<div class="member-card-row" style="word-break:break-all"><span class="member-card-icon">✉</span>${escHtml(data.email)}</div>` : ''}
                 <div class="member-card-row"><span class="member-card-icon">📱</span>${escHtml(data.phone || phone)}</div>
                 <div class="member-card-row member-card-points">
                   <span class="member-card-icon">★</span>
-                  <strong>${data.loyaltyPoints.toLocaleString('vi-VN')}</strong>&nbsp;điểm tích luỹ
+                  <strong>${memberPointsBalance.toLocaleString('vi-VN')}</strong>&nbsp;điểm tích luỹ
                 </div>
                 ${data.joinedDate ? `<div class="member-card-row member-card-joined">Tham gia: ${escHtml(data.joinedDate)}</div>` : ''}
               </div>
             </div>`;
+
+          // Show loyalty section (chỉ hiện khi không bị khóa)
+          if (!isLocked) {
+            const loyaltySection = document.getElementById('loyaltySection');
+            if (loyaltySection) loyaltySection.style.display = '';
+            const balanceEl = document.getElementById('loyaltyBalanceInfo');
+            if (balanceEl) balanceEl.textContent = `Số dư: ${memberPointsBalance.toLocaleString('vi-VN')} điểm`;
+            document.getElementById('loyaltyPointsInput').value = '';
+            document.getElementById('loyaltyDiscountPreview').textContent = '';
+          }
         } else {
           memberLocked = false;
           document.getElementById('formMemberId').value = '';
+          resetLoyaltySection();
           resultEl.className = 'pos-member-result pos-member-result--notfound';
           resultEl.innerHTML = `
             <div class="member-notfound">
@@ -399,9 +443,10 @@
     if (!selectedShowtimeId || selectedSeats.length === 0) return;
 
     const form = document.getElementById('bookingForm');
-    document.getElementById('formShowtimeId').value = selectedShowtimeId;
-    document.getElementById('formCustName').value   = name;
-    document.getElementById('formCustPhone').value  = phone;
+    document.getElementById('formShowtimeId').value    = selectedShowtimeId;
+    document.getElementById('formCustName').value      = name;
+    document.getElementById('formCustPhone').value     = phone;
+    document.getElementById('formPointsToRedeem').value = appliedPoints;
 
     form.querySelectorAll('input[name="seatIds"], input[name="seatPrices"]')
         .forEach(el => el.remove());
@@ -412,6 +457,69 @@
     });
 
     form.submit();
+  };
+
+  // ── Loyalty Points ──────────────────────────────────────────
+  function resetLoyaltySection() {
+    appliedPoints = 0;
+    memberPointsBalance = 0;
+    const section = document.getElementById('loyaltySection');
+    if (section) section.style.display = 'none';
+    const inp = document.getElementById('loyaltyPointsInput');
+    if (inp) inp.value = '';
+    const preview = document.getElementById('loyaltyDiscountPreview');
+    if (preview) preview.textContent = '';
+    updateSummarySeats();
+  }
+
+  window.updateLoyaltyDiscount = function () {
+    const inp = document.getElementById('loyaltyPointsInput');
+    const preview = document.getElementById('loyaltyDiscountPreview');
+    if (!inp || !preview) return;
+    const pts = Math.max(0, parseInt(inp.value) || 0);
+    const effective = Math.floor(pts / 100) * 100;
+    if (effective >= 100) {
+      const disc = (effective / 100) * 10000;
+      preview.style.color = '#aaa';
+      preview.textContent = `→ Giảm ${formatVnd(disc)} (${effective.toLocaleString('vi-VN')} điểm)`;
+    } else {
+      preview.textContent = '';
+    }
+  };
+
+  window.applyLoyaltyPoints = function () {
+    const inp = document.getElementById('loyaltyPointsInput');
+    if (!inp) return;
+    const pts = Math.max(0, parseInt(inp.value) || 0);
+    const effective = Math.floor(pts / 100) * 100;
+
+    if (pts > 0 && effective < 100) {
+      alert('Điểm tối thiểu để đổi là 100 điểm.');
+      return;
+    }
+    if (effective > memberPointsBalance) {
+      alert(`Số điểm nhập (${effective.toLocaleString('vi-VN')}) vượt quá số dư (${memberPointsBalance.toLocaleString('vi-VN')} điểm).`);
+      return;
+    }
+    if (effective > 5000) {
+      alert('Tối đa 5.000 điểm mỗi đơn hàng.');
+      inp.value = 5000;
+      return;
+    }
+
+    appliedPoints = effective;
+    updateSummarySeats();
+
+    const preview = document.getElementById('loyaltyDiscountPreview');
+    if (preview) {
+      if (appliedPoints > 0) {
+        preview.style.color = '#66bb6a';
+        preview.textContent = `✓ Đã áp dụng: -${formatVnd((appliedPoints / 100) * 10000)}`;
+      } else {
+        preview.textContent = 'Không áp dụng điểm.';
+        preview.style.color = '#aaa';
+      }
+    }
   };
 
   // ── Seat hold sync ──────────────────────────────────────────────

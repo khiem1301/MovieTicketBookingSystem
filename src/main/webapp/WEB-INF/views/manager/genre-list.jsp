@@ -1,4 +1,4 @@
-<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+﻿<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"   uri="jakarta.tags.core"      %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt"       %>
 <%@ taglib prefix="fn"  uri="jakarta.tags.functions" %>
@@ -50,14 +50,6 @@
       <button class="genre-tab"        data-filter="inactive" onclick="setTab(this)">Ngừng Hoạt Động</button>
     </div>
     <div class="genre-filter-icons">
-      <div class="genre-filter-icon" title="Bộ lọc">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="4" y1="6" x2="20" y2="6"/>
-          <line x1="8" y1="12" x2="16" y2="12"/>
-          <line x1="11" y1="18" x2="13" y2="18"/>
-        </svg>
-      </div>
       <div class="genre-filter-icon" title="Xuất CSV" onclick="exportCSV()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -451,7 +443,7 @@
       const status = cells[3].textContent.trim();
       csv += '"' + name + '","' + slug + '","' + count + '","' + status + '"\n';
     });
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href = url; a.download = 'genres.csv'; a.click();
