@@ -77,6 +77,12 @@
               </span>
             </div>
           </c:forEach>
+          <c:if test="${detail.discountAmount != null && detail.discountAmount > 0}">
+          <div class="payment-item-row" style="color:#66bb6a">
+            <span>Giảm điểm (<c:out value="${detail.pointsRedeemed}"/> điểm)</span>
+            <span>-<fmt:formatNumber value="${detail.discountAmount}" type="number" groupingUsed="true"/> ₫</span>
+          </div>
+          </c:if>
           <div class="payment-item-row payment-item-row--total">
             <span>Tổng cộng</span>
             <span>

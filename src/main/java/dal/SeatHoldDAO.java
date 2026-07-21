@@ -20,8 +20,8 @@ public class SeatHoldDAO {
 
     /** Customer checkout — giữ ghế khi chọn trên sơ đồ. */
     public static final int CUSTOMER_HOLD_MINUTES = 5;
-    /** Staff POS — đang 1 phút để dễ test (đổi lại khi demo). */
-    public static final int STAFF_HOLD_MINUTES = 1;
+    /** Staff POS — giữ ghế 10 phút. */
+    public static final int STAFF_HOLD_MINUTES = 10;
     /** Alias mặc định = customer (tương thích chỗ gọi cũ). */
     public static final int HOLD_MINUTES = CUSTOMER_HOLD_MINUTES;
 

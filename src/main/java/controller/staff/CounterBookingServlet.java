@@ -276,6 +276,13 @@ public class CounterBookingServlet extends HttpServlet {
         String memberId      = trim(req.getParameter("memberId"));   // FR-42: null nếu khách vãng lai
         String[] rawSeatIds  = req.getParameterValues("seatIds");
         String[] rawPrices   = req.getParameterValues("seatPrices");
+        String pointsStr     = trim(req.getParameter("pointsToRedeem"));
+        int pointsToRedeem   = 0;
+        if (pointsStr != null) {
+            try { pointsToRedeem = Integer.parseInt(pointsStr); } catch (NumberFormatException ignored) {}
+        }
+        if (pointsToRedeem < 0) pointsToRedeem = 0;
+        if (pointsToRedeem > 0 && isBlank(memberId)) pointsToRedeem = 0;
 
         if (isBlank(showtimeId)) { forwardError(req, resp, "Thiếu thông tin suất chiếu."); return; }
         if (rawSeatIds == null || rawSeatIds.length == 0) {
@@ -327,7 +334,7 @@ public class CounterBookingServlet extends HttpServlet {
         try {
             String bookingId = new BookingDAO().createOfflineBooking(
                     showtimeId, staff.getId(), userId, customerName, customerPhone,
-                    seatIds, seatPrices);
+                    seatIds, seatPrices, pointsToRedeem);
             holdDAO.releaseHolds(showtimeId, staff.getId());
             resp.sendRedirect(req.getContextPath()
                     + "/staff/counter?step=payment&bookingId=" + bookingId);
