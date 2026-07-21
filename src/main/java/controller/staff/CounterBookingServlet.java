@@ -162,6 +162,12 @@ public class CounterBookingServlet extends HttpServlet {
     // ── Helpers: page loaders ──────────────────────────────────────────
 
     private void loadMainPage(HttpServletRequest req) {
+        // Release any stale seat holds when staff returns to the main page
+        SessionUser staff = SessionUtil.getLoggedUser(req);
+        if (staff != null) {
+            try { new SeatHoldDAO().releaseAllHoldsForUser(staff.getId()); }
+            catch (RuntimeException ignored) { }
+        }
         req.setAttribute("movies", new ShowtimeDAO().getMoviesWithActiveShowtimes());
     }
 

@@ -1,38 +1,15 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"   uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Thanh Toán — ÉpCine POS</title>
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/main.css"/>
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/staff.css"/>
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/counter-pos.css"/>
-</head>
-<body class="pos-body">
+<%@ taglib prefix="fn"  uri="jakarta.tags.functions" %>
+
+<c:set var="pageTitle" value="Thanh Toán — ÉpCine POS"/>
+<c:set var="extraCss"  value="staff"/>
+<c:set var="extraCss2" value="counter-pos"/>
+<%@ include file="/WEB-INF/views/common/header.jsp" %>
+<script>document.body.classList.add('pos-body');</script>
 
 <div class="pos-container">
-
-  <%-- Header --%>
-  <div class="pos-header">
-    <div class="pos-header-left">
-      <a href="${pageContext.request.contextPath}/staff/counter" class="pos-logo">
-        <img src="${pageContext.request.contextPath}/images/logorapchieuphim.png"
-             alt="ÉpCine" class="pos-logo-img"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"/>
-        <span class="pos-logo-fallback" style="display:none">ÉpCine</span>
-      </a>
-      <span class="pos-title">Thanh Toán</span>
-    </div>
-    <div class="pos-header-right">
-      <span class="pos-staff-name">
-        Nhân viên: <strong><c:out value="${sessionScope.loggedUser.fullName}"/></strong>
-      </span>
-      <span class="pos-offline-badge">&#9679; OFFLINE</span>
-    </div>
-  </div>
 
   <c:if test="${not empty errorMessage}">
     <div class="pos-alert pos-alert--error"><c:out value="${errorMessage}"/></div>
@@ -60,7 +37,15 @@
           <div class="payment-movie-poster">
             <c:choose>
               <c:when test="${not empty detail.moviePosterUrl}">
-                <img src="<c:out value='${detail.moviePosterUrl}'/>"
+                <c:choose>
+                  <c:when test="${fn:startsWith(detail.moviePosterUrl, 'http://') or fn:startsWith(detail.moviePosterUrl, 'https://')}">
+                    <c:set var="posterSrc" value="${detail.moviePosterUrl}"/>
+                  </c:when>
+                  <c:otherwise>
+                    <c:set var="posterSrc" value="${pageContext.request.contextPath}/${detail.moviePosterUrl}"/>
+                  </c:otherwise>
+                </c:choose>
+                <img src="<c:out value='${posterSrc}'/>"
                      alt="poster"
                      onerror="this.style.display='none'"/>
               </c:when>
@@ -176,7 +161,6 @@
         <div id="vietqrSection" style="display:<c:choose><c:when test="${vietqrActive}">block</c:when><c:otherwise>none</c:otherwise></c:choose>">
           <c:choose>
             <c:when test="${vietqrActive}">
-              <%-- QR đã tạo — hiển thị và chờ --%>
               <div class="vietqr-qr-block">
                 <div style="text-align:center;margin-bottom:10px">
                   <img src="<c:out value='${vietqrQrUrl}'/>" alt="Mã QR VietQR"
@@ -245,7 +229,6 @@
               </div>
             </c:when>
             <c:when test="${vietqrConfigured}">
-              <%-- VietQR cấu hình sẵn nhưng chưa tạo QR --%>
               <div style="text-align:center;padding:20px 0">
                 <div style="font-size:36px;margin-bottom:8px">📱</div>
                 <p style="color:#ccc;font-size:14px;margin-bottom:16px">
@@ -271,26 +254,26 @@
           </c:choose>
         </div>
 
-        <%-- Nút xác nhận tiền mặt — chỉ hiện khi tab CASH --%>
+        <%-- Nút xác nhận tiền mặt --%>
         <div id="cashConfirmSection" style="display:<c:choose><c:when test="${vietqrActive}">none</c:when><c:otherwise>block</c:otherwise></c:choose>">
-        <form method="post" id="paymentForm"
-              action="${pageContext.request.contextPath}/staff/counter?action=payment">
-          <input type="hidden" name="bookingId"    value="${detail.bookingId}"/>
-          <input type="hidden" name="cashReceived" id="hiddenCashRecv" value="0"/>
-          <input type="hidden" name="changeAmount" id="hiddenChangAmt" value="0"/>
-          <button type="button" class="pos-proceed-btn pos-proceed-btn--green"
-                  id="markSuccessBtn" onclick="submitPayment()">
-            ✓ Xác nhận thanh toán thành công
-          </button>
-        </form>
+          <form method="post" id="paymentForm"
+                action="${pageContext.request.contextPath}/staff/counter?action=payment">
+            <input type="hidden" name="bookingId"    value="${detail.bookingId}"/>
+            <input type="hidden" name="cashReceived" id="hiddenCashRecv" value="0"/>
+            <input type="hidden" name="changeAmount" id="hiddenChangAmt" value="0"/>
+            <button type="button" class="pos-proceed-btn pos-proceed-btn--green"
+                    id="markSuccessBtn" onclick="submitPayment()">
+              ✓ Xác nhận thanh toán thành công
+            </button>
+          </form>
         </div>
 
         <div style="margin-top:12px; text-align:center;">
-          <a href="${pageContext.request.contextPath}/staff/counter?step=payment&bookingId=${detail.bookingId}"
-             class="pos-link-btn">← Quay lại</a>
-          &nbsp;|&nbsp;
           <a href="${pageContext.request.contextPath}/staff/counter"
-             class="pos-link-btn">Tạo đơn mới</a>
+             class="pos-link-btn">← Quay lại quầy vé</a>
+          &nbsp;|&nbsp;
+          <a href="${pageContext.request.contextPath}/staff/history"
+             class="pos-link-btn">Lịch sử</a>
         </div>
 
       </div>
@@ -301,6 +284,7 @@
 
 <script>
   const TOTAL_DUE = <fmt:formatNumber value="${detail.finalAmount}" type="number" groupingUsed="false"/>;
+  const MAX_CASH  = 999999999; // ~999 triệu VND
   let receivedRaw = '';
   let payMethod   = '${vietqrActive ? "VIETQR" : "CASH"}';
 
@@ -309,20 +293,19 @@
     const isCash   = method === 'CASH';
     document.getElementById('btnCash').classList.toggle('pay-method-btn--active', isCash);
     document.getElementById('btnVietqr').classList.toggle('pay-method-btn--active', !isCash);
-    document.getElementById('cashSection').style.display       = isCash ? '' : 'none';
+    document.getElementById('cashSection').style.display        = isCash ? '' : 'none';
     document.getElementById('cashConfirmSection').style.display = isCash ? '' : 'none';
-    document.getElementById('vietqrSection').style.display     = isCash ? 'none' : '';
+    document.getElementById('vietqrSection').style.display      = isCash ? 'none' : '';
   }
 
-  // Khởi tạo trạng thái đúng khi trang load (nếu đã tạo QR thì mở tab VietQR)
   (function () {
-    var active = '${vietqrActive}' === 'true';
-    if (active) setPayMethod('VIETQR');
+    if ('${vietqrActive}' === 'true') setPayMethod('VIETQR');
   })();
 
   function numpadPress(digit) {
-    if (receivedRaw.length >= 12) return;
-    receivedRaw += digit;
+    const next = receivedRaw + digit;
+    if (next.length > 9 || parseInt(next, 10) > MAX_CASH) return;
+    receivedRaw = next;
     updateCashDisplay();
   }
 
@@ -338,7 +321,9 @@
 
   function addAmount(val) {
     const current = parseInt(receivedRaw || '0', 10);
-    receivedRaw = String(current + val);
+    const next = current + val;
+    if (next > MAX_CASH) return;
+    receivedRaw = String(next);
     updateCashDisplay();
   }
 
@@ -347,19 +332,17 @@
     const change   = received - TOTAL_DUE;
     document.getElementById('receivedDisplay').textContent = formatVnd(received);
     const changeEl = document.getElementById('changeDisplay');
-    changeEl.textContent  = change >= 0 ? formatVnd(change) : '—';
-    changeEl.style.color  = change >= 0 ? '#4fc3f7' : '#ef5350';
+    changeEl.textContent = change >= 0 ? formatVnd(change) : '—';
+    changeEl.style.color = change >= 0 ? '#4fc3f7' : '#ef5350';
   }
 
   function submitPayment() {
     const received = parseInt(receivedRaw || '0', 10);
     const change   = Math.max(0, received - TOTAL_DUE);
-
     if (received < TOTAL_DUE) {
       alert('Tiền nhận chưa đủ. Vui lòng nhập đúng số tiền.');
       return;
     }
-
     document.getElementById('hiddenCashRecv').value = received;
     document.getElementById('hiddenChangAmt').value = change;
     document.getElementById('paymentForm').submit();
@@ -376,11 +359,11 @@
   var waitBox = document.querySelector('[data-vietqr-waiting="true"]');
   if (!waitBox) return;
 
-  var ctx       = waitBox.dataset.ctx;
-  var bookingId = waitBox.dataset.bookingId;
-  var msgEl     = document.getElementById('vietqrWaitMsg');
-  var attempts  = 0;
-  var maxAttempts = 90; // ~3 phút
+  var ctx         = waitBox.dataset.ctx;
+  var bookingId   = waitBox.dataset.bookingId;
+  var msgEl       = document.getElementById('vietqrWaitMsg');
+  var attempts    = 0;
+  var maxAttempts = 90;
 
   function poll() {
     attempts++;
@@ -407,5 +390,5 @@
   poll();
 })();
 </script>
-</body>
-</html>
+
+<%@ include file="/WEB-INF/views/common/footer.jsp" %>

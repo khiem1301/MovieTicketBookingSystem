@@ -281,6 +281,18 @@ public class SeatHoldDAO {
         return code == 2627 || code == 2601;
     }
 
+    /** Xóa toàn bộ SeatHolds của user trên tất cả suất chiếu (dùng khi về trang chủ POS). */
+    public void releaseAllHoldsForUser(String userId) {
+        String sql = "DELETE FROM SeatHolds WHERE user_id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("releaseAllHoldsForUser failed", e);
+        }
+    }
+
     /** Loại bỏ trùng lặp, giữ thứ tự. */
     public static List<String> distinctSeatIds(List<String> seatIds) {
         if (seatIds == null) return List.of();

@@ -2,44 +2,20 @@
 <%@ taglib prefix="c"   uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn"  uri="jakarta.tags.functions" %>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="ctx" content="${pageContext.request.contextPath}"/>
-  <meta name="bookingId" content="${detail.bookingId}"/>
-  <title>In Vé — ÉpCine POS</title>
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/main.css"/>
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/staff.css"/>
-  <link rel="stylesheet" href="${pageContext.request.contextPath}/css/counter-pos.css"/>
-  <%-- FR-18: Thư viện tạo QR code phía client --%>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
-          integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSqX2tgqsBNn3k3oYQhK9CoMlLIMb5RYYT2A=="
-          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-</head>
-<body class="pos-body">
+
+<c:set var="pageTitle" value="In Vé — ÉpCine POS"/>
+<c:set var="extraCss"  value="staff"/>
+<c:set var="extraCss2" value="counter-pos"/>
+<%@ include file="/WEB-INF/views/common/header.jsp" %>
+<meta name="ctx"       content="${pageContext.request.contextPath}"/>
+<meta name="bookingId" content="${detail.bookingId}"/>
+<script>document.body.classList.add('pos-body');</script>
+<%-- FR-18: Thư viện tạo QR code phía client --%>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"
+        integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSqX2tgqsBNn3k3oYQhK9CoMlLIMb5RYYT2A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <div class="pos-container">
-
-  <%-- Header --%>
-  <div class="pos-header">
-    <div class="pos-header-left">
-      <a href="${pageContext.request.contextPath}/staff/counter" class="pos-logo">
-        <img src="${pageContext.request.contextPath}/images/logorapchieuphim.png"
-             alt="ÉpCine" class="pos-logo-img"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"/>
-        <span class="pos-logo-fallback" style="display:none">ÉpCine</span>
-      </a>
-      <span class="pos-title">In Vé</span>
-    </div>
-    <div class="pos-header-right">
-      <span class="pos-staff-name">
-        Nhân viên: <strong><c:out value="${sessionScope.loggedUser.fullName}"/></strong>
-      </span>
-      <span class="pos-offline-badge">&#9679; OFFLINE</span>
-    </div>
-  </div>
 
   <div class="print-layout">
 
@@ -227,6 +203,9 @@
         <div style="margin-top:16px; text-align:center;">
           <a href="${pageContext.request.contextPath}/staff/counter"
              class="pos-link-btn">✚ Tạo đơn mới</a>
+          &nbsp;|&nbsp;
+          <a href="${pageContext.request.contextPath}/staff/history"
+             class="pos-link-btn">Lịch sử</a>
         </div>
 
       </div>
@@ -274,7 +253,7 @@
   .qr-canvas canvas, .qr-canvas img { display:block; margin:0 auto; }
   @media print {
     body > *:not(.pos-container) { display: none !important; }
-    .print-right, .pos-header    { display: none !important; }
+    .print-right, .site-header   { display: none !important; }
     .print-left  { width: 100% !important; }
     .ticket-preview {
       page-break-after: always;
@@ -287,7 +266,7 @@
 <script>
   const CTX        = document.querySelector('meta[name="ctx"]').content;
   const BOOKING_ID = document.querySelector('meta[name="bookingId"]').content;
-  let copies = 1;
+  let copies  = 1;
   let printed = false;
 
   // FR-18 — Tạo QR code cho từng vé
@@ -298,8 +277,8 @@
       text:   code,
       width:  120,
       height: 120,
-      colorDark:  '#000000',
-      colorLight: '#ffffff',
+      colorDark:    '#000000',
+      colorLight:   '#ffffff',
       correctLevel: QRCode.CorrectLevel.M
     });
   });
@@ -319,7 +298,7 @@
     btn.disabled = true;
     btn.textContent = 'Đang lưu...';
 
-    fetch(`${CTX}/staff/counter?action=markPrinted`, {
+    fetch(CTX + '/staff/counter?action=markPrinted', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'bookingId=' + encodeURIComponent(BOOKING_ID)
@@ -353,5 +332,4 @@
   }
 </script>
 
-</body>
-</html>
+<%@ include file="/WEB-INF/views/common/footer.jsp" %>

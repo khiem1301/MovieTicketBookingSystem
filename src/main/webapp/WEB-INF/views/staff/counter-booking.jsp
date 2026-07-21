@@ -11,26 +11,6 @@
 
 <div class="pos-container">
 
-  <%-- ── POS Header ──────────────────────────────────────────── --%>
-  <div class="pos-header">
-    <div class="pos-header-left">
-      <a href="${pageContext.request.contextPath}/home" class="pos-logo">
-        <img src="${pageContext.request.contextPath}/images/logorapchieuphim.png"
-             alt="ÉpCine" class="pos-logo-img"
-             onerror="this.style.display='none';this.nextElementSibling.style.display='inline'"/>
-        <span class="pos-logo-fallback" style="display:none">ÉpCine</span>
-      </a>
-      <span class="pos-title">Quầy Bán Vé</span>
-    </div>
-    <div class="pos-header-right">
-      <a href="${pageContext.request.contextPath}/staff/history" class="hist-back-btn">&#128203; Lịch sử</a>
-      <span class="pos-staff-name">
-        Nhân viên: <strong><c:out value="${sessionScope.loggedUser.fullName}"/></strong>
-      </span>
-      <span class="pos-offline-badge">&#9679; OFFLINE</span>
-    </div>
-  </div>
-
   <%-- Thông báo lỗi --%>
   <c:if test="${not empty errorMessage}">
     <div class="pos-alert pos-alert--error"><c:out value="${errorMessage}"/></div>

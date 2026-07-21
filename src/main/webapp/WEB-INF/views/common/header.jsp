@@ -249,6 +249,9 @@ uri="jakarta.tags.functions" %>
                     <a href="${pageContext.request.contextPath}/staff/counter"
                       >Quầy vé</a
                     >
+                    <a href="${pageContext.request.contextPath}/staff/history"
+                      >Lịch sử đặt vé</a
+                    >
                   </c:if>
                   <c:if test="${sessionScope.userRole == 'MANAGER'}">
                     <a href="${pageContext.request.contextPath}/manager/movies"

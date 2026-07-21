@@ -32,12 +32,30 @@
   window.filterMovies = function (query) {
     const q = query.toLowerCase().trim();
     const activeTab = document.querySelector('.pos-tab--active')?.dataset?.tab ?? 'now';
+    let visibleCount = 0;
     document.querySelectorAll('.pos-movie-item').forEach(el => {
       const title  = (el.dataset.movieTitle ?? '').toLowerCase();
       const status = (el.dataset.movieStatus ?? '').toUpperCase();
       const tabOk  = activeTab === 'coming' ? status.includes('COMING') : !status.includes('COMING');
-      el.style.display = tabOk && (q === '' || title.includes(q)) ? '' : 'none';
+      const show   = tabOk && (q === '' || title.includes(q));
+      el.style.display = show ? '' : 'none';
+      if (show) visibleCount++;
     });
+
+    let emptyEl = document.getElementById('movieListEmpty');
+    if (!emptyEl) {
+      emptyEl = document.createElement('div');
+      emptyEl.id = 'movieListEmpty';
+      emptyEl.className = 'pos-empty';
+      document.getElementById('movieList').appendChild(emptyEl);
+    }
+    if (visibleCount === 0) {
+      const tabName = activeTab === 'coming' ? 'Sắp chiếu' : 'Đang chiếu';
+      emptyEl.textContent = q ? 'Không tìm thấy phim phù hợp.' : `Không có phim ${tabName}.`;
+      emptyEl.style.display = '';
+    } else {
+      emptyEl.style.display = 'none';
+    }
   };
 
   // ── Movie selection ────────────────────────────────────────────
@@ -352,7 +370,7 @@
                   <strong>${escHtml(data.fullName)}</strong>
                   ${statusBadge}
                 </div>
-                ${data.email ? `<div class="member-card-row"><span class="member-card-icon">✉</span>${escHtml(data.email)}</div>` : ''}
+                ${data.email ? `<div class="member-card-row" style="word-break:break-all"><span class="member-card-icon">✉</span>${escHtml(data.email)}</div>` : ''}
                 <div class="member-card-row"><span class="member-card-icon">📱</span>${escHtml(data.phone || phone)}</div>
                 <div class="member-card-row member-card-points">
                   <span class="member-card-icon">★</span>
