@@ -16,21 +16,25 @@ uri="jakarta.tags.functions" %>
     <c:if test="${not empty extraCss}">
       <link
         rel="stylesheet"
-        href="${pageContext.request.contextPath}/css/${extraCss}.css"
+        href="${pageContext.request.contextPath}/css/${extraCss}.css?v=3"
       />
     </c:if>
     <c:if test="${not empty extraCss2}">
       <link
         rel="stylesheet"
-        href="${pageContext.request.contextPath}/css/${extraCss2}.css"
+        href="${pageContext.request.contextPath}/css/${extraCss2}.css?v=4"
       />
     </c:if>
   </head>
   <body>
     <header class="site-header">
       <div class="header-inner">
-        <%-- Logo (ảnh) --%>
-        <a href="${pageContext.request.contextPath}/home" class="logo">
+        <%-- Logo: staff về quầy vé, các role khác về trang chủ --%>
+        <c:set var="logoHref" value="${pageContext.request.contextPath}/home"/>
+        <c:if test="${sessionScope.userRole == 'STAFF'}">
+          <c:set var="logoHref" value="${pageContext.request.contextPath}/staff/counter"/>
+        </c:if>
+        <a href="${logoHref}" class="logo">
           <img
             src="${pageContext.request.contextPath}/images/logorapchieuphim.png"
             alt="ÉpCine"

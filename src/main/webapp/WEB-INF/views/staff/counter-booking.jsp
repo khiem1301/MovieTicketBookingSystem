@@ -121,10 +121,7 @@
         </div>
       </div>
 
-      <div class="pos-seat-legend">
-        <span class="legend-item"><span class="leg-dot leg-standard"></span>Thường</span>
-        <span class="legend-item"><span class="leg-dot leg-vip"></span>VIP</span>
-        <span class="legend-item"><span class="leg-dot leg-couple"></span>Cặp đôi</span>
+      <div class="pos-seat-legend" id="posSeatLegend">
         <span class="legend-item"><span class="leg-dot leg-selected"></span>Đang chọn</span>
         <span class="legend-item"><span class="leg-dot leg-sold"></span>Đã bán</span>
       </div>
@@ -258,5 +255,6 @@
   </div><%-- /pos-layout --%>
 </div><%-- /pos-container --%>
 
-<script src="${pageContext.request.contextPath}/js/counter-booking.js?v=9"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/seat-type-colors.js?v=4"></script>
+<script src="${pageContext.request.contextPath}/js/counter-booking.js?v=10"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

@@ -199,16 +199,18 @@ public class PaymentServlet extends HttpServlet {
                     "Số tiền thanh toán không hợp lệ.", null, null);
             return;
         }
+        BigDecimal payAmount = BigDecimal.valueOf(VietQRUtil.amountVnd(finalAmount));
 
         String transferContent = VietQRUtil.transferContent(detail.getBookingCode());
-        String qrUrl = VietQRUtil.qrImageUrl(finalAmount, transferContent);
+        String qrUrl = VietQRUtil.qrImageUrl(payAmount, transferContent);
 
         PaymentDAO paymentDAO = new PaymentDAO();
         Optional<PaymentRecord> existing = paymentDAO.findLatestPendingVietQR(bookingId);
         if (existing.isEmpty()
-                || existing.get().amount().compareTo(finalAmount) != 0
+                || existing.get().amount().compareTo(payAmount) != 0
                 || !transferContent.equals(existing.get().transactionCode())) {
-            paymentDAO.insertPendingOnlineVietQR(bookingId, finalAmount, transferContent);
+            paymentDAO.failStalePendingVietQR(bookingId);
+            paymentDAO.insertPendingOnlineVietQR(bookingId, payAmount, transferContent);
         }
 
         VietQRPaymentSession sessionData = new VietQRPaymentSession(
@@ -217,13 +219,13 @@ public class PaymentServlet extends HttpServlet {
                 VietQRConfig.bankName(),
                 VietQRConfig.accountNumber(),
                 VietQRConfig.accountName(),
-                finalAmount);
+                payAmount);
 
         HttpSession session = req.getSession(true);
         session.setAttribute("vietqrBookingId", bookingId);
         session.setAttribute("vietqrQrUrl", qrUrl);
         session.setAttribute("vietqrTransferContent", transferContent);
-        session.setAttribute("vietqrAmount", finalAmount.toPlainString());
+        session.setAttribute("vietqrAmount", payAmount.toPlainString());
 
         forwardPayment(req, resp, bookingId, userId, null,
                 SePayConfig.isEnabled()

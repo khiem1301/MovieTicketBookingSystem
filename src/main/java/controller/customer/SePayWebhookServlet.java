@@ -24,6 +24,7 @@ import utils.SePayConfig;
 
 /**
  * FR-16 — Webhook SePay: tự xác nhận VietQR khi có tiền vào khớp nội dung CK + số tiền.
+ * Áp dụng cả đơn ONLINE (customer) và OFFLINE (quầy staff).
  * Docs: https://docs.sepay.vn/tich-hop-webhooks.html
  */
 @WebServlet("/payment/sepay/webhook")
@@ -142,7 +143,12 @@ public class SePayWebhookServlet extends HttpServlet {
             if (ok) {
                 EmailUtil.sendBookingConfirmationEmailAsync(payment.bookingId());
                 LOG.info("SePay webhook: confirmed bookingId=" + payment.bookingId()
+                        + " source=" + payment.paymentSource()
                         + " sepayId=" + sepayId);
+            } else {
+                LOG.warning("SePay webhook: matched paymentId=" + payment.id()
+                        + " bookingId=" + payment.bookingId()
+                        + " but completeOnlinePayment returned false (status may have changed)");
             }
         } catch (Exception e) {
             LOG.log(Level.SEVERE, "SePay webhook complete failed", e);

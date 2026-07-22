@@ -34,6 +34,7 @@ import model.entity.User;
 import utils.PricingCalculator;
 import utils.SeatAvailabilityValidator;
 import utils.SeatHoldException;
+import utils.SeatTypeColorUtil;
 import utils.SessionUtil;
 
 /**
@@ -192,12 +193,20 @@ public class CheckoutServlet extends HttpServlet {
 
         Map<String, List<Seat>> seatsByRow = groupByRow(seats);
         List<SeatTypeLegendItem> seatTypeLegend = buildSeatTypeLegend(seats);
+        Map<String, String> seatTypeColorByKey = new LinkedHashMap<>();
+        Map<String, String> seatTypeTextByKey = new LinkedHashMap<>();
+        for (SeatTypeLegendItem item : seatTypeLegend) {
+            seatTypeColorByKey.put(item.getTypeKey(), item.getColor());
+            seatTypeTextByKey.put(item.getTypeKey(), item.getTextColor());
+        }
 
         boolean soldOut = "SOLD_OUT".equals(showtime.getStatus());
 
         req.setAttribute("showtime", showtime);
         req.setAttribute("seatsByRow", seatsByRow);
         req.setAttribute("seatTypeLegend", seatTypeLegend);
+        req.setAttribute("seatTypeColorByKey", seatTypeColorByKey);
+        req.setAttribute("seatTypeTextByKey", seatTypeTextByKey);
         req.setAttribute("effectivePrice", effectivePrice);
         req.setAttribute("soldOut", soldOut);
         req.setAttribute("readOnly", soldOut);
@@ -394,12 +403,18 @@ public class CheckoutServlet extends HttpServlet {
     private List<SeatTypeLegendItem> buildSeatTypeLegend(List<Seat> seats) {
         Map<String, SeatTypeLegendItem> map = new LinkedHashMap<>();
         for (Seat seat : seats) {
-            String typeName = seat.getSeatTypeName() != null ? seat.getSeatTypeName() : "STANDARD";
-            map.computeIfAbsent(typeName, k -> new SeatTypeLegendItem(
-                    typeName,
-                    seat.getPriceMultiplier(),
-                    seat.getTicketPrice()
-            ));
+            String typeName = seat.getSeatTypeName() != null ? seat.getSeatTypeName() : "REGULAR";
+            map.computeIfAbsent(typeName, k -> {
+                String color = SeatTypeColorUtil.colorForType(typeName);
+                return new SeatTypeLegendItem(
+                        typeName,
+                        SeatTypeColorUtil.normalizeType(typeName),
+                        color,
+                        SeatTypeColorUtil.textColorFor(color),
+                        seat.getPriceMultiplier(),
+                        seat.getTicketPrice()
+                );
+            });
         }
         return new ArrayList<>(map.values());
     }
@@ -419,16 +434,26 @@ public class CheckoutServlet extends HttpServlet {
 
     public static class SeatTypeLegendItem {
         private final String typeName;
+        private final String typeKey;
+        private final String color;
+        private final String textColor;
         private final BigDecimal priceMultiplier;
         private final BigDecimal samplePrice;
 
-        public SeatTypeLegendItem(String typeName, BigDecimal priceMultiplier, BigDecimal samplePrice) {
+        public SeatTypeLegendItem(String typeName, String typeKey, String color, String textColor,
+                                  BigDecimal priceMultiplier, BigDecimal samplePrice) {
             this.typeName = typeName;
+            this.typeKey = typeKey;
+            this.color = color;
+            this.textColor = textColor;
             this.priceMultiplier = priceMultiplier;
             this.samplePrice = samplePrice;
         }
 
         public String getTypeName() { return typeName; }
+        public String getTypeKey() { return typeKey; }
+        public String getColor() { return color; }
+        public String getTextColor() { return textColor; }
         public BigDecimal getPriceMultiplier() { return priceMultiplier; }
         public BigDecimal getSamplePrice() { return samplePrice; }
     }

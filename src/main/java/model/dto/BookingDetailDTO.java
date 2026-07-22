@@ -53,16 +53,23 @@ public class BookingDetailDTO {
         private final String ticketCode;
         private final String qrCode;
         private final String seatCode;
+        private final boolean printed;
 
         public TicketItem(String ticketCode, String qrCode, String seatCode) {
+            this(ticketCode, qrCode, seatCode, false);
+        }
+
+        public TicketItem(String ticketCode, String qrCode, String seatCode, boolean printed) {
             this.ticketCode = ticketCode;
             this.qrCode = qrCode;
             this.seatCode = seatCode;
+            this.printed = printed;
         }
 
         public String getTicketCode() { return ticketCode; }
         public String getQrCode()     { return qrCode; }
         public String getSeatCode()   { return seatCode; }
+        public boolean isPrinted()    { return printed; }
     }
 
     public String getBookingId()     { return bookingId; }
@@ -145,5 +152,14 @@ public class BookingDetailDTO {
 
     public boolean hasAppliedPromo() {
         return appliedPromoCode != null && !appliedPromoCode.isBlank();
+    }
+
+    /** True khi có vé và tất cả vé đã is_printed = 1. */
+    public boolean isTicketsPrinted() {
+        if (tickets == null || tickets.isEmpty()) return false;
+        for (TicketItem t : tickets) {
+            if (!t.isPrinted()) return false;
+        }
+        return true;
     }
 }

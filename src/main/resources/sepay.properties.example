@@ -13,3 +13,8 @@ sepay.webhook.api.key=YOUR_SEPAY_WEBHOOK_API_KEY
 # (Tuỳ chọn) Chỉ chấp nhận tiền vào đúng STK này — để trống = không lọc STK
 # Nên trùng vietqr.account.number
 # sepay.account.number=0123456789
+
+# Lưu ý cấu hình SePay "Cấu trúc mã thanh toán":
+# - Online (customer): prefix BK  → nội dung CK dạng BKyyyyMMddxxxx
+# - Quầy (offline):    prefix CTR → nội dung CK dạng CTR{timestamp}
+# Cần thêm cả hai cấu trúc trên my.sepay.vn để webhook nhận đủ hai kênh.

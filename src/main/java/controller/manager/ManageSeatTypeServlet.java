@@ -96,6 +96,33 @@ public class ManageSeatTypeServlet extends HttpServlet {
             return;
         }
 
+        int usage = seatTypeDAO.countUsedIn(id);
+        boolean identityLocked = usage > 0;
+
+        // Khi đã gắn vào layout: khóa tên + kích thước (layout JSON map theo type name / span).
+        if (identityLocked) {
+            if (typeName != null && !typeName.trim().isEmpty()
+                    && !typeName.trim().equalsIgnoreCase(editing.getTypeName())) {
+                forwardWithError(req, resp,
+                        "Không thể đổi tên loại ghế — đang có " + usage
+                                + " ghế sử dụng trong layout phòng chiếu.",
+                        editing.getTypeName(), multiplierStr, description,
+                        String.valueOf(editing.getSeatSpan()), editing);
+                return;
+            }
+            int requestedSpan = parseSeatSpan(seatSpanStr);
+            if (requestedSpan > 0 && requestedSpan != editing.getSeatSpan()) {
+                forwardWithError(req, resp,
+                        "Không thể đổi kích thước loại ghế — đang có " + usage
+                                + " ghế sử dụng trong layout phòng chiếu.",
+                        editing.getTypeName(), multiplierStr, description,
+                        String.valueOf(editing.getSeatSpan()), editing);
+                return;
+            }
+            typeName = editing.getTypeName();
+            seatSpanStr = String.valueOf(editing.getSeatSpan());
+        }
+
         ParsedInput parsed = parseAndValidate(typeName, multiplierStr, seatSpanStr);
         if (parsed.error != null) {
             forwardWithError(req, resp, parsed.error, typeName, multiplierStr, description, seatSpanStr, editing);
@@ -205,6 +232,14 @@ public class ManageSeatTypeServlet extends HttpServlet {
             usageMap.put(st.getId(), seatTypeDAO.countUsedIn(st.getId()));
         }
         req.setAttribute("usageMap", usageMap);
+
+        SeatType editSeatType = (SeatType) req.getAttribute("editSeatType");
+        if (editSeatType != null) {
+            int editUsage = usageMap.getOrDefault(editSeatType.getId(), 0);
+            req.setAttribute("editSeatTypeUsage", editUsage);
+            req.setAttribute("seatTypeIdentityLocked", editUsage > 0);
+        }
+
         req.getRequestDispatcher("/WEB-INF/views/manager/seat-type-list.jsp").forward(req, resp);
     }
 

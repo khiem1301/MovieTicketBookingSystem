@@ -38,15 +38,40 @@
           <c:if test="${not empty error}">
             <div class="mgr-alert mgr-alert--error"><c:out value="${error}"/></div>
           </c:if>
+          <c:if test="${seatTypeIdentityLocked}">
+            <div class="mgr-alert mgr-alert--error" style="background:rgba(255,193,7,0.12);border-color:rgba(255,193,7,0.35);color:#ffd54f">
+              Loại ghế đang có <strong>${editSeatTypeUsage}</strong> ghế trong layout phòng chiếu —
+              không thể đổi <strong>tên</strong> hoặc <strong>kích thước</strong>.
+              Vẫn có thể cập nhật hệ số giá và mô tả.
+            </div>
+          </c:if>
           <form method="post" action="${pageContext.request.contextPath}/manager/seat-types" class="mgr-form">
             <input type="hidden" name="action" value="update"/>
             <input type="hidden" name="id" value="<c:out value='${editSeatType.id}'/>"/>
+            <c:if test="${seatTypeIdentityLocked}">
+              <input type="hidden" name="typeName" value="<c:out value='${editSeatType.typeName}'/>"/>
+              <input type="hidden" name="seatSpan" value="<c:out value='${editSeatType.seatSpan}'/>"/>
+            </c:if>
             <div class="mgr-form-group">
               <label for="typeName">Tên loại ghế <span class="required">*</span></label>
-              <input id="typeName" type="text" name="typeName" maxlength="50" required
-                     aria-describedby="typeNameHint"
-                     value="<c:out value='${not empty inputTypeName ? inputTypeName : editSeatType.typeName}'/>"/>
-              <small id="typeNameHint" class="mgr-hint">Tối đa 50 ký tự</small>
+              <input id="typeName" type="text" maxlength="50" required
+                     <c:choose>
+                       <c:when test="${seatTypeIdentityLocked}">
+                         disabled
+                         value="<c:out value='${editSeatType.typeName}'/>"
+                       </c:when>
+                       <c:otherwise>
+                         name="typeName"
+                         aria-describedby="typeNameHint"
+                         value="<c:out value='${not empty inputTypeName ? inputTypeName : editSeatType.typeName}'/>"
+                       </c:otherwise>
+                     </c:choose>/>
+              <small id="typeNameHint" class="mgr-hint">
+                <c:choose>
+                  <c:when test="${seatTypeIdentityLocked}">Đã khóa vì loại ghế đang được dùng trong phòng chiếu</c:when>
+                  <c:otherwise>Tối đa 50 ký tự</c:otherwise>
+                </c:choose>
+              </small>
             </div>
             <div class="mgr-form-group">
               <label for="priceMultiplier">Hệ số giá <span class="required">*</span></label>
@@ -57,12 +82,21 @@
             </div>
             <div class="mgr-form-group">
               <label for="seatSpan">Kích thước trên layout <span class="required">*</span></label>
-              <select id="seatSpan" name="seatSpan" required>
-                <c:set var="editSpan" value="${not empty inputSeatSpan ? inputSeatSpan : editSeatType.seatSpan}"/>
+              <c:set var="editSpan" value="${seatTypeIdentityLocked ? editSeatType.seatSpan : (not empty inputSeatSpan ? inputSeatSpan : editSeatType.seatSpan)}"/>
+              <select id="seatSpan"
+                      <c:choose>
+                        <c:when test="${seatTypeIdentityLocked}">disabled</c:when>
+                        <c:otherwise>name="seatSpan" required</c:otherwise>
+                      </c:choose>>
                 <option value="1" ${editSpan == 1 || editSpan == '1' ? 'selected' : ''}>1 ô — ghế đơn</option>
                 <option value="2" ${editSpan == 2 || editSpan == '2' ? 'selected' : ''}>2 ô — ghế đôi</option>
               </select>
-              <small class="mgr-hint">Ghế 2 ô hiển thị rộng gấp đôi trên sơ đồ (như COUPLE, SWEETBOX)</small>
+              <small class="mgr-hint">
+                <c:choose>
+                  <c:when test="${seatTypeIdentityLocked}">Đã khóa vì loại ghế đang được dùng trong phòng chiếu</c:when>
+                  <c:otherwise>Ghế 2 ô hiển thị rộng gấp đôi trên sơ đồ (như COUPLE, SWEETBOX)</c:otherwise>
+                </c:choose>
+              </small>
             </div>
             <div class="mgr-form-group">
               <label for="description">Mô tả</label>

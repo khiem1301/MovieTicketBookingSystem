@@ -415,7 +415,7 @@ public class BookingDAO {
                 ORDER BY se.seat_row, se.seat_column
                 """;
         String ticketSql = """
-                SELECT t.ticket_code, t.qr_code, se.seat_code
+                SELECT t.ticket_code, t.qr_code, se.seat_code, t.is_printed
                 FROM Tickets t
                 JOIN BookingSeats bs ON bs.id = t.booking_seat_id
                 JOIN Seats se        ON se.id = bs.seat_id
@@ -490,7 +490,8 @@ public class BookingDAO {
                         tickets.add(new BookingDetailDTO.TicketItem(
                                 rs.getString("ticket_code"),
                                 rs.getString("qr_code"),
-                                rs.getString("seat_code")));
+                                rs.getString("seat_code"),
+                                rs.getBoolean("is_printed")));
                     }
                 }
             }
@@ -617,7 +618,7 @@ public class BookingDAO {
 
             String statusSql = """
                     SELECT booking_code, booking_status, payment_status, user_id, showtime_id,
-                           final_amount, points_redeemed
+                           final_amount, points_redeemed, booking_source, created_by_staff_id
                     FROM Bookings WHERE id = ?
                     """;
             String bookingCode;
@@ -625,6 +626,8 @@ public class BookingDAO {
             String paymentStatus;
             String userId;
             String showtimeId;
+            String bookingSource;
+            String createdByStaffId;
             BigDecimal finalAmount;
             int pointsRedeemed;
             try (PreparedStatement ps = conn.prepareStatement(statusSql)) {
@@ -639,6 +642,8 @@ public class BookingDAO {
                     paymentStatus = rs.getString("payment_status");
                     userId = rs.getString("user_id");
                     showtimeId = rs.getString("showtime_id");
+                    bookingSource = rs.getString("booking_source");
+                    createdByStaffId = rs.getString("created_by_staff_id");
                     finalAmount = rs.getBigDecimal("final_amount");
                     pointsRedeemed = rs.getInt("points_redeemed");
                 }
@@ -671,14 +676,23 @@ public class BookingDAO {
 
             new TicketDAO().issueTicketsForBooking(conn, bookingId, bookingCode);
 
-            if (showtimeId != null && userId != null) {
-                String deleteHoldsSql = """
-                        DELETE FROM SeatHolds WHERE showtime_id = ? AND user_id = ?
-                        """;
-                try (PreparedStatement ps = conn.prepareStatement(deleteHoldsSql)) {
-                    ps.setString(1, showtimeId);
-                    ps.setString(2, userId);
-                    ps.executeUpdate();
+            if (showtimeId != null) {
+                // Online: holds theo customer; Offline quầy: holds theo staff (nếu còn)
+                if (userId != null) {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "DELETE FROM SeatHolds WHERE showtime_id = ? AND user_id = ?")) {
+                        ps.setString(1, showtimeId);
+                        ps.setString(2, userId);
+                        ps.executeUpdate();
+                    }
+                }
+                if ("OFFLINE".equals(bookingSource) && createdByStaffId != null) {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "DELETE FROM SeatHolds WHERE showtime_id = ? AND user_id = ?")) {
+                        ps.setString(1, showtimeId);
+                        ps.setString(2, createdByStaffId);
+                        ps.executeUpdate();
+                    }
                 }
             }
 
@@ -686,10 +700,12 @@ public class BookingDAO {
             if (userId != null && pointsRedeemed > 0) {
                 LoyaltyDAO.redeemPoints(conn, userId, bookingId, pointsRedeemed);
             }
-            // FR-41: cộng điểm tích luỹ từ đơn online
+            // FR-41: cộng điểm tích luỹ
             if (userId != null && finalAmount != null) {
-                LoyaltyDAO.earnPoints(conn, userId, bookingId, finalAmount,
-                        "Tích điểm từ đặt vé online");
+                String earnNote = "OFFLINE".equals(bookingSource)
+                        ? "Tích điểm từ đặt vé tại quầy"
+                        : "Tích điểm từ đặt vé online";
+                LoyaltyDAO.earnPoints(conn, userId, bookingId, finalAmount, earnNote);
             }
 
             conn.commit();

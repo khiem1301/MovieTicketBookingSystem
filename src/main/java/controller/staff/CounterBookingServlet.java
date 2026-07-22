@@ -100,6 +100,13 @@ public class CounterBookingServlet extends HttpServlet {
                     forwardError(req, resp, "Không tìm thấy đơn đặt vé.");
                     return;
                 }
+                // SePay webhook đã xác nhận → nhảy thẳng màn in vé (thành công offline)
+                if ("PAID".equals(detail.getPaymentStatus())
+                        && "CONFIRMED".equals(detail.getBookingStatus())) {
+                    resp.sendRedirect(req.getContextPath()
+                            + "/staff/counter?step=print&bookingId=" + bookingId);
+                    return;
+                }
                 req.setAttribute("detail", detail);
                 req.setAttribute("vietqrConfigured", VietQRConfig.isConfigured());
                 req.setAttribute("sepayEnabled", SePayConfig.isEnabled());
@@ -120,6 +127,9 @@ public class CounterBookingServlet extends HttpServlet {
                 req.getRequestDispatcher(VIEW_PAYMENT).forward(req, resp);
 
             } else if ("print".equals(step) && !isBlank(bookingId)) {
+                // Tránh bfcache khi Back — nút in phụ thuộc is_printed từ DB
+                resp.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+                resp.setHeader("Pragma", "no-cache");
                 BookingDetailDTO detail = new BookingDAO().getDetailById(bookingId);
                 if (detail == null) {
                     forwardError(req, resp, "Không tìm thấy đơn đặt vé.");
@@ -145,6 +155,12 @@ public class CounterBookingServlet extends HttpServlet {
             throws ServletException, IOException {
 
         if (!isStaff(req)) {
+            if ("holdSeats".equals(req.getParameter("action"))) {
+                resp.setStatus(401);
+                resp.setContentType("application/json; charset=UTF-8");
+                resp.getWriter().write("{\"ok\":false,\"error\":\"Chưa đăng nhập\"}");
+                return;
+            }
             resp.sendRedirect(req.getContextPath() + "/login");
             return;
         }
@@ -213,7 +229,11 @@ public class CounterBookingServlet extends HttpServlet {
                                 String showtimeId) throws IOException {
         resp.setContentType("application/json; charset=UTF-8");
         try {
-            List<Seat> seats = new SeatDAO().getSeatsForShowtime(showtimeId);
+            SessionUser staff = SessionUtil.getLoggedUser(req);
+            String staffId = staff != null ? staff.getId() : null;
+            List<Seat> seats = staffId != null
+                    ? new SeatDAO().getSeatsForShowtime(showtimeId, staffId)
+                    : new SeatDAO().getSeatsForShowtime(showtimeId);
             Map<String, List<Seat>> byRow = groupByRow(seats);
 
             JSONArray rows = new JSONArray();
@@ -226,9 +246,10 @@ public class CounterBookingServlet extends HttpServlet {
                     so.put("id",          s.getId());
                     so.put("seatCode",    s.getSeatCode());
                     so.put("seatColumn",  s.getSeatColumn());
-                    so.put("typeName",    s.getSeatTypeName() == null ? "STANDARD" : s.getSeatTypeName());
+                    so.put("typeName",    s.getSeatTypeName() == null ? "REGULAR" : s.getSeatTypeName());
                     so.put("ticketPrice", s.getTicketPrice() == null ? BigDecimal.ZERO : s.getTicketPrice());
                     so.put("available",   s.isAvailable());
+                    so.put("heldByMe",    s.isHeldByCurrentUser());
                     seatsArr.put(so);
                 }
                 row.put("seats", seatsArr);
@@ -470,6 +491,11 @@ public class CounterBookingServlet extends HttpServlet {
             return;
         }
         try {
+            BookingDetailDTO detail = new BookingDAO().getDetailById(bookingId);
+            if (detail != null && detail.isTicketsPrinted()) {
+                resp.getWriter().write("{\"ok\":true,\"alreadyPrinted\":true}");
+                return;
+            }
             new BookingDAO().markTicketsPrinted(bookingId);
             resp.getWriter().write("{\"ok\":true}");
         } catch (Exception e) {
@@ -480,37 +506,68 @@ public class CounterBookingServlet extends HttpServlet {
         }
     }
 
-    /** Giữ chỗ tạm cho nhân viên tại quầy — tương tự online SeatHold. */
+    /** Giữ chỗ tạm cho nhân viên tại quầy — đồng bộ với online SeatHold (FR-13). */
     private void handleHoldSeats(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
         resp.setContentType("application/json; charset=UTF-8");
-        resp.setStatus(200);
         String showtimeId = req.getParameter("showtimeId");
-        String[] seatIds  = req.getParameterValues("seatIds");
-        SessionUser staff  = SessionUtil.getLoggedUser(req);
+        String[] rawSeatIds = req.getParameterValues("seatIds");
+        SessionUser staff = SessionUtil.getLoggedUser(req);
 
-        if (isBlank(showtimeId)) {
-            resp.getWriter().write("{\"ok\":false,\"error\":\"Missing showtimeId\"}");
+        if (staff == null) {
+            resp.setStatus(401);
+            resp.getWriter().write("{\"ok\":false,\"error\":\"Chưa đăng nhập\"}");
             return;
         }
+        if (isBlank(showtimeId)) {
+            resp.setStatus(400);
+            resp.getWriter().write("{\"ok\":false,\"error\":\"Thiếu showtimeId\"}");
+            return;
+        }
+
+        Showtime showtime = new ShowtimeDAO().getShowtimeById(showtimeId);
+        if (showtime == null || "CANCELLED".equals(showtime.getStatus())
+                || "SOLD_OUT".equals(showtime.getStatus())) {
+            resp.setStatus(400);
+            resp.getWriter().write("{\"ok\":false,\"error\":\"Suất chiếu không khả dụng\"}");
+            return;
+        }
+
+        java.sql.Timestamp now = new java.sql.Timestamp(System.currentTimeMillis());
+        if (showtime.getStartTime() != null && showtime.getStartTime().before(now)) {
+            resp.setStatus(400);
+            resp.getWriter().write("{\"ok\":false,\"error\":\"Suất chiếu đã bắt đầu\"}");
+            return;
+        }
+
+        List<String> seatIds = rawSeatIds != null && rawSeatIds.length > 0
+                ? SeatHoldDAO.distinctSeatIds(Arrays.asList(rawSeatIds))
+                : List.of();
+
         try {
             SeatHoldDAO holdDAO = new SeatHoldDAO();
-            if (seatIds == null || seatIds.length == 0) {
-                holdDAO.releaseHolds(showtimeId, staff.getId());
-                resp.getWriter().write("{\"ok\":true}");
-            } else {
-                java.sql.Timestamp expiredAt = holdDAO.holdSeats(
-                        showtimeId, staff.getId(), Arrays.asList(seatIds), SeatHoldDAO.STAFF_HOLD_MINUTES);
-                resp.getWriter().write("{\"ok\":true,\"expiredAt\":" + expiredAt.getTime() + "}");
+            java.sql.Timestamp expiresAt = holdDAO.syncHolds(showtimeId, staff.getId(), seatIds);
+
+            JSONObject result = new JSONObject();
+            result.put("ok", true);
+            if (expiresAt != null) {
+                result.put("expiresAt", expiresAt.getTime());
             }
+            resp.getWriter().write(result.toString());
         } catch (SeatHoldException e) {
-            String msg = e.getMessage().replace("\\", "\\\\").replace("\"", "\\\"");
-            resp.getWriter().write("{\"ok\":false,\"blocked\":true,\"error\":\"" + msg + "\"}");
+            resp.setStatus(409);
+            JSONObject err = new JSONObject();
+            err.put("ok", false);
+            err.put("blocked", true);
+            err.put("error", e.getMessage());
+            resp.getWriter().write(err.toString());
         } catch (Exception e) {
             log("handleHoldSeats error", e);
-            String msg = (e.getMessage() == null ? "error" : e.getMessage())
-                    .replace("\\", "\\\\").replace("\"", "\\\"");
-            resp.getWriter().write("{\"ok\":false,\"error\":\"" + msg + "\"}");
+            resp.setStatus(500);
+            JSONObject err = new JSONObject();
+            err.put("ok", false);
+            err.put("error", "Không thể giữ ghế");
+            resp.getWriter().write(err.toString());
         }
     }
 
@@ -532,17 +589,19 @@ public class CounterBookingServlet extends HttpServlet {
         if (finalAmount == null || finalAmount.compareTo(BigDecimal.ZERO) <= 0) {
             forwardPaymentError(req, resp, bookingId, "Số tiền thanh toán không hợp lệ."); return;
         }
+        // Đồng bộ số tiền nguyên VND với QR + webhook
+        BigDecimal payAmount = BigDecimal.valueOf(VietQRUtil.amountVnd(finalAmount));
 
         String tc    = VietQRUtil.transferContent(existing.getBookingCode());
-        String qrUrl = VietQRUtil.qrImageUrl(finalAmount, tc);
+        String qrUrl = VietQRUtil.qrImageUrl(payAmount, tc);
 
-        // Idempotent: chỉ insert nếu chưa có hoặc số tiền/nội dung thay đổi
         PaymentDAO paymentDAO = new PaymentDAO();
         Optional<PaymentDAO.PaymentRecord> pr = paymentDAO.findLatestPendingVietQR(bookingId);
         if (pr.isEmpty()
-                || pr.get().amount().compareTo(finalAmount) != 0
+                || pr.get().amount().compareTo(payAmount) != 0
                 || !tc.equals(pr.get().transactionCode())) {
-            paymentDAO.insertPendingOnlineVietQR(bookingId, finalAmount, tc);
+            paymentDAO.failStalePendingVietQR(bookingId);
+            paymentDAO.insertPendingOfflineVietQR(bookingId, payAmount, tc);
         }
 
         jakarta.servlet.http.HttpSession hs = req.getSession(true);

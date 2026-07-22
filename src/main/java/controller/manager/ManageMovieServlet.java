@@ -159,6 +159,9 @@ public class ManageMovieServlet extends HttpServlet {
         if (movie.getStatus() == null || !VALID_STATUS.contains(movie.getStatus())) {
             return "Trạng thái phim không hợp lệ.";
         }
+        if (excludeId == null && "ENDED".equals(movie.getStatus())) {
+            return "Khi tạo phim mới chỉ được chọn \"Sắp chiếu\" hoặc \"Đang chiếu\".";
+        }
         if (movie.getAgeRating() == null || movie.getAgeRating().isBlank()) {
             return "Độ tuổi xem không được để trống.";
         }
