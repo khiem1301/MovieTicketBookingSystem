@@ -24,6 +24,9 @@
   let memberPointsBalance = 0; // số dư điểm của thành viên
   let appliedVoucherCode   = '';  // mã voucher đang áp dụng
   let voucherDiscountAmount = 0;  // số tiền giảm từ voucher (VND)
+  let holdSyncing          = false;
+  const SEAT_REFRESH_MS    = 2000;
+  let seatRefreshTimer     = null;
 
   // ── Movie tab / search ─────────────────────────────────────────
   window.switchTab = function (tab) {
@@ -172,7 +175,7 @@
       return;
     }
     if (selectedShowtimeId && selectedShowtimeId !== st.id) {
-      syncHoldsWithServer(selectedShowtimeId, []);
+      syncHoldsWithServer(selectedShowtimeId, null, []);
     }
     selectedShowtimeId = st.id;
     selectedRoomName   = st.roomName;
@@ -194,10 +197,122 @@
 
     fetch(`${CTX}/staff/counter?action=seats&showtimeId=${encodeURIComponent(showtimeId)}`)
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(renderSeatMap)
+      .then(rows => {
+        renderSeatMap(rows);
+        startSeatRefresh(showtimeId);
+      })
       .catch(() => {
+        stopSeatRefresh();
         area.innerHTML = '<div class="pos-seat-placeholder">Không tải được sơ đồ ghế.</div>';
       });
+  }
+
+  function startSeatRefresh(showtimeId) {
+    stopSeatRefresh();
+    if (!showtimeId) return;
+    seatRefreshTimer = setInterval(() => refreshSeats(showtimeId), SEAT_REFRESH_MS);
+  }
+
+  function stopSeatRefresh() {
+    if (seatRefreshTimer) {
+      clearInterval(seatRefreshTimer);
+      seatRefreshTimer = null;
+    }
+  }
+
+  function refreshSeats(showtimeId) {
+    if (!showtimeId || showtimeId !== selectedShowtimeId || holdSyncing) return;
+    fetch(`${CTX}/staff/counter?action=seats&showtimeId=${encodeURIComponent(showtimeId)}`)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(applySeatRefresh)
+      .catch(() => { /* silent */ });
+  }
+
+  function applySeatRefresh(rows) {
+    if (!Array.isArray(rows)) return;
+
+    const seatState = {};
+    rows.forEach(row => {
+      (row.seats || []).forEach(seat => {
+        seatState[seat.id] = seat;
+      });
+    });
+
+    let removedFromSelection = false;
+    document.querySelectorAll('.pos-seat-btn[data-seat-id]').forEach(btn => {
+      const id = btn.dataset.seatId;
+      const info = seatState[id];
+      if (!info) return;
+
+      const isSelected = selectedSeats.some(s => s.id === id);
+
+      if (isSelected) {
+        if (!info.available && !info.heldByMe) {
+          if (markSold(btn, id)) removedFromSelection = true;
+        }
+        return;
+      }
+
+      if (info.available || info.heldByMe) {
+        markAvailable(btn, info);
+        if (info.heldByMe) {
+          btn.classList.add('pos-seat--selected');
+        }
+      } else {
+        markSold(btn, id);
+      }
+    });
+
+    if (removedFromSelection) {
+      updateSummarySeats();
+      checkProceedBtn();
+      if (selectedShowtimeId) {
+        syncHoldsWithServer(selectedShowtimeId, null);
+      }
+    }
+
+    if (window.SeatTypeColors && SeatTypeColors.applyAll) {
+      SeatTypeColors.applyAll(document);
+    }
+  }
+
+  function bindSeatClick(btn) {
+    if (btn.dataset.posBound === 'true') return;
+    btn.dataset.posBound = 'true';
+    btn.addEventListener('click', () => toggleSeat(btn));
+  }
+
+  function markAvailable(btn, info) {
+    const wasSold = btn.classList.contains('pos-seat--sold');
+    btn.classList.remove('pos-seat--sold');
+    btn.disabled = false;
+    if (info && info.ticketPrice != null) btn.dataset.price = info.ticketPrice;
+    if (!btn.classList.contains('pos-seat--selected')) {
+      if (window.SeatTypeColors && SeatTypeColors.applyPosSeatColors) {
+        SeatTypeColors.applyPosSeatColors(btn.parentElement || document);
+      }
+    }
+    if (wasSold || btn.dataset.posBound !== 'true') {
+      bindSeatClick(btn);
+    }
+  }
+
+  function markSold(btn, id) {
+    let removed = false;
+    if (!btn.classList.contains('pos-seat--sold')) {
+      btn.classList.remove('pos-seat--selected');
+      btn.classList.add('pos-seat--sold');
+      btn.disabled = true;
+      if (window.SeatTypeColors && SeatTypeColors.clearSeatInlineStyle) {
+        SeatTypeColors.clearSeatInlineStyle(btn);
+      }
+    }
+    const idx = selectedSeats.findIndex(s => s.id === id);
+    if (idx >= 0) {
+      selectedSeats.splice(idx, 1);
+      removed = true;
+    }
+    return removed;
   }
 
   function renderSeatMap(rows) {
@@ -232,20 +347,41 @@
           expectedCol++;
         }
 
-        const type = (seat.typeName ?? 'STANDARD').toUpperCase();
+        const rawType = seat.typeName ?? 'REGULAR';
+        const typeKey = (window.SeatTypeColors
+          ? SeatTypeColors.normalizeType(rawType)
+          : String(rawType).toLowerCase()) || 'regular';
         const btn  = document.createElement('button');
-        btn.className = `pos-seat-btn pos-seat--${type.toLowerCase()}`;
+        btn.type = 'button';
+        btn.className = `pos-seat-btn pos-seat--${typeKey}`;
         btn.dataset.seatId   = seat.id;
         btn.dataset.seatCode = seat.seatCode;
-        btn.dataset.seatType = type;
+        btn.dataset.seatType = typeKey;
+        btn.dataset.type     = typeKey;
         btn.dataset.price    = seat.ticketPrice ?? 0;
         btn.textContent      = seat.seatCode;
 
-        if (!seat.available) {
+        if (window.SeatTypeColors && SeatTypeColors.isWideType(typeKey)) {
+          btn.classList.add('pos-seat--wide');
+        }
+
+        const selected = selectedSeats.some(s => s.id === seat.id);
+        if (!seat.available && !seat.heldByMe) {
           btn.classList.add('pos-seat--sold');
           btn.disabled = true;
         } else {
-          btn.addEventListener('click', () => toggleSeat(btn));
+          if (selected || seat.heldByMe) {
+            btn.classList.add('pos-seat--selected');
+            if (seat.heldByMe && !selected) {
+              selectedSeats.push({
+                id: seat.id,
+                code: seat.seatCode,
+                type: typeKey,
+                price: parseFloat(seat.ticketPrice) || 0
+              });
+            }
+          }
+          bindSeatClick(btn);
         }
         cells.appendChild(btn);
         expectedCol = col + 1;
@@ -254,13 +390,68 @@
       rowDiv.appendChild(cells);
       area.appendChild(rowDiv);
     });
+
+    updateSeatLegend(rows);
+    // Bỏ ghế đã bán khỏi selection nếu map vừa refresh
+    selectedSeats = selectedSeats.filter(s => {
+      for (const row of rows || []) {
+        for (const seat of row.seats || []) {
+          if (seat.id === s.id) return seat.available || seat.heldByMe;
+        }
+      }
+      return false;
+    });
+    updateSummarySeats();
+    checkProceedBtn();
+    if (window.SeatTypeColors && SeatTypeColors.applyAll) {
+      SeatTypeColors.applyAll(document);
+    }
+  }
+
+  function updateSeatLegend(rows) {
+    const legend = document.getElementById('posSeatLegend');
+    if (!legend) return;
+
+    const types = new Map();
+    (rows || []).forEach(row => {
+      (row.seats || []).forEach(seat => {
+        const raw = seat.typeName || 'REGULAR';
+        const key = window.SeatTypeColors
+          ? SeatTypeColors.normalizeType(raw)
+          : String(raw).toLowerCase();
+        if (!types.has(key)) {
+          types.set(key, String(raw).toUpperCase());
+        }
+      });
+    });
+
+    let html = '';
+    types.forEach((label, key) => {
+      html += `<span class="legend-item">` +
+        `<span class="leg-dot leg-type" data-type-key="${escHtml(key)}"></span>` +
+        `${escHtml(label)}</span>`;
+    });
+    html +=
+      '<span class="legend-item"><span class="leg-dot leg-selected"></span>Đang chọn</span>' +
+      '<span class="legend-item"><span class="leg-dot leg-sold"></span>Đã bán</span>';
+    legend.innerHTML = html;
   }
 
   function toggleSeat(btn) {
+    if (holdSyncing) return;
+    if (btn.classList.contains('pos-seat--sold') || btn.disabled) return;
+
+    const snapshot = selectedSeats.map(s => ({
+      id: s.id, code: s.code, type: s.type, price: s.price
+    }));
+
     const idx = selectedSeats.findIndex(s => s.id === btn.dataset.seatId);
     if (idx >= 0) {
       selectedSeats.splice(idx, 1);
       btn.classList.remove('pos-seat--selected');
+      if (window.SeatTypeColors && SeatTypeColors.applyPosSeatColors) {
+        SeatTypeColors.applyPosSeatColors(btn.parentElement || document);
+      }
     } else {
       if (selectedSeats.length >= MAX_SEATS) {
         alert(`Tối đa ${MAX_SEATS} ghế mỗi lần đặt.`);
@@ -273,28 +464,55 @@
         price: parseFloat(btn.dataset.price) || 0
       });
       btn.classList.add('pos-seat--selected');
+      if (window.SeatTypeColors && SeatTypeColors.clearSeatInlineStyle) {
+        SeatTypeColors.clearSeatInlineStyle(btn);
+      }
     }
     resetVoucherSection();
     updateSummarySeats();
     checkProceedBtn();
+    syncHoldsWithServer(selectedShowtimeId, snapshot);
+  }
 
-    const ids = selectedSeats.map(s => s.id);
-    if (ids.length > 0) {
-      // Khởi động đếm ngược ngay lập tức, không chờ server
-      if (!holdExpiryMs) startCountdown(Date.now() + 1 * 60 * 1000);
-      syncHoldsWithServer(selectedShowtimeId, ids);
-    } else {
-      stopCountdown();
-      syncHoldsWithServer(selectedShowtimeId, []);
-    }
+  function restoreSeatUiFromSelection() {
+    document.querySelectorAll('.pos-seat-btn[data-seat-id]').forEach(btn => {
+      if (btn.classList.contains('pos-seat--sold')) return;
+      const isSelected = selectedSeats.some(s => s.id === btn.dataset.seatId);
+      btn.classList.toggle('pos-seat--selected', isSelected);
+      if (isSelected) {
+        if (window.SeatTypeColors && SeatTypeColors.clearSeatInlineStyle) {
+          SeatTypeColors.clearSeatInlineStyle(btn);
+        }
+      } else if (window.SeatTypeColors && SeatTypeColors.applyPosSeatColors) {
+        SeatTypeColors.applyPosSeatColors(btn.parentElement || document);
+      }
+    });
+  }
+
+  function revertSelection(snapshot, message) {
+    selectedSeats = snapshot.map(s => ({
+      id: s.id, code: s.code, type: s.type, price: s.price
+    }));
+    restoreSeatUiFromSelection();
+    updateSummarySeats();
+    checkProceedBtn();
+    if (message) alert(message);
   }
 
   function clearSeats() {
+    stopSeatRefresh();
+    stopCountdown();
     selectedSeats = [];
     document.getElementById('seatArea').innerHTML =
       '<div class="pos-seat-placeholder" id="seatPlaceholder">' +
       '<div class="placeholder-icon">🎬</div>' +
       '<div>Chọn suất chiếu để xem sơ đồ ghế</div></div>';
+    const legend = document.getElementById('posSeatLegend');
+    if (legend) {
+      legend.innerHTML =
+        '<span class="legend-item"><span class="leg-dot leg-selected"></span>Đang chọn</span>' +
+        '<span class="legend-item"><span class="leg-dot leg-sold"></span>Đã bán</span>';
+    }
     updateSummarySeats();
   }
 
@@ -598,31 +816,53 @@
     }
   };
 
-  // ── Seat hold sync ──────────────────────────────────────────────
-  function syncHoldsWithServer(showtimeId, seatIds) {
+  // ── Seat hold sync (giống customer checkout) ─────────────────────
+  function syncHoldsWithServer(showtimeId, revertSnapshot, seatIdsOverride) {
     if (!showtimeId) return;
-    const fd = new FormData();
-    fd.append('action', 'holdSeats');
-    fd.append('showtimeId', showtimeId);
-    seatIds.forEach(id => fd.append('seatIds', id));
 
-    fetch(`${CTX}/staff/counter`, { method: 'POST', body: fd })
-      .then(r => r.json())
-      .then(data => {
-        if (data && !data.ok && data.blocked) {
-          loadSeats(showtimeId);
-          stopCountdown();
-          alert('Một ghế vừa bị người khác chọn. Sơ đồ ghế đã được cập nhật.');
-        } else if (data && data.ok) {
-          if (seatIds.length > 0 && data.expiredAt) {
-            // Cập nhật lại thời gian chính xác từ server
-            startCountdown(data.expiredAt);
-          } else if (seatIds.length === 0) {
-            stopCountdown();
+    const seatIds = seatIdsOverride !== undefined
+      ? seatIdsOverride
+      : selectedSeats.map(s => s.id);
+
+    holdSyncing = true;
+    const body = new URLSearchParams();
+    body.append('action', 'holdSeats');
+    body.append('showtimeId', showtimeId);
+    seatIds.forEach(id => body.append('seatIds', id));
+
+    fetch(`${CTX}/staff/counter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      body: body.toString()
+    })
+      .then(r => r.json().then(data => ({ httpOk: r.ok, data })).catch(() => ({
+        httpOk: r.ok,
+        data: { ok: false, error: 'Phản hồi không hợp lệ từ máy chủ' }
+      })))
+      .then(res => {
+        holdSyncing = false;
+        if (!res.data || !res.data.ok) {
+          if (revertSnapshot) {
+            const msg = (res.data && res.data.error) || 'Không thể giữ ghế';
+            revertSelection(revertSnapshot, msg);
           }
+          if (res.data && res.data.blocked && selectedShowtimeId === showtimeId) {
+            loadSeats(showtimeId);
+          }
+          return;
+        }
+        if (res.data.expiresAt) {
+          startCountdown(res.data.expiresAt);
+        } else {
+          stopCountdown();
         }
       })
-      .catch(() => { /* bỏ qua lỗi mạng khi giữ chỗ */ });
+      .catch(() => {
+        holdSyncing = false;
+        if (revertSnapshot) {
+          revertSelection(revertSnapshot, 'Lỗi kết nối. Vui lòng thử lại.');
+        }
+      });
   }
 
   // ── Seat hold countdown ─────────────────────────────────────────
@@ -662,13 +902,12 @@
       clearInterval(countdownTimer);
       countdownTimer = null;
       holdExpiryMs = null;
-      // Hết giờ — xoá ghế đã chọn, reload sơ đồ
       selectedSeats = [];
+      restoreSeatUiFromSelection();
       updateSummarySeats();
       checkProceedBtn();
       el.style.display = 'none';
       if (selectedShowtimeId) loadSeats(selectedShowtimeId);
-      alert('Thời gian giữ ghế đã hết (1 phút). Vui lòng chọn lại ghế.');
     }
   }
 

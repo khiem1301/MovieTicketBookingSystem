@@ -26,7 +26,7 @@
   var PRESET_COLORS = STC.PRESET_COLORS || {
     regular: '#cccccc',
     vip: '#ffd700',
-    couple: '#e50914',
+    couple: '#ff4d94',
     sweetbox: '#0072d7'
   };
 

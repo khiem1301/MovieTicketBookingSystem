@@ -18,10 +18,10 @@ import utils.SeatHoldException;
  */
 public class SeatHoldDAO {
 
-    /** Customer checkout — giữ ghế khi chọn trên sơ đồ. */
+    /** Customer checkout / Staff POS — cùng thời gian giữ ghế khi chọn trên sơ đồ. */
     public static final int CUSTOMER_HOLD_MINUTES = 5;
-    /** Staff POS — giữ ghế 10 phút. */
-    public static final int STAFF_HOLD_MINUTES = 10;
+    /** Alias staff = customer (đồng bộ FR-13). */
+    public static final int STAFF_HOLD_MINUTES = CUSTOMER_HOLD_MINUTES;
     /** Alias mặc định = customer (tương thích chỗ gọi cũ). */
     public static final int HOLD_MINUTES = CUSTOMER_HOLD_MINUTES;
 

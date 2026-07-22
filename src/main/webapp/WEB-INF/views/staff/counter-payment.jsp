@@ -384,7 +384,8 @@
     attempts++;
     fetch(ctx + '/staff/counter?action=paymentStatus&bookingId=' + encodeURIComponent(bookingId), {
       credentials: 'same-origin',
-      headers: { 'Accept': 'application/json' }
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
     })
     .then(function (res) { return res.ok ? res.json() : null; })
     .then(function (data) {

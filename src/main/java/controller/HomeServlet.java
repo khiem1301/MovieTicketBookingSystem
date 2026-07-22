@@ -13,6 +13,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import model.entity.Genre;
 import model.entity.Movie;
 import utils.AdminPaginationUtil;
+import utils.AuthRedirectUtil;
+import utils.SessionUtil;
 // Servlet xử lý trang chủ, hiển thị các bộ phim nổi bật, đang chiếu và sắp chiếu
 @WebServlet(urlPatterns = {"/home"})
 public class HomeServlet extends HttpServlet {
@@ -22,6 +24,12 @@ public class HomeServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
+
+        // Staff không dùng trang home — luôn vào quầy vé
+        if ("STAFF".equals(SessionUtil.getUserRole(req))) {
+            resp.sendRedirect(req.getContextPath() + AuthRedirectUtil.STAFF_HOME);
+            return;
+        }
 
         List<Movie> featured    = Collections.emptyList();
         List<Movie> nowShowing  = Collections.emptyList();

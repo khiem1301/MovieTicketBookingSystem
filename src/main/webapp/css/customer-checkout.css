@@ -285,35 +285,55 @@
 }
 
 .ck-seat--available {
-  background: #2a2a2a;
-  border: 1px solid #353534;
+  background: #cccccc !important;
+  border: 1px solid #b0b0b0 !important;
+  color: #222 !important;
 }
 
 .ck-seat--available:hover {
-  border-color: rgba(229, 9, 20, 0.5);
-  background: #353534;
+  filter: brightness(1.08);
 }
 
 .ck-seat--available .ck-seat-num {
-  opacity: 0;
-  transition: opacity 0.15s;
+  opacity: 1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .ck-seat--available:hover .ck-seat-num {
   opacity: 1;
 }
 
-.ck-seat--vip {
-  border-color: rgba(233, 195, 73, 0.5);
-  color: #e9c349;
-  box-shadow: 0 0 10px rgba(233, 195, 73, 0.1);
+/* Match manager seat-type palette (Quản lý loại ghế / layout) */
+.ck-seat--available.ck-seat--regular {
+  background: #cccccc !important;
+  border-color: #b0b0b0 !important;
+  color: #222 !important;
+}
+
+.ck-seat--available.ck-seat--vip {
+  background: #ffd700 !important;
+  border-color: #e6c200 !important;
+  color: #222 !important;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
+}
+
+.ck-seat--available.ck-seat--couple {
+  background: #ff4d94 !important;
+  border-color: #e91e63 !important;
+  color: #fff !important;
+}
+
+.ck-seat--available.ck-seat--sweetbox {
+  background: #0072d7 !important;
+  border-color: #005fad !important;
+  color: #fff !important;
 }
 
 .ck-seat--couple,
 .ck-seat--sweetbox {
   width: 88px;
   border-radius: 12px 12px 6px 6px;
-  border-color: rgba(200, 198, 197, 0.3);
 }
 
 .ck-seat--selected {
@@ -335,6 +355,12 @@
   opacity: 0.5;
   cursor: not-allowed !important;
   color: #e9bcb6 !important;
+}
+
+.ck-seat--sold .ck-seat-num {
+  opacity: 1;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .ck-seat-icon {
@@ -373,8 +399,8 @@
 }
 
 .ck-legend-swatch--available {
-  background: #2a2a2a;
-  border: 1px solid #353534;
+  background: transparent;
+  border: 2px solid rgba(233, 188, 182, 0.45);
 }
 
 .ck-legend-swatch--selected {
@@ -391,6 +417,11 @@
   align-items: center;
   justify-content: center;
 }
+
+.ck-legend-swatch--type[data-type-key="regular"]  { background: #cccccc !important; }
+.ck-legend-swatch--type[data-type-key="vip"]      { background: #ffd700 !important; box-shadow: 0 0 10px rgba(255, 215, 0, 0.25); }
+.ck-legend-swatch--type[data-type-key="couple"]   { background: #ff4d94 !important; }
+.ck-legend-swatch--type[data-type-key="sweetbox"] { background: #0072d7 !important; }
 
 /* ── Summary panel ──────────────────────────────────────────── */
 .ck-summary {

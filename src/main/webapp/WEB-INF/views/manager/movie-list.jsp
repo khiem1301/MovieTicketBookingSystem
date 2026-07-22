@@ -349,7 +349,9 @@
               <select name="status" id="statusField">
                 <option value="COMING_SOON"    <c:if test="${empty m or m.status == 'COMING_SOON'}">selected</c:if>>Sắp Chiếu</option>
                 <option value="NOW_SHOWING"    <c:if test="${m.status == 'NOW_SHOWING'}">selected</c:if>>Đang Chiếu</option>
-                <option value="ENDED"          <c:if test="${m.status == 'ENDED'}">selected</c:if>>Đã Kết Thúc</option>
+                <c:if test="${isEdit}">
+                  <option value="ENDED"        <c:if test="${m.status == 'ENDED'}">selected</c:if>>Đã Kết Thúc</option>
+                </c:if>
               </select>
             </div>
             <div class="mm-field">

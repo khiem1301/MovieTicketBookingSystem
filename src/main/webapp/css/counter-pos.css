@@ -387,35 +387,52 @@
   border-radius: 5px 5px 2px 2px;
   font-size: 9px; font-weight: 700;
   cursor: pointer;
-  border: none;
+  border: 1px solid transparent;
   transition: all .12s;
   color: #fff;
 }
 
-.pos-seat--standard { background: #2a2a2a; border: 1px solid #3a3a3a; }
-.pos-seat--standard:hover { background: #3a3a3a; }
-
-.pos-seat--vip {
-  background: #3a0808; border: 1px solid #e53935;
-  width: 42px;
+/* Match manager / customer seat-type palette */
+.pos-seat--regular,
+.pos-seat--standard {
+  background: #cccccc !important;
+  border-color: #b0b0b0 !important;
+  color: #222 !important;
 }
-.pos-seat--vip:hover { background: #4a1010; }
-
+.pos-seat--vip {
+  background: #ffd700 !important;
+  border-color: #e6c200 !important;
+  color: #222 !important;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.25);
+}
 .pos-seat--couple {
-  background: #2a2000; border: 1px solid #ffc107;
+  background: #ff4d94 !important;
+  border-color: #e91e63 !important;
+  color: #fff !important;
+}
+.pos-seat--sweetbox {
+  background: #0072d7 !important;
+  border-color: #005fad !important;
+  color: #fff !important;
+}
+.pos-seat--wide,
+.pos-seat--couple,
+.pos-seat--sweetbox {
   width: 54px;
 }
-.pos-seat--couple:hover { background: #3a2e00; }
 
 .pos-seat--selected {
-  background: #e53935 !important;
+  background: #e50914 !important;
   border-color: #ff5252 !important;
+  color: #fff !important;
+  box-shadow: none !important;
   transform: scale(1.05);
 }
 .pos-seat--sold {
   background: #1a1a1a !important;
   border-color: #2a2a2a !important;
   color: #444 !important;
+  box-shadow: none !important;
   cursor: not-allowed !important;
   opacity: .5;
 }
@@ -436,11 +453,16 @@
 }
 .leg-dot {
   width: 14px; height: 12px; border-radius: 3px; display: inline-block;
+  border: 1px solid transparent;
 }
-.leg-standard { background: #2a2a2a; border: 1px solid #3a3a3a; }
-.leg-vip      { background: #3a0808; border: 1px solid #e53935; }
-.leg-couple   { background: #2a2000; border: 1px solid #ffc107; }
-.leg-selected { background: #e53935; }
+.leg-standard,
+.leg-dot[data-type-key="regular"]  { background: #cccccc; border-color: #b0b0b0; }
+.leg-vip,
+.leg-dot[data-type-key="vip"]      { background: #ffd700; border-color: #e6c200; }
+.leg-couple,
+.leg-dot[data-type-key="couple"]   { background: #ff4d94; border-color: #e91e63; }
+.leg-dot[data-type-key="sweetbox"] { background: #0072d7; border-color: #005fad; }
+.leg-selected { background: #e50914; }
 .leg-sold     { background: #1a1a1a; border: 1px solid #2a2a2a; }
 
 /* ── RIGHT panel ──────────────────────────────────────────── */

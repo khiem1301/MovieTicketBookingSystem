@@ -165,24 +165,11 @@
           </div>
         </div>
 
-        <%-- Loại in --%>
+        <%-- Loại giấy cố định: giấy nhiệt --%>
         <div class="print-setting-row">
           <span class="print-setting-label">Loại giấy</span>
+          <span style="font-size:13px;color:#ccc">Giấy nhiệt (80mm)</span>
         </div>
-        <label class="print-radio-row">
-          <input type="radio" name="outputType" value="thermal" checked/>
-          <div>
-            <div class="print-radio-title">Giấy nhiệt (80mm)</div>
-            <div class="print-radio-sub">Cuộn giấy nhiệt tiêu chuẩn</div>
-          </div>
-        </label>
-        <label class="print-radio-row">
-          <input type="radio" name="outputType" value="card"/>
-          <div>
-            <div class="print-radio-title">Thẻ lưu niệm</div>
-            <div class="print-radio-sub">Giấy dày cao cấp</div>
-          </div>
-        </label>
 
         <%-- Include receipt --%>
         <label class="print-check-row">
@@ -195,10 +182,20 @@
           🖨 In vé
         </button>
 
-        <%-- FR-37: Đánh dấu đã in --%>
-        <button class="pos-secondary-btn" id="markPrintedBtn" onclick="markPrinted()">
-          ✓ Xác nhận đã in xong
-        </button>
+        <%-- FR-37: Trạng thái in lấy từ DB is_printed — tránh hiện sai khi Back --%>
+        <c:choose>
+          <c:when test="${detail.ticketsPrinted}">
+            <button class="pos-secondary-btn" id="markPrintedBtn" disabled
+                    style="background:#2e7d32;cursor:default">
+              ✓ Đã lưu trạng thái in
+            </button>
+          </c:when>
+          <c:otherwise>
+            <button class="pos-secondary-btn" id="markPrintedBtn" onclick="markPrinted()">
+              ✓ Xác nhận đã in xong
+            </button>
+          </c:otherwise>
+        </c:choose>
 
         <div style="margin-top:16px; text-align:center;">
           <a href="${pageContext.request.contextPath}/staff/counter"
@@ -266,8 +263,9 @@
 <script>
   const CTX        = document.querySelector('meta[name="ctx"]').content;
   const BOOKING_ID = document.querySelector('meta[name="bookingId"]').content;
+  const ALREADY_PRINTED = ${detail.ticketsPrinted ? 'true' : 'false'};
   let copies  = 1;
-  let printed = false;
+  let printed = ALREADY_PRINTED;
 
   // FR-18 — Tạo QR code cho từng vé
   document.querySelectorAll('.qr-canvas[data-code]').forEach(el => {
@@ -292,16 +290,27 @@
     window.print();
   }
 
-  // FR-37 — Gọi API đánh dấu vé đã in
+  function setPrintedUi(btn) {
+    btn.disabled = true;
+    btn.textContent = '✓ Đã lưu trạng thái in';
+    btn.style.background = '#2e7d32';
+    btn.style.cursor = 'default';
+    btn.onclick = null;
+    printed = true;
+  }
+
+  // FR-37 — Gọi API đánh dấu vé đã in (chỉ khi chưa is_printed)
   function markPrinted() {
     const btn = document.getElementById('markPrintedBtn');
+    if (!btn || printed || btn.disabled) return;
     btn.disabled = true;
     btn.textContent = 'Đang lưu...';
 
     fetch(CTX + '/staff/counter?action=markPrinted', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'bookingId=' + encodeURIComponent(BOOKING_ID)
+      body: 'bookingId=' + encodeURIComponent(BOOKING_ID),
+      cache: 'no-store'
     })
     .then(r => {
       if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -311,9 +320,7 @@
       let data;
       try { data = JSON.parse(text); } catch (e) { throw new Error('parse'); }
       if (data.ok) {
-        btn.textContent = '✓ Đã lưu trạng thái in';
-        btn.style.background = '#2e7d32';
-        printed = true;
+        setPrintedUi(btn);
       } else {
         btn.disabled = false;
         btn.textContent = '✓ Xác nhận đã in xong';

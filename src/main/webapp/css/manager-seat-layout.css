@@ -321,7 +321,7 @@
 
 .slt-type-swatch--regular  { background: #cccccc; }
 .slt-type-swatch--vip      { background: #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.25); }
-.slt-type-swatch--couple   { background: #e50914; }
+.slt-type-swatch--couple   { background: #ff4d94; }
 .slt-type-swatch--sweetbox { background: #0072d7; }
 
 .slt-type-info { flex: 1; min-width: 0; }
@@ -561,7 +561,7 @@
 
 .slt-seat--regular  { background: #cccccc; }
 .slt-seat--vip      { background: #ffd700; box-shadow: 0 0 12px rgba(255, 215, 0, 0.25); }
-.slt-seat--couple   { background: #e50914; color: #fff; }
+.slt-seat--couple   { background: #ff4d94; color: #fff; }
 .slt-seat--sweetbox { background: #0072d7; color: #fff; }
 
 .slt-seat--custom {

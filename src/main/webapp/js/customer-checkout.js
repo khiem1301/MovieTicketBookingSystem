@@ -20,12 +20,20 @@
 
   document.addEventListener('DOMContentLoaded', init);
 
-  function init() {
-    if (window.SeatTypeColors) {
+  function applySeatTypeColors() {
+    if (window.SeatTypeColors && SeatTypeColors.applyAll) {
+      SeatTypeColors.applyAll(document);
+    } else if (window.SeatTypeColors) {
       SeatTypeColors.applySwatchColors(document);
+      if (SeatTypeColors.applyAvailableSeatColors) {
+        SeatTypeColors.applyAvailableSeatColors(document);
+      }
     }
+  }
 
+  function init() {
     initHeldSeatsFromDom();
+    applySeatTypeColors();
 
     if (!readOnly && !hasPendingBooking) {
       document.querySelectorAll('.ck-seat--available, .ck-seat--held, .ck-seat--selected').forEach(bindSeatClick);
@@ -97,6 +105,7 @@
       btn.classList.add('ck-seat--selected');
     }
 
+    applySeatTypeColors();
     updateSummary();
     checkProceedBtn();
     syncHolds(snapshot);
@@ -161,13 +170,12 @@
         delete btn.dataset.held;
       }
       btn.disabled = readOnly;
-      var col = btn.querySelector('.ck-seat-num');
-      if (!col && btn.dataset.seatCode) {
-        var match = btn.dataset.seatCode.match(/\d+$/);
-        if (match) btn.innerHTML = seatNumberHtml(parseInt(match[0], 10));
+      if (!btn.querySelector('.ck-seat-num') && btn.dataset.seatCode) {
+        btn.innerHTML = seatCodeHtml(btn.dataset.seatCode);
       }
       if (!readOnly && !hasPendingBooking) bindSeatClick(btn);
     });
+    applySeatTypeColors();
   }
 
   function showHoldError(message) {
@@ -321,6 +329,7 @@
       }
     });
 
+    applySeatTypeColors();
     updateSummary();
     checkProceedBtn();
   }
@@ -333,8 +342,8 @@
     btn.classList.add('ck-seat--available');
     btn.disabled = readOnly || hasPendingBooking;
     delete btn.dataset.held;
-    btn.innerHTML = seatNumberHtml(info.seatColumn);
-    btn.setAttribute('aria-label', 'Gh\u1ebf ' + (info.seatCode || ''));
+    btn.innerHTML = seatCodeHtml((info && info.seatCode) || btn.dataset.seatCode);
+    btn.setAttribute('aria-label', 'Gh\u1ebf ' + ((info && info.seatCode) || btn.dataset.seatCode || ''));
     if (!readOnly && !hasPendingBooking) bindSeatClick(btn);
   }
 
@@ -344,14 +353,14 @@
       btn.classList.add('ck-seat--available', 'ck-seat--held');
       btn.disabled = readOnly || hasPendingBooking;
       btn.dataset.held = 'true';
-      btn.innerHTML = seatNumberHtml(info.seatColumn);
+      btn.innerHTML = seatCodeHtml((info && info.seatCode) || btn.dataset.seatCode);
       if (!readOnly && !hasPendingBooking) bindSeatClick(btn);
     }
   }
 
-  function seatNumberHtml(col) {
-    if (col == null) return '';
-    return '<span class="ck-seat-num">' + escHtml(String(col)) + '</span>';
+  function seatCodeHtml(code) {
+    if (code == null || code === '') return '';
+    return '<span class="ck-seat-num">' + escHtml(String(code)) + '</span>';
   }
 
   function markSold(btn, id) {
@@ -359,9 +368,7 @@
       btn.classList.remove('ck-seat--available', 'ck-seat--selected', 'ck-seat--held');
       btn.classList.add('ck-seat--sold');
       btn.disabled = true;
-      btn.innerHTML = '<svg class="ck-seat-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"' +
-        ' stroke="currentColor" stroke-width="2.5" stroke-linecap="round">' +
-        '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      btn.innerHTML = seatCodeHtml(btn.dataset.seatCode);
     }
 
     var idx = selectedSeats.findIndex(function (s) { return s.id === id; });

@@ -3,6 +3,26 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
+<%-- Same palette as manager seat types (REGULAR/VIP/COUPLE/SWEETBOX + custom e.g. AA) --%>
+<style id="ckSeatTypeColorRules">
+<c:forEach var="legend" items="${seatTypeLegend}">
+  .ck-seat.ck-seat--available.ck-seat--${legend.typeKey} {
+    background: ${legend.color} !important;
+    border: 1px solid ${legend.color} !important;
+    color: ${legend.textColor} !important;
+  }
+  .ck-legend-swatch.ck-legend-swatch--type[data-type-key="${legend.typeKey}"] {
+    background: ${legend.color} !important;
+  }
+</c:forEach>
+  .ck-seat.ck-seat--available.ck-seat--vip {
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
+  }
+  .ck-legend-swatch.ck-legend-swatch--type[data-type-key="vip"] {
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
+  }
+</style>
+
 <section class="ck-map-section" aria-label="Sơ đồ ghế">
   <div class="ck-screen-wrap">
     <div class="ck-screen-glow"></div>
@@ -28,7 +48,10 @@
                       <span class="ck-seat-gap" aria-hidden="true"></span>
                     </c:forEach>
                   </c:if>
-                  <c:set var="typeKey" value="${fn:toLowerCase(seat.seatTypeName != null ? seat.seatTypeName : 'standard')}"/>
+                  <c:set var="typeName" value="${seat.seatTypeName != null ? seat.seatTypeName : 'REGULAR'}"/>
+                  <c:set var="typeKey" value="${fn:toLowerCase(typeName)}"/>
+                  <c:set var="seatColor" value="${seatTypeColorByKey[typeKey]}"/>
+                  <c:set var="seatTextColor" value="${seatTypeTextByKey[typeKey]}"/>
                   <c:choose>
                     <c:when test="${!seat.available}">
                       <button type="button"
@@ -36,13 +59,12 @@
                               data-seat-id="<c:out value='${seat.id}'/>"
                               data-seat-code="<c:out value='${seat.seatCode}'/>"
                               data-price="<c:out value='${seat.ticketPrice}'/>"
-                              data-type="<c:out value='${seat.seatTypeName}'/>"
+                              data-type="<c:out value='${typeName}'/>"
+                              data-type-color="<c:out value='${seatColor}'/>"
+                              data-type-text="<c:out value='${seatTextColor}'/>"
                               disabled
                               aria-label="Ghế <c:out value='${seat.seatCode}'/> đã được đặt">
-                        <svg class="ck-seat-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
+                        <span class="ck-seat-num"><c:out value="${seat.seatCode}"/></span>
                       </button>
                     </c:when>
                     <c:when test="${seat.heldByCurrentUser}">
@@ -51,10 +73,12 @@
                               data-seat-id="<c:out value='${seat.id}'/>"
                               data-seat-code="<c:out value='${seat.seatCode}'/>"
                               data-price="<c:out value='${seat.ticketPrice}'/>"
-                              data-type="<c:out value='${seat.seatTypeName}'/>"
+                              data-type="<c:out value='${typeName}'/>"
+                              data-type-color="<c:out value='${seatColor}'/>"
+                              data-type-text="<c:out value='${seatTextColor}'/>"
                               data-held="true"
                               aria-label="Ghế <c:out value='${seat.seatCode}'/> đang được giữ">
-                        <span class="ck-seat-num"><c:out value="${seat.seatColumn}"/></span>
+                        <span class="ck-seat-num"><c:out value="${seat.seatCode}"/></span>
                       </button>
                     </c:when>
                     <c:otherwise>
@@ -63,10 +87,13 @@
                               data-seat-id="<c:out value='${seat.id}'/>"
                               data-seat-code="<c:out value='${seat.seatCode}'/>"
                               data-price="<c:out value='${seat.ticketPrice}'/>"
-                              data-type="<c:out value='${seat.seatTypeName}'/>"
+                              data-type="<c:out value='${typeName}'/>"
+                              data-type-color="<c:out value='${seatColor}'/>"
+                              data-type-text="<c:out value='${seatTextColor}'/>"
+                              style="background:<c:out value='${seatColor}'/>;border-color:<c:out value='${seatColor}'/>;color:<c:out value='${seatTextColor}'/>"
                               <c:if test="${readOnly}">disabled</c:if>
                               aria-label="Ghế <c:out value='${seat.seatCode}'/>">
-                        <span class="ck-seat-num"><c:out value="${seat.seatColumn}"/></span>
+                        <span class="ck-seat-num"><c:out value="${seat.seatCode}"/></span>
                       </button>
                     </c:otherwise>
                   </c:choose>
@@ -91,18 +118,14 @@
       <span>Đang chọn</span>
     </div>
     <div class="ck-legend-item">
-      <span class="ck-legend-swatch ck-legend-swatch--sold">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="3" stroke-linecap="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </span>
+      <span class="ck-legend-swatch ck-legend-swatch--sold"></span>
       <span>Đã đặt</span>
     </div>
     <c:forEach var="legend" items="${seatTypeLegend}">
       <div class="ck-legend-item">
         <span class="ck-legend-swatch ck-legend-swatch--type"
-              data-type-key="<c:out value='${fn:toLowerCase(legend.typeName)}'/>"></span>
+              data-type-key="<c:out value='${legend.typeKey}'/>"
+              style="background:<c:out value='${legend.color}'/>"></span>
         <span>
           <c:out value="${legend.typeName}"/>
           <c:if test="${legend.samplePrice != null}">

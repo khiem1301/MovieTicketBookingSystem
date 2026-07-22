@@ -33,17 +33,32 @@ public class PaymentDAO {
 
     public String insertPendingOnlineVietQR(Connection conn, String bookingId, BigDecimal amount,
                                             String transferCode) throws SQLException {
+        return insertPendingVietQR(conn, bookingId, amount, transferCode, "ONLINE");
+    }
+
+    /** VietQR tại quầy (booking OFFLINE) — vẫn nhận SePay webhook giống online. */
+    public String insertPendingOfflineVietQR(String bookingId, BigDecimal amount, String transferCode) {
+        try (Connection conn = DBContext.getConnection()) {
+            return insertPendingVietQR(conn, bookingId, amount, transferCode, "OFFLINE");
+        } catch (SQLException e) {
+            throw new RuntimeException("insertPendingOfflineVietQR failed", e);
+        }
+    }
+
+    private String insertPendingVietQR(Connection conn, String bookingId, BigDecimal amount,
+                                       String transferCode, String paymentSource) throws SQLException {
         String sql = """
                 INSERT INTO Payments
                     (booking_id, payment_method, payment_source, transaction_code,
                      amount, payment_status)
                 OUTPUT INSERTED.id
-                VALUES (?, 'VIETQR', 'ONLINE', ?, ?, 'PENDING')
+                VALUES (?, 'VIETQR', ?, ?, ?, 'PENDING')
                 """;
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, bookingId);
-            ps.setString(2, transferCode);
-            ps.setBigDecimal(3, amount);
+            ps.setString(2, paymentSource);
+            ps.setString(3, transferCode);
+            ps.setBigDecimal(4, amount);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     throw new SQLException("Không lấy được payment ID");
@@ -82,7 +97,6 @@ public class PaymentDAO {
                 FROM Payments
                 WHERE booking_id = ?
                   AND payment_method = 'VIETQR'
-                  AND payment_source = 'ONLINE'
                   AND payment_status = 'PENDING'
                 ORDER BY created_at DESC
                 """;
@@ -101,8 +115,8 @@ public class PaymentDAO {
     }
 
     /**
-     * SePay webhook: tìm payment VietQR PENDING có transaction_code nằm trong nội dung CK
-     * và khớp số tiền (so sánh phần nguyên VND, bỏ qua scale thập phân).
+     * SePay webhook: tìm payment VietQR PENDING (ONLINE customer hoặc OFFLINE quầy)
+     * có transaction_code nằm trong nội dung CK và khớp số tiền.
      */
     public Optional<PaymentRecord> findPendingVietQRByTransferContent(String transferContentOrCode,
                                                                       BigDecimal amount) {
@@ -110,36 +124,51 @@ public class PaymentDAO {
             return Optional.empty();
         }
         String haystack = normalizeTransferText(transferContentOrCode);
-        long amountVnd = amount.setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
+        long amountHalfUp = amount.setScale(0, java.math.RoundingMode.HALF_UP).longValue();
+        long amountFloor = amount.setScale(0, java.math.RoundingMode.DOWN).longValue();
+        BigDecimal amtHalf = BigDecimal.valueOf(amountHalfUp);
+        BigDecimal amtFloor = BigDecimal.valueOf(amountFloor);
 
+        // Lọc gần đúng theo số tiền ở SQL để tránh bỏ sót ngoài TOP N
         String sql = """
-                SELECT TOP 50 id, booking_id, payment_method, payment_source, transaction_code,
+                SELECT TOP 100 id, booking_id, payment_method, payment_source, transaction_code,
                        amount, payment_status, paid_at
                 FROM Payments
                 WHERE payment_method = 'VIETQR'
-                  AND payment_source = 'ONLINE'
                   AND payment_status = 'PENDING'
+                  AND (
+                        ROUND(amount, 0) IN (?, ?)
+                     OR CAST(FLOOR(amount) AS DECIMAL(18,0)) IN (?, ?)
+                  )
                 ORDER BY created_at DESC
                 """;
         try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                PaymentRecord row = mapRow(rs);
-                if (row.amount() == null) {
-                    continue;
-                }
-                long rowAmount = row.amount().setScale(0, java.math.RoundingMode.HALF_UP).longValue();
-                if (rowAmount != amountVnd) {
-                    continue;
-                }
-                String code = row.transactionCode();
-                if (code == null || code.isBlank()) {
-                    continue;
-                }
-                String normalizedCode = normalizeTransferText(code);
-                if (!normalizedCode.isBlank() && haystack.contains(normalizedCode)) {
-                    return Optional.of(row);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBigDecimal(1, amtHalf);
+            ps.setBigDecimal(2, amtFloor);
+            ps.setBigDecimal(3, amtHalf);
+            ps.setBigDecimal(4, amtFloor);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    PaymentRecord row = mapRow(rs);
+                    String code = row.transactionCode();
+                    if (code == null || code.isBlank()) {
+                        continue;
+                    }
+                    String normalizedCode = normalizeTransferText(code);
+                    if (normalizedCode.isBlank()) {
+                        continue;
+                    }
+                    if (haystack.contains(normalizedCode)) {
+                        return Optional.of(row);
+                    }
+                    // Match phần đuôi ≥ 8 ký tự (SePay cắt/ghép memo)
+                    if (normalizedCode.length() >= 8) {
+                        String tail = normalizedCode.substring(Math.max(0, normalizedCode.length() - 10));
+                        if (tail.length() >= 8 && haystack.contains(tail)) {
+                            return Optional.of(row);
+                        }
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -156,25 +185,35 @@ public class PaymentDAO {
     }
 
     public void markSuccess(Connection conn, String paymentId, String externalTransId) throws SQLException {
+        // Giữ nguyên transaction_code (= nội dung CK) để audit; không ghi đè bằng SEPAY-id
         String sql = """
                 UPDATE Payments
                 SET payment_status = 'SUCCESS',
-                    paid_at = GETDATE(),
-                    transaction_code = COALESCE(?, transaction_code)
+                    paid_at = GETDATE()
                 WHERE id = ? AND payment_status = 'PENDING'
                 """;
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, blankToNull(externalTransId));
-            ps.setString(2, paymentId);
+            ps.setString(1, paymentId);
             ps.executeUpdate();
         }
     }
 
-    private static String blankToNull(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
+    /** Đánh FAILED các VietQR PENDING cũ của booking trước khi tạo QR mới. */
+    public void failStalePendingVietQR(String bookingId) {
+        String sql = """
+                UPDATE Payments
+                SET payment_status = 'FAILED'
+                WHERE booking_id = ?
+                  AND payment_method = 'VIETQR'
+                  AND payment_status = 'PENDING'
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, bookingId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("failStalePendingVietQR failed", e);
         }
-        return value.trim();
     }
 
     public void markFailed(Connection conn, String paymentId) throws SQLException {
