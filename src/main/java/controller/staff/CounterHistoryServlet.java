@@ -48,6 +48,13 @@ public class CounterHistoryServlet extends HttpServlet {
                     forwardList(req, resp, "", "", "", "", 1);
                     return;
                 }
+                // PENDING/UNPAID → chuyển về màn thanh toán để hoàn tất
+                if ("PENDING".equals(detail.getBookingStatus())
+                        && "UNPAID".equals(detail.getPaymentStatus())) {
+                    resp.sendRedirect(req.getContextPath()
+                            + "/staff/counter?step=payment&bookingId=" + bookingId);
+                    return;
+                }
                 req.setAttribute("detail", detail);
                 req.setAttribute("fromHistory", true);
                 req.getRequestDispatcher(VIEW_DETAIL).forward(req, resp);

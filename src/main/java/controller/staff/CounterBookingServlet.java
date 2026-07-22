@@ -1,10 +1,13 @@
 package controller.staff;
 
 import dal.BookingDAO;
+import dal.PromotionDAO;
 import dal.SeatDAO;
 import dal.SeatHoldDAO;
 import dal.ShowtimeDAO;
 import dal.UserDAO;
+import model.entity.Promotion;
+import utils.PromotionCalculator;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -29,6 +32,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Optional;
 
 /**
  * FR-36 / FR-37 / FR-38 / FR-42 — Quầy bán vé (POS terminal).
@@ -81,6 +85,10 @@ public class CounterBookingServlet extends HttpServlet {
         }
         if ("paymentStatus".equals(action) && !isBlank(bookingId)) {
             servePaymentStatusJson(req, resp, bookingId);
+            return;
+        }
+        if ("checkVoucher".equals(action)) {
+            serveVoucherCheckJson(req, resp);
             return;
         }
 
@@ -233,6 +241,57 @@ public class CounterBookingServlet extends HttpServlet {
         }
     }
 
+    /** Kiểm tra và tính giảm giá mã voucher — trả JSON cho POS. */
+    private void serveVoucherCheckJson(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+        resp.setContentType("application/json; charset=UTF-8");
+        String code     = trim(req.getParameter("code"));
+        String totalStr = trim(req.getParameter("total"));
+        if (isBlank(code)) {
+            resp.getWriter().write("{\"valid\":false,\"error\":\"Vui lòng nhập mã voucher.\"}");
+            return;
+        }
+        BigDecimal subtotal = BigDecimal.ZERO;
+        if (!isBlank(totalStr)) {
+            try { subtotal = new BigDecimal(totalStr); } catch (NumberFormatException ignored) {}
+        }
+        try {
+            PromotionDAO promoDAO = new PromotionDAO();
+            Optional<Promotion> opt = promoDAO.findByCode(code);
+            if (opt.isEmpty()) {
+                resp.getWriter().write("{\"valid\":false,\"error\":\"Mã voucher không tồn tại.\"}");
+                return;
+            }
+            Promotion promo = opt.get();
+            String err = promoDAO.validateForApply(promo);
+            if (err != null) {
+                resp.getWriter().write("{\"valid\":false,\"error\":" + jsonStr(err) + "}");
+                return;
+            }
+            String minErr = PromotionCalculator.validateMinOrder(promo, subtotal);
+            if (minErr != null) {
+                resp.getWriter().write("{\"valid\":false,\"error\":" + jsonStr(minErr) + "}");
+                return;
+            }
+            BigDecimal discount = PromotionCalculator.calculateDiscount(promo, subtotal);
+            JSONObject obj = new JSONObject();
+            obj.put("valid",        true);
+            obj.put("code",         promo.getCode());
+            obj.put("title",        promo.getTitle());
+            obj.put("discountType", promo.getDiscountType());
+            obj.put("discount",     discount.longValue());
+            resp.getWriter().write(obj.toString());
+        } catch (RuntimeException e) {
+            log("serveVoucherCheckJson error", e);
+            resp.setStatus(500);
+            resp.getWriter().write("{\"valid\":false,\"error\":\"Lỗi hệ thống.\"}");
+        }
+    }
+
+    private static String jsonStr(String s) {
+        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    }
+
     /** FR-42 — Tra cứu thành viên theo SĐT, trả về JSON. */
     private void serveMemberLookupJson(HttpServletRequest req, HttpServletResponse resp,
                                        String phone) throws IOException {
@@ -283,6 +342,7 @@ public class CounterBookingServlet extends HttpServlet {
         }
         if (pointsToRedeem < 0) pointsToRedeem = 0;
         if (pointsToRedeem > 0 && isBlank(memberId)) pointsToRedeem = 0;
+        String voucherCode = trim(req.getParameter("voucherCode"));
 
         if (isBlank(showtimeId)) { forwardError(req, resp, "Thiếu thông tin suất chiếu."); return; }
         if (rawSeatIds == null || rawSeatIds.length == 0) {
@@ -334,7 +394,7 @@ public class CounterBookingServlet extends HttpServlet {
         try {
             String bookingId = new BookingDAO().createOfflineBooking(
                     showtimeId, staff.getId(), userId, customerName, customerPhone,
-                    seatIds, seatPrices, pointsToRedeem);
+                    seatIds, seatPrices, pointsToRedeem, voucherCode);
             holdDAO.releaseHolds(showtimeId, staff.getId());
             resp.sendRedirect(req.getContextPath()
                     + "/staff/counter?step=payment&bookingId=" + bookingId);

@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    Counter POS — FR-35 / FR-36 / FR-38
    3-panel layout: movie list → showtimes → seat map → summary
    ============================================================ */
@@ -22,6 +22,8 @@
   let memberLocked     = false;
   let appliedPoints    = 0;    // điểm đã áp dụng để trừ tiền
   let memberPointsBalance = 0; // số dư điểm của thành viên
+  let appliedVoucherCode   = '';  // mã voucher đang áp dụng
+  let voucherDiscountAmount = 0;  // số tiền giảm từ voucher (VND)
 
   // ── Movie tab / search ─────────────────────────────────────────
   window.switchTab = function (tab) {
@@ -272,6 +274,7 @@
       });
       btn.classList.add('pos-seat--selected');
     }
+    resetVoucherSection();
     updateSummarySeats();
     checkProceedBtn();
 
@@ -349,6 +352,78 @@
 
     document.getElementById('totalDisplay').textContent = formatVnd(finalTotal);
   }
+
+  // ── Voucher / Khuyến mãi ───────────────────────────────────────────────
+  function resetVoucherSection() {
+    appliedVoucherCode    = '';
+    voucherDiscountAmount = 0;
+    var inp = document.getElementById('voucherCodeInput');
+    if (inp) inp.value = '';
+    var res = document.getElementById('voucherResult');
+    if (res) { res.textContent = ''; res.style.display = 'none'; }
+    var row = document.getElementById('voucherDiscountRow');
+    if (row) row.style.display = 'none';
+    updateSummarySeats();
+  }
+
+  window.checkVoucher = function () {
+    var inp = document.getElementById('voucherCodeInput');
+    var res = document.getElementById('voucherResult');
+    if (!inp || !res) return;
+    var code = inp.value.trim().toUpperCase();
+    if (!code) {
+      res.style.display = 'block';
+      res.style.color   = '#ef9a9a';
+      res.textContent   = 'Vui lòng nhập mã voucher.';
+      return;
+    }
+    if (selectedSeats.length === 0) {
+      res.style.display = 'block';
+      res.style.color   = '#ef9a9a';
+      res.textContent   = 'Vui lòng chọn ghế trước khi áp dụng voucher.';
+      return;
+    }
+    var rawTotal = selectedSeats.reduce(function (s, seat) { return s + seat.price; }, 0);
+    res.style.display  = 'block';
+    res.style.color    = '#aaa';
+    res.textContent    = 'Đang kiểm tra...';
+
+    fetch(CTX + '/staff/counter?action=checkVoucher&code=' + encodeURIComponent(code)
+                + '&total=' + rawTotal)
+      .then(function (r) {
+        var ct = r.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          throw new Error('not-json');
+        }
+        return r.json();
+      })
+      .then(function (data) {
+        if (data.valid) {
+          appliedVoucherCode    = data.code;
+          voucherDiscountAmount = data.discount;
+          res.style.color = '#66bb6a';
+          res.textContent = '✓ ' + data.code + ' — ' + escHtml(data.title)
+                          + ': −' + formatVnd(data.discount);
+          updateSummarySeats();
+        } else {
+          appliedVoucherCode    = '';
+          voucherDiscountAmount = 0;
+          res.style.color = '#ef9a9a';
+          res.textContent = data.error || 'Mã voucher không hợp lệ.';
+          updateSummarySeats();
+        }
+      })
+      .catch(function (err) {
+        appliedVoucherCode    = '';
+        voucherDiscountAmount = 0;
+        res.style.color = '#ef9a9a';
+        if (err && err.message === 'not-json') {
+          res.textContent = 'Ứng dụng cần được rebuild để dùng tính năng voucher.';
+        } else {
+          res.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
+        }
+      });
+  };
 
   // ── FR-42: Member Lookup ────────────────────────────────────────
   window.lookupMember = function () {
@@ -447,6 +522,7 @@
     document.getElementById('formCustName').value      = name;
     document.getElementById('formCustPhone').value     = phone;
     document.getElementById('formPointsToRedeem').value = appliedPoints;
+    document.getElementById('formVoucherCode').value     = appliedVoucherCode;
 
     form.querySelectorAll('input[name="seatIds"], input[name="seatPrices"]')
         .forEach(el => el.remove());

@@ -49,13 +49,40 @@ public class BookingDAO {
                                        String userId, String customerName, String customerPhone,
                                        List<String> seatIds, List<BigDecimal> seatPrices,
                                        int pointsToRedeem) {
-        BigDecimal vatRate = scaleMoney(getCurrentVatRate());
+        return createOfflineBooking(showtimeId, staffId, userId, customerName, customerPhone,
+                                    seatIds, seatPrices, pointsToRedeem, null);
+    }
+
+    /** Overload hỗ trợ cả đổi điểm lẫn mã voucher tại quầy. */
+    public String createOfflineBooking(String showtimeId, String staffId,
+                                       String userId, String customerName, String customerPhone,
+                                       List<String> seatIds, List<BigDecimal> seatPrices,
+                                       int pointsToRedeem, String voucherCode) {
+        BigDecimal vatRate    = scaleMoney(getCurrentVatRate());
         BigDecimal totalAmount = scaleMoney(seatPrices.stream()
                 .reduce(BigDecimal.ZERO, BigDecimal::add));
-        BigDecimal finalAmount = scaleMoney(totalAmount.multiply(
+
+        // Tính giảm giá từ mã voucher (áp trên subtotal trước VAT)
+        PromotionDAO promoDAO = new PromotionDAO();
+        model.entity.Promotion promo = null;
+        BigDecimal promoDiscount = BigDecimal.ZERO;
+        if (voucherCode != null && !voucherCode.isBlank()) {
+            var promoOpt = promoDAO.findByCode(voucherCode.trim());
+            if (promoOpt.isPresent() && promoDAO.validateForApply(promoOpt.get()) == null) {
+                model.entity.Promotion candidate = promoOpt.get();
+                if (utils.PromotionCalculator.validateMinOrder(candidate, totalAmount) == null) {
+                    promo = candidate;
+                    promoDiscount = utils.PromotionCalculator.calculateDiscount(promo, totalAmount);
+                }
+            }
+        }
+
+        // finalAmount áp dụng sau khi trừ promo discount trên subtotal
+        BigDecimal discountedSubtotal = totalAmount.subtract(promoDiscount).max(BigDecimal.ZERO);
+        BigDecimal finalAmount = scaleMoney(discountedSubtotal.multiply(
                 BigDecimal.ONE.add(vatRate.divide(new BigDecimal("100")))));
 
-        // Tính giảm giá từ điểm thưởng
+        // Tính giảm giá từ điểm thưởng (áp sau VAT, sau promo)
         int redeemRate = ConfigUtil.getInt(ConfigKeys.LOYALTY_REDEEM_RATE, 100);
         int minRedeem  = ConfigUtil.getInt(ConfigKeys.LOYALTY_MIN_REDEEM,  100);
         int maxRedeem  = ConfigUtil.getInt(ConfigKeys.LOYALTY_MAX_REDEEM_PER_ORDER, 5000);
@@ -134,6 +161,14 @@ public class BookingDAO {
                     ps.addBatch();
                 }
                 ps.executeBatch();
+            }
+
+            // Áp dụng voucher: INSERT BookingPromotions + tăng used_count
+            if (promo != null && promoDiscount.compareTo(BigDecimal.ZERO) > 0) {
+                boolean applied = promoDAO.incrementUsedCountIfAvailable(conn, promo.getId());
+                if (applied) {
+                    new BookingPromotionDAO().insert(conn, bookingId, promo.getId(), promoDiscount);
+                }
             }
 
             // Trừ điểm và ghi log
@@ -439,6 +474,7 @@ public class BookingDAO {
                 var ap = appliedPromo.get();
                 dto.setAppliedPromoCode(ap.code());
                 dto.setAppliedPromoTitle(ap.title());
+                dto.setPromoDiscountAmount(ap.discountApplied());
                 if (dto.getDiscountAmount() == null || dto.getDiscountAmount().compareTo(BigDecimal.ZERO) == 0) {
                     dto.setDiscountAmount(ap.discountApplied());
                     enrichAmounts(dto);

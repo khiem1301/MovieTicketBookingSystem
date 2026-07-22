@@ -77,7 +77,16 @@
               </span>
             </div>
           </c:forEach>
-          <c:if test="${detail.discountAmount != null && detail.discountAmount > 0}">
+          <c:if test="${detail.promoDiscountAmount != null && detail.promoDiscountAmount > 0}">
+          <div class="payment-item-row" style="color:#42a5f5">
+            <span>Voucher (<c:out value="${detail.appliedPromoCode}"/>
+              <c:if test="${not empty detail.appliedPromoTitle}">
+                — <c:out value="${detail.appliedPromoTitle}"/>
+              </c:if>)</span>
+            <span>-<fmt:formatNumber value="${detail.promoDiscountAmount}" type="number" groupingUsed="true"/> ₫</span>
+          </div>
+          </c:if>
+          <c:if test="${detail.pointsRedeemed != null && detail.pointsRedeemed > 0}">
           <div class="payment-item-row" style="color:#66bb6a">
             <span>Giảm điểm (<c:out value="${detail.pointsRedeemed}"/> điểm)</span>
             <span>-<fmt:formatNumber value="${detail.discountAmount}" type="number" groupingUsed="true"/> ₫</span>
