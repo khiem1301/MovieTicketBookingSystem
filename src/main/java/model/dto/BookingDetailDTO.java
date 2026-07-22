@@ -29,6 +29,7 @@ public class BookingDetailDTO {
     private String linkedUserEmail;
     private String appliedPromoCode;
     private String appliedPromoTitle;
+    private BigDecimal promoDiscountAmount;
     private int pointsRedeemed;
 
     public static class SeatItem {
@@ -135,6 +136,9 @@ public class BookingDetailDTO {
 
     public String getAppliedPromoTitle() { return appliedPromoTitle; }
     public void setAppliedPromoTitle(String v) { this.appliedPromoTitle = v; }
+
+    public BigDecimal getPromoDiscountAmount() { return promoDiscountAmount; }
+    public void setPromoDiscountAmount(BigDecimal v) { this.promoDiscountAmount = v; }
 
     public int getPointsRedeemed() { return pointsRedeemed; }
     public void setPointsRedeemed(int v) { this.pointsRedeemed = v; }

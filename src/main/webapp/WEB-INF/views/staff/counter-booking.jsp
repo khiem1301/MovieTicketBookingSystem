@@ -166,6 +166,20 @@
         <div id="memberResult" class="pos-member-result" style="display:none"></div>
       </div>
 
+      <%-- Mã voucher / khuyến mãi --%>
+      <div class="pos-customer-section" style="margin-top:8px">
+        <div class="pos-section-label">Mã voucher (khuyến mãi)</div>
+        <div class="pos-lookup-row">
+          <input type="text" id="voucherCodeInput" class="pos-form-input pos-lookup-input"
+                 placeholder="Nhập mã voucher..."
+                 style="text-transform:uppercase;letter-spacing:1px"
+                 oninput="this.value=this.value.toUpperCase()"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();checkVoucher();}"/>
+          <button type="button" class="pos-lookup-btn" onclick="checkVoucher()">Kiểm tra</button>
+        </div>
+        <div id="voucherResult" style="font-size:13px;margin-top:6px;min-height:18px"></div>
+      </div>
+
       <%-- Đổi điểm thưởng (ẩn cho đến khi tìm thấy thành viên) --%>
       <div id="loyaltySection" class="pos-customer-section" style="display:none;margin-top:8px">
         <div class="pos-section-label">Đổi điểm thưởng</div>
@@ -199,6 +213,12 @@
         <span id="holdTime" class="hold-countdown__time">01:00</span>
       </div>
 
+      <%-- Giảm voucher (ẩn khi không áp dụng) --%>
+      <div id="voucherDiscountRow" class="pos-total-row" style="display:none;font-size:13px;color:#42a5f5">
+        <span id="voucherDiscountLabel">Voucher</span>
+        <strong id="voucherDiscountDisplay">-0 ₫</strong>
+      </div>
+
       <%-- Giảm điểm (ẩn khi không áp dụng) --%>
       <div id="pointsDiscountRow" class="pos-total-row" style="display:none;font-size:13px;color:#66bb6a">
         <span id="pointsDiscountLabel">Giảm điểm</span>
@@ -228,8 +248,9 @@
         <input type="hidden" name="showtimeId"     id="formShowtimeId"/>
         <input type="hidden" name="customerName"  id="formCustName"/>
         <input type="hidden" name="customerPhone" id="formCustPhone"/>
-        <input type="hidden" name="memberId"      id="formMemberId" value=""/>
+        <input type="hidden" name="memberId"       id="formMemberId" value=""/>
         <input type="hidden" name="pointsToRedeem" id="formPointsToRedeem" value="0"/>
+        <input type="hidden" name="voucherCode"    id="formVoucherCode" value=""/>
       </form>
 
     </div><%-- /pos-right --%>
@@ -237,5 +258,5 @@
   </div><%-- /pos-layout --%>
 </div><%-- /pos-container --%>
 
-<script src="${pageContext.request.contextPath}/js/counter-booking.js?v=8"></script>
+<script src="${pageContext.request.contextPath}/js/counter-booking.js?v=9"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

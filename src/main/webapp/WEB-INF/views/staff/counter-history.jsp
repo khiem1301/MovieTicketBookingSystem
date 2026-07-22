@@ -38,6 +38,7 @@
         <label class="hist-filter-label">Trạng thái</label>
         <select name="status" class="hist-filter-input">
           <option value="">Tất cả</option>
+          <option value="PENDING"   ${status == 'PENDING'   ? 'selected' : ''}>Chờ thanh toán</option>
           <option value="CONFIRMED" ${status == 'CONFIRMED' ? 'selected' : ''}>Đã xác nhận</option>
           <option value="CANCELLED" ${status == 'CANCELLED' ? 'selected' : ''}>Đã hủy</option>
         </select>
@@ -134,6 +135,7 @@
                     <c:choose>
                       <c:when test="${b.bookingStatus == 'CONFIRMED'}">Đã xác nhận</c:when>
                       <c:when test="${b.bookingStatus == 'CANCELLED'}">Đã hủy</c:when>
+                      <c:when test="${b.bookingStatus == 'PENDING'}">Chờ TT</c:when>
                       <c:otherwise><c:out value="${b.bookingStatus}"/></c:otherwise>
                     </c:choose>
                   </span>
@@ -145,12 +147,22 @@
                   <c:out value="${not empty b.staffName ? b.staffName : '—'}"/>
                 </td>
                 <td class="text-center">
-                  <a href="${ctx}/staff/history?bookingId=${b.bookingId}"
-                     class="hist-btn hist-btn--sm">Xem</a>
-                  <c:if test="${b.bookingStatus == 'CONFIRMED' and b.paymentStatus == 'PAID'}">
-                    <a href="${ctx}/staff/counter?step=print&bookingId=${b.bookingId}"
-                       class="hist-btn hist-btn--sm hist-btn--print">In vé</a>
-                  </c:if>
+                  <c:choose>
+                    <c:when test="${b.bookingStatus == 'PENDING' and b.paymentStatus == 'UNPAID'}">
+                      <a href="${ctx}/staff/counter?step=payment&bookingId=${b.bookingId}"
+                         class="hist-btn hist-btn--sm" style="background:#e65100;color:#fff">Thanh toán</a>
+                    </c:when>
+                    <c:when test="${b.bookingStatus == 'CONFIRMED'}">
+                      <a href="${ctx}/staff/history?bookingId=${b.bookingId}"
+                         class="hist-btn hist-btn--sm">Xem</a>
+                      <a href="${ctx}/staff/counter?step=print&bookingId=${b.bookingId}"
+                         class="hist-btn hist-btn--sm hist-btn--print">In vé</a>
+                    </c:when>
+                    <c:otherwise>
+                      <a href="${ctx}/staff/history?bookingId=${b.bookingId}"
+                         class="hist-btn hist-btn--sm">Xem</a>
+                    </c:otherwise>
+                  </c:choose>
                 </td>
               </tr>
             </c:forEach>
