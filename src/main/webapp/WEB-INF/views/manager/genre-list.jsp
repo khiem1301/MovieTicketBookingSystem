@@ -250,14 +250,14 @@
       </c:if>
       <form method="post" action="${pageContext.request.contextPath}/manager/genres">
         <label for="addGenreName">Tên Thể Loại <span class="required">*</span></label>
-        <input id="addGenreName" type="text" name="genreName"
+        <input id="addGenreName" type="text" name="genreName" maxlength="100"
                value="<c:out value='${inputValue}'/>"
                placeholder="VD: Khoa Học Viễn Tưởng"
                autocomplete="off"/>
         <p class="genre-hint">Không phân biệt hoa thường khi kiểm tra trùng tên.</p>
 
-        <label for="addDescription" style="margin-top:14px;display:block">Mô tả</label>
-        <textarea id="addDescription" name="description" rows="3"
+        <label for="addDescription" style="margin-top:14px;display:block">Mô tả <span class="required">*</span></label>
+        <textarea id="addDescription" name="description" rows="3" required maxlength="500"
                   placeholder="Mô tả ngắn về thể loại…"
                   style="resize:vertical"><c:out value='${descriptionValue}'/></textarea>
         <p class="genre-hint">Tối đa 500 ký tự. Hiển thị khi chọn thể loại cho phim.</p>
@@ -302,12 +302,12 @@
         <input type="hidden" name="action" value="update"/>
         <input type="hidden" name="id"     id="editGenreId"/>
         <label for="editGenreName">Tên Thể Loại <span class="required">*</span></label>
-        <input id="editGenreName" type="text" name="genreName"
+        <input id="editGenreName" type="text" name="genreName" maxlength="100"
                autocomplete="off"/>
         <p class="genre-hint">Không phân biệt hoa thường khi kiểm tra trùng tên.</p>
 
-        <label for="editDescription" style="margin-top:14px;display:block">Mô tả</label>
-        <textarea id="editDescription" name="description" rows="3"
+        <label for="editDescription" style="margin-top:14px;display:block">Mô tả <span class="required">*</span></label>
+        <textarea id="editDescription" name="description" rows="3" required maxlength="500"
                   placeholder="Mô tả ngắn về thể loại…"
                   style="resize:vertical"></textarea>
         <p class="genre-hint">Tối đa 500 ký tự. Hiển thị khi chọn thể loại cho phim.</p>

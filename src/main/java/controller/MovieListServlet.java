@@ -20,7 +20,7 @@ import utils.AdminPaginationUtil;
 @WebServlet(urlPatterns = {"/movies"})
 public class MovieListServlet extends HttpServlet {
 
-    private static final int PAGE_SIZE = 4;
+    private static final int PAGE_SIZE = 12;
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)

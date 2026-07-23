@@ -208,6 +208,9 @@ public class ManageMovieServlet extends HttpServlet {
         if (movie.getTrailerUrl() == null || movie.getTrailerUrl().isBlank()) {
             return "Trailer URL không được để trống.";
         }
+        if (movie.getTrailerUrl().trim().length() > 500) {
+            return "Trailer URL tối đa 500 ký tự.";
+        }
         if (!URL_PATTERN.matcher(movie.getTrailerUrl().trim()).matches()) {
             return "Trailer URL không hợp lệ.";
         }
@@ -235,9 +238,9 @@ public class ManageMovieServlet extends HttpServlet {
     private Movie parseMovie(HttpServletRequest req, Movie existing)
             throws ServletException, IOException {
         Movie m = parseMovieTextOnly(req);
-        m.setPosterUrl(resolveImage(req, "posterFile", "posterUrl", "existingPosterUrl",
+        m.setPosterUrl(resolveImage(req, "posterFile", "existingPosterUrl",
                 existing != null ? existing.getPosterUrl() : null, "posters"));
-        m.setBackdropUrl(resolveImage(req, "backdropFile", "backdropUrl", "existingBackdropUrl",
+        m.setBackdropUrl(resolveImage(req, "backdropFile", "existingBackdropUrl",
                 existing != null ? existing.getBackdropUrl() : null, "backdrops"));
         return m;
     }
@@ -258,15 +261,12 @@ public class ManageMovieServlet extends HttpServlet {
         return m;
     }
 
-    private String resolveImage(HttpServletRequest req, String partName, String paramName,
+    private String resolveImage(HttpServletRequest req, String partName,
                                 String existingParamName, String existingUrl, String folder)
             throws ServletException, IOException {
         Part part = req.getPart(partName);
         String uploaded = MovieImageUpload.save(req.getServletContext(), part, folder);
         if (uploaded != null) return uploaded;
-
-        String textUrl = req.getParameter(paramName);
-        if (textUrl != null && !textUrl.isBlank()) return textUrl.trim();
 
         String hiddenExisting = req.getParameter(existingParamName);
         if (hiddenExisting != null && !hiddenExisting.isBlank()) return hiddenExisting.trim();
@@ -311,8 +311,6 @@ public class ManageMovieServlet extends HttpServlet {
         req.setAttribute("error", error);
         req.setAttribute("formMovie", movie);
         req.setAttribute("selectedGenreIds", genreIds);
-        req.setAttribute("posterUrlInput", blankToNull(req.getParameter("posterUrl")));
-        req.setAttribute("backdropUrlInput", blankToNull(req.getParameter("backdropUrl")));
         if (existing != null) req.setAttribute("editMovie", existing);
         loadAndForward(req, resp);
     }

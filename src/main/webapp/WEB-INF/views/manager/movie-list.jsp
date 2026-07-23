@@ -50,14 +50,14 @@
           <button class="mm-tab"        data-filter="EARLY_SHOWING" onclick="setTab(this)">Suất Chiếu Sớm</button>
           <button class="mm-tab"        data-filter="COMING_SOON"   onclick="setTab(this)">Sắp Chiếu</button>
         </div>
-        <button class="mm-btn-advanced">
+        <button class="mm-btn-advanced" onclick="exportMovies()" title="Tải xuống toàn bộ danh sách phim">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" y1="6" x2="20" y2="6"/>
-            <line x1="8" y1="12" x2="16" y2="12"/>
-            <line x1="11" y1="18" x2="13" y2="18"/>
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
-          Bộ Lọc Nâng Cao
+          Tải Xuống
         </button>
       </div>
     </div>
@@ -90,7 +90,17 @@
                   <c:set var="genreStr" value="${genreStr}${gs.first ? '' : ', '}${g}"/>
                 </c:forEach>
 
-                <tr data-status="${mv.status}" data-title="${fn:toLowerCase(mv.title)}">
+                <tr data-status="${mv.status}" data-title="${fn:toLowerCase(mv.title)}"
+                    data-title-raw="<c:out value='${mv.title}'/>"
+                    data-slug="<c:out value='${mv.slug}'/>"
+                    data-genres="<c:out value='${genreStr}'/>"
+                    data-duration="<c:out value='${mv.durationMinutes}'/>"
+                    data-age="<c:out value='${mv.ageRating}'/>"
+                    data-rating="<c:out value='${mv.averageRating}'/>"
+                    data-director="<c:out value='${mv.director}'/>"
+                    data-language="<c:out value='${mv.language}'/>"
+                    data-subtitle="<c:out value='${mv.subtitle}'/>"
+                    data-release="<c:if test='${not empty mv.releaseDate}'><fmt:formatDate value='${mv.releaseDate}' pattern='dd/MM/yyyy'/></c:if>">
                   <td class="mm-td-movie">
                     <c:choose>
                       <c:when test="${not empty posterSrc}">
@@ -282,9 +292,6 @@
         </label>
         <input id="posterFile" type="file" name="posterFile"
                accept="image/jpeg,image/png,image/webp" class="mm-file-hidden"/>
-        <input type="text" name="posterUrl" class="mm-url-input"
-               placeholder="Hoặc dán URL ảnh…"
-               value="<c:out value='${posterUrlInput}'/>"/>
 
         <%-- Backdrop --%>
         <div class="mm-asset-label" style="margin-top:24px">ẢNH BÌA</div>
@@ -306,9 +313,6 @@
         </label>
         <input id="backdropFile" type="file" name="backdropFile"
                accept="image/jpeg,image/png,image/webp" class="mm-file-hidden"/>
-        <input type="text" name="backdropUrl" class="mm-url-input"
-               placeholder="Hoặc dán URL ảnh…"
-               value="<c:out value='${backdropUrlInput}'/>"/>
       </div>
 
       <%-- ── RIGHT: Form Fields ────────────────────────────── --%>
@@ -323,7 +327,7 @@
 
           <div class="mm-field">
             <label class="mm-flabel">TÊN PHIM <span class="mm-req">*</span></label>
-            <input type="text" name="title"
+            <input type="text" name="title" maxlength="255"
                    placeholder="Nhập tên đầy đủ…"
                    value="<c:out value='${m.title}'/>"/>
           </div>
@@ -331,13 +335,13 @@
           <div class="mm-field-row">
             <div class="mm-field">
               <label class="mm-flabel">SLUG <span class="mm-req">*</span></label>
-              <input type="text" id="slugField" name="slug"
+              <input type="text" id="slugField" name="slug" maxlength="255"
                      placeholder="tu-dong-tao-tu-ten-phim"
                      value="<c:out value='${m.slug}'/>"/>
             </div>
             <div class="mm-field">
               <label class="mm-flabel">THỜI LƯỢNG (PHÚT) <span class="mm-req">*</span></label>
-              <input type="number" name="durationMinutes" min="60" max="600"
+              <input type="number" id="durationField" name="durationMinutes" min="60" max="600" maxlength="4"
                      placeholder="120"
                      value="<c:if test='${not empty m and m.durationMinutes > 0}'><c:out value='${m.durationMinutes}'/></c:if>"/>
             </div>
@@ -356,7 +360,7 @@
             </div>
             <div class="mm-field">
               <label class="mm-flabel">ĐẠO DIỄN <span class="mm-req">*</span></label>
-              <input type="text" name="director"
+              <input type="text" name="director" maxlength="255"
                      placeholder="Tên đạo diễn"
                      value="<c:out value='${m.director}'/>"/>
             </div>
@@ -365,12 +369,12 @@
           <div class="mm-field-row">
             <div class="mm-field">
               <label class="mm-flabel">NGÔN NGỮ <span class="mm-req">*</span></label>
-              <input type="text" name="language"
+              <input type="text" name="language" maxlength="50"
                      value="<c:out value='${m.language}'/>"/>
             </div>
             <div class="mm-field">
               <label class="mm-flabel">PHỤ ĐỀ <span class="mm-req">*</span></label>
-              <input type="text" name="subtitle"
+              <input type="text" name="subtitle" maxlength="50"
                      value="<c:out value='${m.subtitle}'/>"/>
             </div>
           </div>
@@ -419,7 +423,7 @@
                 <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
                 <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
               </svg>
-              <input type="text" name="trailerUrl"
+              <input type="text" name="trailerUrl" maxlength="500"
                      placeholder="https://youtube.com/watch?…"
                      value="<c:out value='${m.trailerUrl}'/>"/>
             </div>
@@ -498,6 +502,14 @@
     });
     slugField.addEventListener('input', function () {
       this.dataset.manual = 'true';
+    });
+  }
+
+  /* ── Giới hạn số ký tự thời lượng (maxlength không áp dụng cho type=number) */
+  var durationField = document.getElementById('durationField');
+  if (durationField) {
+    durationField.addEventListener('input', function () {
+      if (this.value.length > 4) this.value = this.value.slice(0, 4);
     });
   }
 
@@ -600,6 +612,51 @@
     if (pb) pb.disabled = mmPage <= 1;
     if (nb) nb.disabled = mmPage >= pages;
   }
+
+  window.exportMovies = function () {
+    var header = ['Tên Phim','Slug','Thể Loại','Thời Lượng (phút)','Độ Tuổi','Đánh Giá',
+                  'Đạo Diễn','Ngôn Ngữ','Phụ Đề','Ngày Phát Hành','Trạng Thái'];
+    var colWidths = [220,160,160,110,70,70,160,90,120,110,110];
+    var statusLabel = {
+      NOW_SHOWING: 'Đang Chiếu', COMING_SOON: 'Sắp Chiếu',
+      EARLY_SHOWING: 'Suất Chiếu Sớm', ENDED: 'Đã Kết Thúc'
+    };
+    var escHtml = function (v) {
+      return String(v || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                             .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    };
+
+    var cols = colWidths.map(function (w) { return '<col style="width:' + w + 'px">'; }).join('');
+    var thead = '<tr>' + header.map(function (h) {
+      return '<th style="background:#e53935;color:#fff;font-weight:bold;padding:8px 10px;' +
+             'border:1px solid #b71c1c;text-align:left;white-space:nowrap;">' + escHtml(h) + '</th>';
+    }).join('') + '</tr>';
+
+    var tbody = '';
+    getAllRows().forEach(function (r, i) {
+      var d = r.dataset;
+      var vals = [d.titleRaw, d.slug, d.genres, d.duration, d.age, d.rating,
+                  d.director, d.language, d.subtitle, d.release, statusLabel[d.status] || d.status];
+      var bg = (i % 2 === 0) ? '#ffffff' : '#f6f6f6';
+      tbody += '<tr>' + vals.map(function (v) {
+        return '<td style="background:' + bg + ';padding:7px 10px;border:1px solid #ddd;' +
+               'font-family:Calibri,Arial,sans-serif;font-size:13px;color:#222;">' + escHtml(v) + '</td>';
+      }).join('') + '</tr>';
+    });
+
+    var html = '<html><head><meta charset="UTF-8"></head><body>' +
+      '<table style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;">' +
+      '<colgroup>' + cols + '</colgroup>' +
+      '<thead>' + thead + '</thead>' +
+      '<tbody>' + tbody + '</tbody>' +
+      '</table></body></html>';
+
+    var blob = new Blob(['﻿' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href = url; a.download = 'danh-sach-phim.xls'; a.click();
+    URL.revokeObjectURL(url);
+  };
 
   window.setTab = function (btn) {
     document.querySelectorAll('.mm-tab').forEach(function (t) { t.classList.remove('active'); });
