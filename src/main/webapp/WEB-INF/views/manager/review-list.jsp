@@ -8,6 +8,14 @@
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 
 <style>
+.admin-page-header .admin-page-title {
+  font-size: 36px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ff7043 0%, #e53935 60%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 .mrv-poster {
   width: 40px;
   height: 58px;

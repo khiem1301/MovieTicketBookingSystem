@@ -30,6 +30,10 @@
   font-weight: 800;
   letter-spacing: -0.02em;
   margin-bottom: 6px;
+  background: linear-gradient(135deg, #ff7043 0%, #e53935 60%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 .promo-banner p {
   font-size: 14px;
@@ -869,9 +873,6 @@
                 <input id="modalImageFile" type="file" name="imageFile"
                        accept="image/jpeg,image/png,image/webp" class="pm-input"
                        onchange="previewImageFile(this)"/>
-                <input type="text" id="modalImageUrl" name="imageUrl" class="pm-input"
-                       placeholder="Hoặc dán URL ảnh…" style="margin-top:8px;"
-                       oninput="previewImageUrl(this.value)"/>
               </div>
             </div>
             <span class="pm-hint">JPG, PNG hoặc WEBP, tối đa 5MB</span>
@@ -974,11 +975,6 @@ function previewImageFile(input) {
   reader.readAsDataURL(file);
 }
 
-function previewImageUrl(url) {
-  if (url && url.trim()) showImagePreview(url.trim());
-  else document.getElementById('modalImagePreview').hidden = true;
-}
-
 function showImagePreview(src) {
   var img = document.getElementById('modalImagePreview');
   img.src = src;
@@ -997,7 +993,6 @@ document.getElementById('modalDescription').addEventListener('input', updateDesc
 
 function resetImageField() {
   document.getElementById('modalImageFile').value = '';
-  document.getElementById('modalImageUrl').value = '';
   document.getElementById('modalExistingImageUrl').value = '';
   document.getElementById('modalImagePreview').hidden = true;
   document.getElementById('modalImagePreview').src = '';

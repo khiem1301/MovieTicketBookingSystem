@@ -226,9 +226,6 @@ public class PromotionSaveServlet extends HttpServlet {
         String uploaded = PromotionImageUpload.save(req.getServletContext(), part);
         if (uploaded != null) return uploaded;
 
-        String textUrl = trim(req.getParameter("imageUrl"));
-        if (textUrl != null && !textUrl.isBlank()) return textUrl;
-
         String hiddenExisting = trim(req.getParameter("existingImageUrl"));
         if (hiddenExisting != null && !hiddenExisting.isBlank()) return hiddenExisting;
 

@@ -4,25 +4,25 @@
 
 /* Override body background for this page only */
 body {
-  background: radial-gradient(ellipse at 50% 25%, #4a1414 0%, #1a0606 70%);
+  background: #0d0d0d;
   min-height: 100vh;
 }
 
 .genre-table-wrap,
 .genre-modal {
-  background: #2a0c0c;
-  border-color: rgba(255,255,255,0.09);
+  background: #141414;
+  border-color: rgba(255,255,255,0.08);
 }
 
-.genre-table th    { color: #e05252; }
-.genre-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+.genre-table th    { color: #555; }
+.genre-table tbody tr:hover { background: rgba(255,255,255,0.03); }
 .genre-table thead tr,
 .genre-table tbody tr,
-.genre-pagination { border-color: rgba(255,255,255,0.08); }
+.genre-pagination { border-color: rgba(255,255,255,0.07); }
 
 .genre-search,
 .genre-filter-icon {
-  background: #2a0c0c;
+  background: rgba(255,255,255,0.05);
   border-color: rgba(255,255,255,0.09);
 }
 
@@ -76,7 +76,10 @@ body {
   font-size: 34px;
   font-weight: 800;
   letter-spacing: -0.02em;
-  color: var(--text);
+  background: linear-gradient(135deg, #ff7043 0%, #e53935 60%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin-bottom: 6px;
 }
 

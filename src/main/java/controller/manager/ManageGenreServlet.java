@@ -75,7 +75,14 @@ public class ManageGenreServlet extends HttpServlet {
             loadAndForward(req, resp);
             return;
         }
-        if (description != null && description.length() > 500) {
+        if (description == null || description.trim().isEmpty()) {
+            req.setAttribute("error", "Mô tả không được để trống.");
+            req.setAttribute("inputValue", name);
+            req.setAttribute("descriptionValue", description);
+            loadAndForward(req, resp);
+            return;
+        }
+        if (description.length() > 500) {
             req.setAttribute("error", "Mô tả tối đa 500 ký tự.");
             req.setAttribute("inputValue", name);
             req.setAttribute("descriptionValue", description);
@@ -122,7 +129,15 @@ public class ManageGenreServlet extends HttpServlet {
             loadAndForward(req, resp);
             return;
         }
-        if (description != null && description.length() > 500) {
+        if (description == null || description.trim().isEmpty()) {
+            req.setAttribute("error", "Mô tả không được để trống.");
+            req.setAttribute("inputValue", name);
+            req.setAttribute("descriptionValue", description);
+            req.setAttribute("editGenre", editing);
+            loadAndForward(req, resp);
+            return;
+        }
+        if (description.length() > 500) {
             req.setAttribute("error", "Mô tả tối đa 500 ký tự.");
             req.setAttribute("inputValue", name);
             req.setAttribute("descriptionValue", description);
