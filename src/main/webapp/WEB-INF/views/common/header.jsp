@@ -11,7 +11,7 @@ uri="jakarta.tags.functions" %>
     </title>
     <link
       rel="stylesheet"
-      href="${pageContext.request.contextPath}/css/main.css"
+      href="${pageContext.request.contextPath}/css/main.css?v=5"
     />
     <c:if test="${not empty extraCss}">
       <link

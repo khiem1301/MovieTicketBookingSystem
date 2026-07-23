@@ -31,9 +31,15 @@
 
   <div class="mgr-grid">
 
-    <div class="mgr-card">
+    <div class="mgr-card" id="seat-type-form">
       <c:choose>
         <c:when test="${not empty editSeatType}">
+          <c:set var="formTypeName" value="${not empty inputTypeName ? inputTypeName : editSeatType.typeName}"/>
+          <c:set var="formDescription" value="${not empty inputDescription ? inputDescription : editSeatType.description}"/>
+          <c:set var="formMultiplier" value="${not empty inputMultiplier ? inputMultiplier : editSeatType.priceMultiplier}"/>
+          <c:set var="typeNameLen" value="${fn:length(formTypeName)}"/>
+          <c:set var="descLen" value="${fn:length(formDescription)}"/>
+
           <h2 class="mgr-card-title"><span class="mgr-card-title-icon">✏️</span> Sửa loại ghế</h2>
           <c:if test="${not empty error}">
             <div class="mgr-alert mgr-alert--error"><c:out value="${error}"/></div>
@@ -45,16 +51,21 @@
               Vẫn có thể cập nhật hệ số giá và mô tả.
             </div>
           </c:if>
-          <form method="post" action="${pageContext.request.contextPath}/manager/seat-types" class="mgr-form">
+          <form method="post" action="${pageContext.request.contextPath}/manager/seat-types" class="mgr-form" id="seatTypeForm">
             <input type="hidden" name="action" value="update"/>
             <input type="hidden" name="id" value="<c:out value='${editSeatType.id}'/>"/>
             <c:if test="${seatTypeIdentityLocked}">
               <input type="hidden" name="typeName" value="<c:out value='${editSeatType.typeName}'/>"/>
               <input type="hidden" name="seatSpan" value="<c:out value='${editSeatType.seatSpan}'/>"/>
             </c:if>
+
             <div class="mgr-form-group">
-              <label for="typeName">Tên loại ghế <span class="required">*</span></label>
+              <div class="mgr-label-row">
+                <label for="typeName">Tên loại ghế <span class="required">*</span></label>
+                <span class="mgr-char-count" id="typeNameCount"><c:out value="${typeNameLen}"/>/50</span>
+              </div>
               <input id="typeName" type="text" maxlength="50" required
+                     data-char-count="typeNameCount" data-char-max="50"
                      <c:choose>
                        <c:when test="${seatTypeIdentityLocked}">
                          disabled
@@ -62,28 +73,35 @@
                        </c:when>
                        <c:otherwise>
                          name="typeName"
-                         aria-describedby="typeNameHint"
-                         value="<c:out value='${not empty inputTypeName ? inputTypeName : editSeatType.typeName}'/>"
+                         aria-describedby="typeNameTip"
+                         value="<c:out value='${formTypeName}'/>"
                        </c:otherwise>
                      </c:choose>/>
-              <small id="typeNameHint" class="mgr-hint">
+              <p id="typeNameTip" class="mgr-field-tip">
                 <c:choose>
-                  <c:when test="${seatTypeIdentityLocked}">Đã khóa vì loại ghế đang được dùng trong phòng chiếu</c:when>
-                  <c:otherwise>Tối đa 50 ký tự</c:otherwise>
+                  <c:when test="${seatTypeIdentityLocked}">Đã khóa vì loại ghế đang được dùng trong phòng chiếu.</c:when>
+                  <c:otherwise>Bắt buộc. Tối đa 50 ký tự. Nên viết hoa (vd. PREMIUM, VIP).</c:otherwise>
                 </c:choose>
-              </small>
+              </p>
             </div>
+
             <div class="mgr-form-group">
               <label for="priceMultiplier">Hệ số giá <span class="required">*</span></label>
-              <input id="priceMultiplier" type="number" name="priceMultiplier" step="0.01" min="0.01" max="9.99" required
-                     title="1 chữ số phần nguyên, 2 chữ số phần thập phân (VD: 1.50)"
-                     value="<c:out value='${not empty inputMultiplier ? inputMultiplier : editSeatType.priceMultiplier}'/>"/>
-              <small class="mgr-hint">Định dạng X.XX — từ 0.01 đến 9.99</small>
+              <input id="priceMultiplier" type="number" name="priceMultiplier"
+                     step="0.01" min="0.01" max="9.99" required
+                     inputmode="decimal"
+                     aria-describedby="multiplierTip"
+                     value="<c:out value='${formMultiplier}'/>"/>
+              <p id="multiplierTip" class="mgr-field-tip">
+                Bắt buộc. Định dạng X.XX — từ 0.01 đến 9.99 (vd. 1.00, 1.50). Giá vé = giá suất × hệ số này.
+              </p>
             </div>
+
             <div class="mgr-form-group">
               <label for="seatSpan">Kích thước trên layout <span class="required">*</span></label>
               <c:set var="editSpan" value="${seatTypeIdentityLocked ? editSeatType.seatSpan : (not empty inputSeatSpan ? inputSeatSpan : editSeatType.seatSpan)}"/>
               <select id="seatSpan"
+                      aria-describedby="seatSpanTip"
                       <c:choose>
                         <c:when test="${seatTypeIdentityLocked}">disabled</c:when>
                         <c:otherwise>name="seatSpan" required</c:otherwise>
@@ -91,20 +109,26 @@
                 <option value="1" ${editSpan == 1 || editSpan == '1' ? 'selected' : ''}>1 ô — ghế đơn</option>
                 <option value="2" ${editSpan == 2 || editSpan == '2' ? 'selected' : ''}>2 ô — ghế đôi</option>
               </select>
-              <small class="mgr-hint">
+              <p id="seatSpanTip" class="mgr-field-tip">
                 <c:choose>
-                  <c:when test="${seatTypeIdentityLocked}">Đã khóa vì loại ghế đang được dùng trong phòng chiếu</c:when>
-                  <c:otherwise>Ghế 2 ô hiển thị rộng gấp đôi trên sơ đồ (như COUPLE, SWEETBOX)</c:otherwise>
+                  <c:when test="${seatTypeIdentityLocked}">Đã khóa vì loại ghế đang được dùng trong phòng chiếu.</c:when>
+                  <c:otherwise>1 ô = ghế đơn. 2 ô = ghế đôi, hiển thị rộng gấp đôi trên sơ đồ (như COUPLE, SWEETBOX).</c:otherwise>
                 </c:choose>
-              </small>
+              </p>
             </div>
+
             <div class="mgr-form-group">
-              <label for="description">Mô tả</label>
+              <div class="mgr-label-row">
+                <label for="description">Mô tả</label>
+                <span class="mgr-char-count" id="descriptionCount"><c:out value="${descLen}"/>/255</span>
+              </div>
               <input id="description" type="text" name="description" maxlength="255"
-                     aria-describedby="descriptionHint"
-                     value="<c:out value='${not empty inputDescription ? inputDescription : editSeatType.description}'/>"/>
-              <small id="descriptionHint" class="mgr-hint">Tối đa 255 ký tự</small>
+                     data-char-count="descriptionCount" data-char-max="255"
+                     aria-describedby="descriptionTip"
+                     value="<c:out value='${formDescription}'/>"/>
+              <p id="descriptionTip" class="mgr-field-tip">Tùy chọn. Tối đa 255 ký tự — mô tả ngắn giúp phân biệt loại ghế.</p>
             </div>
+
             <div class="mgr-form-actions">
               <button type="submit" class="btn btn-primary mgr-submit">💾 Lưu thay đổi</button>
               <a href="${pageContext.request.contextPath}/manager/seat-types" class="btn btn-ghost mgr-submit">Hủy</a>
@@ -112,42 +136,65 @@
           </form>
         </c:when>
         <c:otherwise>
+          <c:set var="formTypeName" value="${inputTypeName}"/>
+          <c:set var="formDescription" value="${inputDescription}"/>
+          <c:set var="typeNameLen" value="${fn:length(formTypeName)}"/>
+          <c:set var="descLen" value="${fn:length(formDescription)}"/>
+
           <h2 class="mgr-card-title"><span class="mgr-card-title-icon">＋</span> Thêm loại ghế</h2>
           <c:if test="${not empty error}">
             <div class="mgr-alert mgr-alert--error"><c:out value="${error}"/></div>
           </c:if>
-          <form method="post" action="${pageContext.request.contextPath}/manager/seat-types" class="mgr-form">
+          <form method="post" action="${pageContext.request.contextPath}/manager/seat-types" class="mgr-form" id="seatTypeForm">
             <div class="mgr-form-group">
-              <label for="typeName">Tên loại ghế <span class="required">*</span></label>
+              <div class="mgr-label-row">
+                <label for="typeName">Tên loại ghế <span class="required">*</span></label>
+                <span class="mgr-char-count" id="typeNameCount"><c:out value="${typeNameLen}"/>/50</span>
+              </div>
               <input id="typeName" type="text" name="typeName" maxlength="50" required
                      placeholder="VD: PREMIUM"
-                     aria-describedby="typeNameHint"
-                     value="<c:out value='${inputTypeName}'/>"/>
-              <small id="typeNameHint" class="mgr-hint">Tối đa 50 ký tự</small>
+                     data-char-count="typeNameCount" data-char-max="50"
+                     aria-describedby="typeNameTip"
+                     value="<c:out value='${formTypeName}'/>"/>
+              <p id="typeNameTip" class="mgr-field-tip">Bắt buộc. Tối đa 50 ký tự. Nên viết hoa (vd. PREMIUM, VIP).</p>
             </div>
+
             <div class="mgr-form-group">
               <label for="priceMultiplier">Hệ số giá <span class="required">*</span></label>
-              <input id="priceMultiplier" type="number" name="priceMultiplier" step="0.01" min="0.01" max="9.99" required
+              <input id="priceMultiplier" type="number" name="priceMultiplier"
+                     step="0.01" min="0.01" max="9.99" required
                      placeholder="1.00"
-                     title="1 chữ số phần nguyên, 2 chữ số phần thập phân (VD: 1.50)"
+                     inputmode="decimal"
+                     aria-describedby="multiplierTip"
                      value="<c:out value='${inputMultiplier}'/>"/>
-              <small class="mgr-hint">Định dạng X.XX — từ 0.01 đến 9.99</small>
+              <p id="multiplierTip" class="mgr-field-tip">
+                Bắt buộc. Định dạng X.XX — từ 0.01 đến 9.99 (vd. 1.00, 1.50). Giá vé = giá suất × hệ số này.
+              </p>
             </div>
+
             <div class="mgr-form-group">
               <label for="seatSpan">Kích thước trên layout <span class="required">*</span></label>
-              <select id="seatSpan" name="seatSpan" required>
+              <select id="seatSpan" name="seatSpan" required aria-describedby="seatSpanTip">
                 <option value="1" ${inputSeatSpan == '2' ? '' : 'selected'}>1 ô — ghế đơn</option>
                 <option value="2" ${inputSeatSpan == '2' ? 'selected' : ''}>2 ô — ghế đôi</option>
               </select>
-              <small class="mgr-hint">Ghế 2 ô hiển thị rộng gấp đôi trên sơ đồ (như COUPLE, SWEETBOX)</small>
+              <p id="seatSpanTip" class="mgr-field-tip">
+                1 ô = ghế đơn. 2 ô = ghế đôi, hiển thị rộng gấp đôi trên sơ đồ (như COUPLE, SWEETBOX).
+              </p>
             </div>
+
             <div class="mgr-form-group">
-              <label for="description">Mô tả</label>
+              <div class="mgr-label-row">
+                <label for="description">Mô tả</label>
+                <span class="mgr-char-count" id="descriptionCount"><c:out value="${descLen}"/>/255</span>
+              </div>
               <input id="description" type="text" name="description" maxlength="255"
-                     aria-describedby="descriptionHint"
-                     value="<c:out value='${inputDescription}'/>"/>
-              <small id="descriptionHint" class="mgr-hint">Tối đa 255 ký tự</small>
+                     data-char-count="descriptionCount" data-char-max="255"
+                     aria-describedby="descriptionTip"
+                     value="<c:out value='${formDescription}'/>"/>
+              <p id="descriptionTip" class="mgr-field-tip">Tùy chọn. Tối đa 255 ký tự — mô tả ngắn giúp phân biệt loại ghế.</p>
             </div>
+
             <button type="submit" class="btn btn-primary mgr-submit">+ Thêm loại ghế</button>
           </form>
         </c:otherwise>
@@ -226,6 +273,33 @@
 
   document.addEventListener('DOMContentLoaded', function () {
     if (window.SeatTypeColors) SeatTypeColors.applySwatchColors();
+
+    document.querySelectorAll('[data-char-count]').forEach(function (input) {
+      var countEl = document.getElementById(input.getAttribute('data-char-count'));
+      var max = parseInt(input.getAttribute('data-char-max') || input.maxLength || '0', 10);
+      if (!countEl || !max) return;
+      function updateCount() {
+        countEl.textContent = (input.value || '').length + '/' + max;
+      }
+      input.addEventListener('input', updateCount);
+      updateCount();
+    });
+
+    var multiplier = document.getElementById('priceMultiplier');
+    if (multiplier) {
+      multiplier.addEventListener('blur', function () {
+        var raw = (multiplier.value || '').trim();
+        if (!raw) return;
+        var n = Number(raw);
+        if (!isFinite(n) || n < 0.01 || n > 9.99) return;
+        multiplier.value = n.toFixed(2);
+      });
+    }
+
+    <c:if test="${not empty editSeatType || not empty error}">
+    var formCard = document.getElementById('seat-type-form');
+    if (formCard) formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    </c:if>
   });
 </script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

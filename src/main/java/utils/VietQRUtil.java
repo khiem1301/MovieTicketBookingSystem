@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 
 /**
  * FR-16 — Tạo URL mã QR VietQR (img.vietqr.io) và nội dung chuyển khoản.
- * Online dùng BK…, quầy dùng CTR… — cấu hình cả hai prefix trên SePay.
+ * Online: BK-yyyyMMdd-xxxx · Quầy: CTR-yyyyMMdd-xxxx — cấu hình cả hai prefix trên SePay.
  */
 public final class VietQRUtil {
 
@@ -17,7 +17,7 @@ public final class VietQRUtil {
 
     /**
      * Nội dung chuyển khoản — dùng mã đơn để đối soát.
-     * Online: BK… | Quầy: CTR… — cấu hình cả hai prefix trên SePay.
+     * Online: BK… | Quầy: CTR… (bỏ dấu -, tối đa 25 ký tự).
      */
     public static String transferContent(String bookingCode) {
         if (bookingCode == null || bookingCode.isBlank()) {

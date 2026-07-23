@@ -504,6 +504,37 @@ public class BookingDAO {
     }
 
     /**
+     * FR-17 — Tra cứu đơn đã thanh toán theo booking_code (trang e-ticket: mọi vé của đơn).
+     */
+    public BookingDetailDTO getPaidDetailByBookingCode(String bookingCode) {
+        if (bookingCode == null || bookingCode.isBlank()) {
+            return null;
+        }
+        String sql = """
+                SELECT id FROM Bookings
+                WHERE booking_code = ?
+                  AND payment_status = 'PAID'
+                  AND booking_status = 'CONFIRMED'
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, bookingCode.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    return null;
+                }
+                BookingDetailDTO detail = getDetailById(rs.getString("id"));
+                if (detail == null || detail.getTickets() == null || detail.getTickets().isEmpty()) {
+                    return null;
+                }
+                return detail;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("getPaidDetailByBookingCode failed", e);
+        }
+    }
+
+    /**
      * FR-36 — Xác nhận thanh toán tại quầy: lưu Payment record, tạo vé, tích điểm.
      *
      * @param bookingId     ID booking
@@ -573,8 +604,8 @@ public class BookingDAO {
                 }
             }
 
-            // FR-18 — Tạo Tickets (idempotent)
-            generateTicketsInTransaction(conn, bookingId, bookingCode);
+            // FR-18 — Tạo Tickets (idempotent) — cùng TicketDAO với online/VietQR
+            new TicketDAO().issueTicketsForBooking(conn, bookingId, bookingCode);
 
             // FR-42 — Tích điểm loyalty nếu khách là thành viên
             if (userId != null) {
@@ -1104,51 +1135,20 @@ public class BookingDAO {
         return value.setScale(2, RoundingMode.HALF_UP);
     }
 
+    /** Offline/quầy: CTR-yyyyMMdd-xxxx (cùng cấu trúc với online, prefix khác kênh). */
     private String generateOfflineBookingCode() {
-        return "CTR" + System.currentTimeMillis();
+        return buildDatedBookingCode("CTR");
     }
 
+    /** Online/customer: BK-yyyyMMdd-xxxx. */
     private String generateOnlineBookingCode() {
+        return buildDatedBookingCode("BK");
+    }
+
+    private String buildDatedBookingCode(String prefix) {
         String date = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
         int suffix = ThreadLocalRandom.current().nextInt(1000, 10000);
-        return "BK-" + date + "-" + suffix;
-    }
-
-    /**
-     * FR-18 — Tạo Ticket record cho từng ghế chưa có vé.
-     * ticket_code = "{bookingCode}-{seatCode}", lưu vào qr_code để JS render QR.
-     */
-    private void generateTicketsInTransaction(Connection conn, String bookingId,
-                                              String bookingCode) throws SQLException {
-        String seatsSql = """
-                SELECT bs.id, se.seat_code
-                FROM BookingSeats bs
-                JOIN Seats se ON se.id = bs.seat_id
-                WHERE bs.booking_id = ?
-                  AND NOT EXISTS (SELECT 1 FROM Tickets t WHERE t.booking_seat_id = bs.id)
-                """;
-        List<String[]> pending = new ArrayList<>();
-        try (PreparedStatement ps = conn.prepareStatement(seatsSql)) {
-            ps.setString(1, bookingId);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    pending.add(new String[]{rs.getString(1), rs.getString(2)});
-                }
-            }
-        }
-        if (pending.isEmpty()) return;
-
-        String insertSql = "INSERT INTO Tickets (booking_seat_id, ticket_code, qr_code) VALUES (?, ?, ?)";
-        try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
-            for (String[] row : pending) {
-                String code = bookingCode + "-" + row[1];
-                ps.setString(1, row[0]);
-                ps.setString(2, code);
-                ps.setString(3, code);
-                ps.addBatch();
-            }
-            ps.executeBatch();
-        }
+        return prefix + "-" + date + "-" + suffix;
     }
 
     /**

@@ -1275,6 +1275,32 @@ ul { list-style: none; }
   font-size: 12px;
   color: var(--text-dim);
 }
+.mgr-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.mgr-char-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+.mgr-field-tip {
+  display: none;
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+.mgr-form-group:focus-within > .mgr-field-tip {
+  display: block;
+}
 .required { color: var(--accent); }
 
 .mgr-submit { width: 100%; justify-content: center; padding: 12px; }

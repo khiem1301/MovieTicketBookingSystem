@@ -5,6 +5,8 @@ import model.dto.BookingDetailDTO;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Properties;
 import java.util.logging.Level;
@@ -194,7 +196,7 @@ public final class EmailUtil {
     }
 
     /**
-     * FR-19 — Gửi email xác nhận đặt vé kèm mã vé điện tử.
+     * FR-19 — Gửi email xác nhận đặt vé kèm QR (quét mở trang vé điện tử giống vé quầy).
      * Chỉ gửi nếu SMTP đã cấu hình; thất bại sẽ log cảnh báo thay vì ném exception.
      */
     public static void sendBookingConfirmationEmail(String toEmail, String customerName,
@@ -216,65 +218,110 @@ public final class EmailUtil {
             });
 
             SimpleDateFormat dtFmt = new SimpleDateFormat("HH:mm  dd/MM/yyyy");
+            SimpleDateFormat dayFmt = new SimpleDateFormat("EEE, dd/MM");
+            SimpleDateFormat timeFmt = new SimpleDateFormat("HH:mm");
             String showDate = detail.getStartTime() != null
                     ? dtFmt.format(detail.getStartTime()) : "—";
-
-            StringBuilder seatLines = new StringBuilder();
-            if (detail.getTickets() != null) {
-                for (BookingDetailDTO.TicketItem t : detail.getTickets()) {
-                    seatLines.append("  Ghế ").append(t.getSeatCode())
-                             .append("  |  Mã vé: ").append(t.getTicketCode()).append("\n");
-                }
-            } else if (detail.getSeats() != null) {
-                for (BookingDetailDTO.SeatItem s : detail.getSeats()) {
-                    seatLines.append("  ").append(s.getSeatCode()).append("\n");
-                }
-            }
+            String dayLabel = detail.getStartTime() != null
+                    ? dayFmt.format(detail.getStartTime()) : "—";
+            String timeLabel = detail.getStartTime() != null
+                    ? timeFmt.format(detail.getStartTime()) : "—";
 
             boolean online = "ONLINE".equalsIgnoreCase(detail.getBookingSource());
             String intro = online
                     ? "Đặt vé online của bạn tại ÉPCINE đã được thanh toán và xác nhận thành công."
                     : "Đặt vé của bạn tại quầy ÉPCINE đã được xác nhận thành công.";
-            String outro = online
-                    ? "Vui lòng xuất trình mã vé (trong email hoặc trên trang xác nhận) khi vào rạp."
-                    : "Vui lòng xuất trình mã vé tại quầy khi vào rạp.";
+            String outro = "Quét mã QR bên dưới để mở toàn bộ vé điện tử trên điện thoại khi vào rạp.";
 
-            String body = """
-                    Xin chào %s,
+            String bookingUrl = buildTicketViewUrl(detail.getBookingCode());
+            String qrImg = buildQrImageUrl(bookingUrl);
 
-                    %s
+            StringBuilder seatLinesHtml = new StringBuilder();
+            if (detail.getTickets() != null) {
+                for (BookingDetailDTO.TicketItem t : detail.getTickets()) {
+                    seatLinesHtml.append("<li style=\"margin:4px 0\">Ghế <strong>")
+                            .append(esc(t.getSeatCode()))
+                            .append("</strong> — <span style=\"font-family:monospace;font-size:12px;color:#666\">")
+                            .append(esc(t.getTicketCode()))
+                            .append("</span></li>");
+                }
+            }
 
-                    ─────────────────────────────
-                    Mã đặt vé : %s
-                    Phim      : %s
-                    Phòng     : %s
-                    Suất chiếu: %s
-                    ─────────────────────────────
-                    Danh sách vé:
-                    %s
-                    Tổng tiền : %,.0f ₫
-                    ─────────────────────────────
-
-                    %s
-
-                    Trân trọng,
-                    ÉPCINE
+            int ticketCount = detail.getTickets() != null ? detail.getTickets().size() : 0;
+            String qrBlock = """
+                    <div style="max-width:360px;margin:0 auto 20px;border:1px solid #2a2a2a;border-radius:10px;overflow:hidden;background:#0a0a0a;font-family:Courier New,monospace;color:#e0e0e0;text-align:center">
+                      <div style="background:#1a0a0a;padding:14px 20px;border-bottom:1px dashed #2a2a2a">
+                        <div style="font-size:11px;font-weight:700;color:#e53935;letter-spacing:2px">ÉPCINE PREMIUM</div>
+                        <div style="font-size:12px;color:#aaa;font-weight:700;margin-top:6px">%s</div>
+                      </div>
+                      <div style="padding:14px 20px 8px;font-size:18px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:1px">%s</div>
+                      <div style="padding:0 20px 12px;font-size:13px;color:#ccc">
+                        %s · %s · %s<br/>
+                        %d vé
+                      </div>
+                      <div style="padding:14px 20px 18px;border-top:1px dashed #1e1e1e">
+                        <a href="%s" style="text-decoration:none">
+                          <img src="%s" width="180" height="180" alt="QR đơn vé" style="display:block;margin:0 auto;border:0"/>
+                        </a>
+                        <div style="font-size:11px;font-weight:700;color:#e53935;letter-spacing:2px;margin-top:12px">QUÉT ĐỂ XEM VÉ</div>
+                        <div style="font-size:11px;color:#888;margin-top:8px">
+                          hoặc <a href="%s" style="color:#e53935">mở vé điện tử</a>
+                        </div>
+                      </div>
+                    </div>
                     """.formatted(
-                    customerName != null && !customerName.isBlank() ? customerName : "bạn",
-                    intro,
-                    detail.getBookingCode(),
-                    detail.getMovieTitle(),
-                    detail.getRoomName(),
-                    showDate,
-                    seatLines,
-                    detail.getFinalAmount() != null ? detail.getFinalAmount().doubleValue() : 0.0,
-                    outro);
+                    esc(detail.getBookingCode()),
+                    esc(detail.getMovieTitle()),
+                    esc(dayLabel),
+                    esc(timeLabel),
+                    esc(detail.getRoomName()),
+                    ticketCount,
+                    esc(bookingUrl),
+                    esc(qrImg),
+                    esc(bookingUrl));
+
+            String greet = customerName != null && !customerName.isBlank() ? customerName : "bạn";
+            double amount = detail.getFinalAmount() != null ? detail.getFinalAmount().doubleValue() : 0.0;
+
+            String seatsList = seatLinesHtml.length() > 0
+                    ? "<ul style=\"padding-left:18px;margin:8px 0 0\">" + seatLinesHtml + "</ul>"
+                    : "<p>(Chưa có mã vé)</p>";
+
+            String htmlBody = """
+                    <div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.5">
+                      <p>Xin chào <strong>%s</strong>,</p>
+                      <p>%s</p>
+                      <p style="background:#f5f5f5;padding:12px 16px;border-radius:8px;font-size:14px">
+                        <strong>Mã đặt vé:</strong> %s<br/>
+                        <strong>Phim:</strong> %s<br/>
+                        <strong>Phòng:</strong> %s<br/>
+                        <strong>Suất chiếu:</strong> %s<br/>
+                        <strong>Tổng tiền:</strong> %,.0f ₫
+                      </p>
+                      <p style="font-weight:700;margin:24px 0 8px">Danh sách ghế</p>
+                      %s
+                      <p style="font-weight:700;margin:24px 0 12px">Mã QR vé điện tử (1 mã cho cả đơn)</p>
+                      %s
+                      <p style="font-size:14px;color:#555">%s</p>
+                      <p>Trân trọng,<br/><strong>ÉPCINE</strong></p>
+                    </div>
+                    """.formatted(
+                    esc(greet),
+                    esc(intro),
+                    esc(detail.getBookingCode()),
+                    esc(detail.getMovieTitle()),
+                    esc(detail.getRoomName()),
+                    esc(showDate),
+                    amount,
+                    seatsList,
+                    qrBlock,
+                    esc(outro));
 
             MimeMessage message = new MimeMessage(session);
             message.setFrom(new InternetAddress(fromEmail, fromName, "UTF-8"));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail, false));
             message.setSubject("ÉPCINE — Xác nhận đặt vé " + detail.getBookingCode(), "UTF-8");
-            message.setContent(body, "text/plain; charset=UTF-8");
+            message.setContent(htmlBody, "text/html; charset=UTF-8");
             message.saveChanges();
             Transport.send(message);
 
@@ -324,17 +371,48 @@ public final class EmailUtil {
         return buildActionUrl(contextPath, "/profile/security-verify/confirm", token);
     }
 
-    private static String buildActionUrl(String contextPath, String path, String token) {
+    /** URL công khai mở toàn bộ vé của đơn — dùng trong QR email (1 QR / 1 đơn). */
+    public static String buildTicketViewUrl(String bookingCode) {
+        String base = resolveAppBaseUrl("");
+        String encoded = URLEncoder.encode(
+                bookingCode != null ? bookingCode : "", StandardCharsets.UTF_8);
+        return base + "/ticket?booking=" + encoded;
+    }
+
+    /** Ảnh QR (API công khai) encode nội dung — dùng trong HTML email. */
+    public static String buildQrImageUrl(String content) {
+        String data = URLEncoder.encode(
+                content != null ? content : "", StandardCharsets.UTF_8);
+        return "https://api.qrserver.com/v1/create-qr-code/?size=180x180&ecc=M&data=" + data;
+    }
+
+    private static String resolveAppBaseUrl(String contextPathFallback) {
         Properties props = loadProperties();
         String base = props != null
                 ? props.getProperty("app.base.url", "").trim()
                 : "";
         if (base.isBlank()) {
-            base = contextPath;
+            base = contextPathFallback != null ? contextPathFallback : "";
         }
         if (base.endsWith("/")) {
             base = base.substring(0, base.length() - 1);
         }
+        return base;
+    }
+
+    private static String esc(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;");
+    }
+
+    private static String buildActionUrl(String contextPath, String path, String token) {
+        String base = resolveAppBaseUrl(contextPath);
         return base + path + "?token=" + token;
     }
 

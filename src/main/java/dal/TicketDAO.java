@@ -9,7 +9,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * FR-17 — Phát hành vé điện tử sau thanh toán online.
+ * FR-17 / FR-18 — Phát hành vé sau thanh toán thành công (online, quầy cash, quầy VietQR).
+ * ticket_code = "{bookingCode}-{seatCode}-{6 hex}", đồng thời lưu vào qr_code.
  */
 public class TicketDAO {
 

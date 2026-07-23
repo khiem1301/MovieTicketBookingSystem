@@ -29,7 +29,8 @@ public final class AccessControl {
             "/forgot-password",
             "/reset-password",
             "/payment/sepay/webhook",
-            "/index.jsp"
+            "/index.jsp",
+            "/ticket"
     );
 
     private static final List<String> PUBLIC_PREFIXES = List.of(
