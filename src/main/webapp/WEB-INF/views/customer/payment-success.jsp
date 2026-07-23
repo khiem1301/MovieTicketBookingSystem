@@ -38,14 +38,25 @@
     </div>
 
     <div class="pay-success-tickets">
-      <h3 class="pay-success-tickets-title">Thông tin vé</h3>
+      <div class="pay-success-tickets-head">
+        <h3 class="pay-success-tickets-title">Thông tin vé</h3>
+        <c:if test="${not empty detail.tickets}">
+          <a class="pay-success-view-btn"
+             href="${ctx}/ticket?booking=<c:out value='${detail.bookingCode}'/>"
+             target="_blank" rel="noopener">
+            Xem vé
+          </a>
+        </c:if>
+      </div>
       <c:choose>
         <c:when test="${not empty detail.tickets}">
           <ul class="pay-success-ticket-list">
             <c:forEach var="t" items="${detail.tickets}">
               <li class="pay-success-ticket-item">
-                <span class="pay-success-ticket-seat">Ghế <c:out value="${t.seatCode}"/></span>
-                <span class="pay-success-ticket-code"><c:out value="${t.ticketCode}"/></span>
+                <div class="pay-success-ticket-meta">
+                  <span class="pay-success-ticket-seat">Ghế <c:out value="${t.seatCode}"/></span>
+                  <span class="pay-success-ticket-code"><c:out value="${t.ticketCode}"/></span>
+                </div>
               </li>
             </c:forEach>
           </ul>
@@ -62,8 +73,8 @@
     </div>
 
     <p class="pay-success-note">
-      Email xác nhận (kèm mã vé) đã được gửi tới hộp thư đăng ký của bạn nếu SMTP đã cấu hình.
-      Vui lòng xuất trình mã vé khi vào rạp.
+      Email xác nhận kèm 1 mã QR cho cả đơn đã được gửi tới hộp thư của bạn (nếu SMTP đã cấu hình).
+      Quét QR để xem toàn bộ vé điện tử giống vé in tại quầy.
     </p>
 
     <div class="pay-success-actions">

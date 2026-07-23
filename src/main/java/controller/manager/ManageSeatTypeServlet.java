@@ -67,7 +67,7 @@ public class ManageSeatTypeServlet extends HttpServlet {
         String description = req.getParameter("description");
         String seatSpanStr = req.getParameter("seatSpan");
 
-        ParsedInput parsed = parseAndValidate(typeName, multiplierStr, seatSpanStr);
+        ParsedInput parsed = parseAndValidate(typeName, multiplierStr, description, seatSpanStr);
         if (parsed.error != null) {
             forwardWithError(req, resp, parsed.error, typeName, multiplierStr, description, seatSpanStr, null);
             return;
@@ -123,7 +123,7 @@ public class ManageSeatTypeServlet extends HttpServlet {
             seatSpanStr = String.valueOf(editing.getSeatSpan());
         }
 
-        ParsedInput parsed = parseAndValidate(typeName, multiplierStr, seatSpanStr);
+        ParsedInput parsed = parseAndValidate(typeName, multiplierStr, description, seatSpanStr);
         if (parsed.error != null) {
             forwardWithError(req, resp, parsed.error, typeName, multiplierStr, description, seatSpanStr, editing);
             return;
@@ -154,7 +154,8 @@ public class ManageSeatTypeServlet extends HttpServlet {
         }
     }
 
-    private ParsedInput parseAndValidate(String typeName, String multiplierStr, String seatSpanStr) {
+    private ParsedInput parseAndValidate(String typeName, String multiplierStr,
+                                         String description, String seatSpanStr) {
         ParsedInput result = new ParsedInput();
 
         if (typeName == null || typeName.trim().isEmpty()) {
@@ -163,6 +164,10 @@ public class ManageSeatTypeServlet extends HttpServlet {
         }
         if (typeName.trim().length() > 50) {
             result.error = "Tên loại ghế không quá 50 ký tự.";
+            return result;
+        }
+        if (description != null && description.length() > 255) {
+            result.error = "Mô tả không quá 255 ký tự.";
             return result;
         }
         if (multiplierStr == null || multiplierStr.trim().isEmpty()) {
