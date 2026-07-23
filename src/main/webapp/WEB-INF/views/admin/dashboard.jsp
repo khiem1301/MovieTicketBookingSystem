@@ -77,9 +77,7 @@
       </div>
     </div>
     <p style="font-size:13px;color:var(--text-muted);margin:8px 0 0;">
-      <a href="${pageContext.request.contextPath}/admin/reports" style="color:var(--accent);font-weight:600;">
-        Xem báo cáo chi tiết →
-      </a>
+      Thống kê nhanh tháng hiện tại. Báo cáo chi tiết nằm ở menu Manager.
     </p>
 
     <%-- Module cards --%>
@@ -101,19 +99,19 @@
       </a>
 
       <a href="${pageContext.request.contextPath}/admin/config" class="admin-module-card admin-module-card--active">
-        <div class="admin-module-icon">⚙️</div>
-        <h3 class="admin-module-title">Cấu hình hệ thống</h3>
+        <div class="admin-module-icon">⭐</div>
+        <h3 class="admin-module-title">Quy tắc tích điểm</h3>
         <p class="admin-module-desc">
-          Tham số tích điểm loyalty — earn/redeem rate, min/max mỗi đơn.
+          Tham số loyalty — earn/redeem rate, min/max mỗi đơn.
         </p>
         <span class="admin-module-link">Truy cập →</span>
       </a>
 
-      <a href="${pageContext.request.contextPath}/admin/reports" class="admin-module-card admin-module-card--active">
-        <div class="admin-module-icon">📊</div>
-        <h3 class="admin-module-title">Báo cáo &amp; thống kê</h3>
+      <a href="${pageContext.request.contextPath}/admin/pricing-rules" class="admin-module-card admin-module-card--active">
+        <div class="admin-module-icon">💰</div>
+        <h3 class="admin-module-title">Quy tắc giá</h3>
         <p class="admin-module-desc">
-          Doanh thu, số vé bán và top phim được đặt nhiều nhất.
+          Cấu hình hệ số giá theo ngày trong tuần và khung giờ.
         </p>
         <span class="admin-module-link">Truy cập →</span>
       </a>

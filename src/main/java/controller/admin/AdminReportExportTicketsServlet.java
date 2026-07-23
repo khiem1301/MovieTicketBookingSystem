@@ -16,14 +16,14 @@ import utils.TicketStatsViewUtil;
 import java.io.IOException;
 import java.util.List;
 
-@WebServlet(urlPatterns = {"/admin/reports/export-tickets"})
+@WebServlet(urlPatterns = {"/manager/reports/export-tickets"})
 public class AdminReportExportTicketsServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        if (!AdminAuthUtil.requireAdmin(req, resp)) {
+        if (!AdminAuthUtil.requireAdminOrManager(req, resp)) {
             return;
         }
 

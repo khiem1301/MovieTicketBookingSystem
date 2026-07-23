@@ -20,7 +20,7 @@ import java.util.Optional;
 /**
  * FR-49 — Quản lý quy tắc giá động (CRUD).
  */
-@WebServlet("/manager/pricing-rules")
+@WebServlet("/admin/pricing-rules")
 public class ManagePricingRuleServlet extends HttpServlet {
 
     private static final int PAGE_SIZE = AdminPaginationUtil.DEFAULT_PAGE_SIZE;
@@ -83,7 +83,7 @@ public class ManagePricingRuleServlet extends HttpServlet {
         PricingRule rule = parsed.getRule();
         rule.setCreatedBy(user.getId());
         pricingRuleDAO.insert(rule);
-        resp.sendRedirect(req.getContextPath() + "/manager/pricing-rules?success=created");
+        resp.sendRedirect(req.getContextPath() + "/admin/pricing-rules?success=created");
     }
 
     private void handleUpdate(HttpServletRequest req, HttpServletResponse resp)
@@ -91,7 +91,7 @@ public class ManagePricingRuleServlet extends HttpServlet {
         String id = trim(req.getParameter("id"));
         Optional<PricingRule> existing = pricingRuleDAO.findById(id);
         if (existing.isEmpty()) {
-            resp.sendRedirect(req.getContextPath() + "/manager/pricing-rules");
+            resp.sendRedirect(req.getContextPath() + "/admin/pricing-rules");
             return;
         }
 
@@ -104,7 +104,7 @@ public class ManagePricingRuleServlet extends HttpServlet {
         PricingRule rule = parsed.getRule();
         rule.setId(id);
         pricingRuleDAO.update(rule);
-        resp.sendRedirect(req.getContextPath() + "/manager/pricing-rules?success=updated");
+        resp.sendRedirect(req.getContextPath() + "/admin/pricing-rules?success=updated");
     }
 
     private void handleToggleStatus(HttpServletRequest req, HttpServletResponse resp)
@@ -112,13 +112,13 @@ public class ManagePricingRuleServlet extends HttpServlet {
         String id = trim(req.getParameter("id"));
         Optional<PricingRule> found = pricingRuleDAO.findById(id);
         if (found.isEmpty()) {
-            resp.sendRedirect(req.getContextPath() + "/manager/pricing-rules");
+            resp.sendRedirect(req.getContextPath() + "/admin/pricing-rules");
             return;
         }
         PricingRule rule = found.get();
         String next = "ACTIVE".equals(rule.getStatus()) ? "INACTIVE" : "ACTIVE";
         pricingRuleDAO.updateStatus(id, next);
-        resp.sendRedirect(req.getContextPath() + "/manager/pricing-rules?success=status-updated"
+        resp.sendRedirect(req.getContextPath() + "/admin/pricing-rules?success=status-updated"
                 + filterQuery(req));
     }
 
@@ -126,11 +126,11 @@ public class ManagePricingRuleServlet extends HttpServlet {
             throws IOException {
         String id = trim(req.getParameter("id"));
         if (id == null || pricingRuleDAO.findById(id).isEmpty()) {
-            resp.sendRedirect(req.getContextPath() + "/manager/pricing-rules");
+            resp.sendRedirect(req.getContextPath() + "/admin/pricing-rules");
             return;
         }
         pricingRuleDAO.delete(id);
-        resp.sendRedirect(req.getContextPath() + "/manager/pricing-rules?success=deleted"
+        resp.sendRedirect(req.getContextPath() + "/admin/pricing-rules?success=deleted"
                 + filterQuery(req));
     }
 
@@ -203,12 +203,12 @@ public class ManagePricingRuleServlet extends HttpServlet {
         req.setAttribute("pgCurrent", page);
         req.setAttribute("pgTotal", totalPages);
         req.setAttribute("pgTotalItems", total);
-        req.setAttribute("pgPath", req.getContextPath() + "/manager/pricing-rules");
+        req.setAttribute("pgPath", req.getContextPath() + "/admin/pricing-rules");
         req.setAttribute("pgQueryExtra",
                 AdminPaginationUtil.queryParam("keyword", keyword)
                         + AdminPaginationUtil.queryParam("status", status));
 
-        req.getRequestDispatcher("/WEB-INF/views/manager/pricing-rule-list.jsp").forward(req, resp);
+        req.getRequestDispatcher("/WEB-INF/views/admin/pricing-rule-list.jsp").forward(req, resp);
     }
 
     private String filterQuery(HttpServletRequest req) {
@@ -219,7 +219,7 @@ public class ManagePricingRuleServlet extends HttpServlet {
 
     private boolean isAuthorized(HttpServletRequest req) {
         Object role = req.getSession().getAttribute("userRole");
-        return "MANAGER".equals(role) || "ADMIN".equals(role);
+        return "ADMIN".equals(role);
     }
 
     private String trim(String value) {

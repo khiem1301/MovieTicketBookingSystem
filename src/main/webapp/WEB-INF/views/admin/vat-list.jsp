@@ -12,8 +12,6 @@
     <nav class="admin-breadcrumb">
       <a href="${pageContext.request.contextPath}/admin/dashboard">Bảng điều khiển</a>
       <span class="admin-breadcrumb-sep">/</span>
-      <a href="${pageContext.request.contextPath}/admin/config">Cấu hình hệ thống</a>
-      <span class="admin-breadcrumb-sep">/</span>
       <span>Thuế VAT</span>
     </nav>
 
@@ -112,7 +110,7 @@
 
         <div class="admin-form-actions">
           <button type="submit" class="admin-btn admin-btn--primary">Áp dụng quy tắc mới</button>
-          <a href="${pageContext.request.contextPath}/admin/config" class="admin-btn admin-btn--ghost">Quay lại</a>
+          <a href="${pageContext.request.contextPath}/admin/dashboard" class="admin-btn admin-btn--ghost">Quay lại</a>
         </div>
       </form>
     </div>
@@ -267,4 +265,4 @@
 </main>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
-
+

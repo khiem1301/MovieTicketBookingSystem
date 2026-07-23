@@ -2,7 +2,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
-<c:set var="pageTitle" value="Cấu hình hệ thống — ÉPCINE"/>
+<c:set var="pageTitle" value="Quy tắc tích điểm — ÉPCINE"/>
 <c:set var="extraCss" value="admin"/>
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 
@@ -12,12 +12,12 @@
     <nav class="admin-breadcrumb">
       <a href="${pageContext.request.contextPath}/admin/dashboard">Bảng điều khiển</a>
       <span class="admin-breadcrumb-sep">/</span>
-      <span>Cấu hình hệ thống</span>
+      <span>Quy tắc tích điểm</span>
     </nav>
 
     <div class="admin-page-header">
       <div>
-        <h1 class="admin-page-title">Cấu hình hệ thống</h1>
+        <h1 class="admin-page-title">Quy tắc tích điểm</h1>
         <p class="admin-page-subtitle">Tham số tích điểm — dùng cho đặt vé online và quản lý loyalty</p>
       </div>
     </div>
@@ -34,7 +34,7 @@
     </c:if>
 
     <div class="admin-card">
-      <h2 class="admin-section-title">Tích điểm (SystemConfig)</h2>
+      <h2 class="admin-section-title">Tham số tích điểm</h2>
       <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">
         Các tham số này được module booking/loyalty đọc qua <code>ConfigUtil</code>.
         Thay đổi có hiệu lực ngay sau khi lưu.
@@ -169,34 +169,6 @@
           </c:choose>
         </c:otherwise>
       </c:choose>
-    </div>
-
-    <div class="admin-card">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-        <div>
-          <h2 class="admin-section-title">Thuế VAT</h2>
-          <p style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">
-            Quản lý quy tắc thuế suất (<code>VatRules</code>) — áp dụng cho đơn đặt vé mới.
-          </p>
-          <c:choose>
-            <c:when test="${not empty currentVatRule}">
-              <p style="font-size:14px;margin:0;">
-                Đang áp dụng:
-                <strong>
-                  <fmt:formatNumber value="${currentVatRule.vatRate}" minFractionDigits="0" maxFractionDigits="2"/>%
-                </strong>
-                — <c:out value="${currentVatRule.ruleName}"/>
-              </p>
-            </c:when>
-            <c:otherwise>
-              <p style="font-size:14px;margin:0;">Chưa cấu hình — mặc định <strong>8%</strong></p>
-            </c:otherwise>
-          </c:choose>
-        </div>
-        <a href="${pageContext.request.contextPath}/admin/vat" class="admin-btn admin-btn--primary">
-          Quản lý VAT →
-        </a>
-      </div>
     </div>
 
   </div>

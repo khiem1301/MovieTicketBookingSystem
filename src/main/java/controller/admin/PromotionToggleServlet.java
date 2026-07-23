@@ -10,7 +10,7 @@ import utils.AdminAuthUtil;
 
 import java.io.IOException;
 
-@WebServlet(urlPatterns = {"/admin/promotions/toggle"})
+@WebServlet(urlPatterns = {"/manager/promotions/toggle"})
 public class PromotionToggleServlet extends HttpServlet {
 
     @Override
@@ -21,7 +21,7 @@ public class PromotionToggleServlet extends HttpServlet {
 
         String id = req.getParameter("promotionId");
         if (id == null || id.isBlank()) {
-            resp.sendRedirect(req.getContextPath() + "/admin/promotions");
+            resp.sendRedirect(req.getContextPath() + "/manager/promotions");
             return;
         }
 
@@ -33,6 +33,6 @@ public class PromotionToggleServlet extends HttpServlet {
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR,
                     "Lỗi khi đổi trạng thái: " + e.getMessage());
         }
-        resp.sendRedirect(req.getContextPath() + "/admin/promotions");
+        resp.sendRedirect(req.getContextPath() + "/manager/promotions");
     }
 }

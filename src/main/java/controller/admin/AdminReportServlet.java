@@ -20,17 +20,17 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-@WebServlet(urlPatterns = {"/admin/reports"})
+@WebServlet(urlPatterns = {"/manager/reports"})
 public class AdminReportServlet extends HttpServlet {
 
-    private static final String VIEW = "/WEB-INF/views/admin/reports.jsp";
+    private static final String VIEW = "/WEB-INF/views/manager/reports.jsp";
     private static final int PAGE_SIZE = AdminPaginationUtil.DEFAULT_PAGE_SIZE;
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        if (!AdminAuthUtil.requireAdmin(req, resp)) {
+        if (!AdminAuthUtil.requireAdminOrManager(req, resp)) {
             return;
         }
 
@@ -100,7 +100,7 @@ public class AdminReportServlet extends HttpServlet {
         req.setAttribute("pgCurrent", page);
         req.setAttribute("pgTotal", totalPages);
         req.setAttribute("pgTotalItems", ticketStatsTotal);
-        req.setAttribute("pgPath", req.getContextPath() + "/admin/reports");
+        req.setAttribute("pgPath", req.getContextPath() + "/manager/reports");
         req.setAttribute("pgQueryExtra", pgQueryExtra);
         req.setAttribute("filterRange", dateRange.rangeKey());
         req.setAttribute("filterFrom", from);

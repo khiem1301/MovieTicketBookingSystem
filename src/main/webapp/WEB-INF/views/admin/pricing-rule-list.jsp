@@ -5,7 +5,7 @@
 
 <c:set var="pageTitle" value="Quy tắc giá — ÉPCINE"/>
 <c:set var="extraCss" value="admin"/>
-<c:set var="extraCss2" value="manager-pricing-rules"/>
+<c:set var="extraCss2" value="admin-pricing-rules"/>
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 
 <c:set var="isEdit" value="${not empty editRule}"/>
@@ -64,7 +64,7 @@
             </c:choose>
           </h2>
 
-          <form method="post" action="${pageContext.request.contextPath}/manager/pricing-rules" class="mpr-form" id="pricingRuleForm">
+          <form method="post" action="${pageContext.request.contextPath}/admin/pricing-rules" class="mpr-form" id="pricingRuleForm">
             <input type="hidden" name="action" value="${isEdit ? 'update' : 'create'}"/>
             <c:if test="${isEdit}">
               <input type="hidden" name="id" value="${editRule.id}"/>
@@ -193,7 +193,7 @@
                 <c:out value="${isEdit ? 'Cập nhật' : 'Tạo quy tắc'}"/>
               </button>
               <c:if test="${isEdit}">
-                <a href="${pageContext.request.contextPath}/manager/pricing-rules" class="admin-btn admin-btn--ghost">Hủy</a>
+                <a href="${pageContext.request.contextPath}/admin/pricing-rules" class="admin-btn admin-btn--ghost">Hủy</a>
               </c:if>
             </div>
           </form>
@@ -202,7 +202,7 @@
 
       <section class="mpr-main">
         <div class="admin-card">
-          <form class="admin-filter" method="get" action="${pageContext.request.contextPath}/manager/pricing-rules"
+          <form class="admin-filter" method="get" action="${pageContext.request.contextPath}/admin/pricing-rules"
                 id="ruleFilterForm">
             <div class="admin-field admin-field--grow">
               <label class="admin-label" for="ruleKeyword">Tìm theo tên</label>
@@ -219,7 +219,7 @@
                 <option value="INACTIVE" <c:if test="${filterStatus == 'INACTIVE'}">selected</c:if>>INACTIVE</option>
               </select>
             </div>
-            <a href="${pageContext.request.contextPath}/manager/pricing-rules" class="admin-btn admin-btn--ghost">Xóa lọc</a>
+            <a href="${pageContext.request.contextPath}/admin/pricing-rules" class="admin-btn admin-btn--ghost">Xóa lọc</a>
           </form>
 
           <p class="admin-stats">Tổng: <strong><c:out value="${totalRules}"/></strong> quy tắc</p>
@@ -301,8 +301,8 @@
                         <td>
                           <div class="admin-btn-group">
                             <a class="admin-btn admin-btn--ghost admin-btn--sm"
-                               href="${pageContext.request.contextPath}/manager/pricing-rules?action=edit&amp;id=${r.id}<c:if test='${not empty filterKeyword}'>&amp;keyword=<c:out value='${filterKeyword}'/></c:if><c:if test='${not empty filterStatus}'>&amp;status=<c:out value='${filterStatus}'/></c:if>">Sửa</a>
-                            <form method="post" action="${pageContext.request.contextPath}/manager/pricing-rules" class="mpr-inline-form">
+                               href="${pageContext.request.contextPath}/admin/pricing-rules?action=edit&amp;id=${r.id}<c:if test='${not empty filterKeyword}'>&amp;keyword=<c:out value='${filterKeyword}'/></c:if><c:if test='${not empty filterStatus}'>&amp;status=<c:out value='${filterStatus}'/></c:if>">Sửa</a>
+                            <form method="post" action="${pageContext.request.contextPath}/admin/pricing-rules" class="mpr-inline-form">
                               <input type="hidden" name="action" value="toggle-status"/>
                               <input type="hidden" name="id" value="${r.id}"/>
                               <c:if test="${not empty filterKeyword}"><input type="hidden" name="keyword" value="<c:out value='${filterKeyword}'/>"/></c:if>
@@ -312,7 +312,7 @@
                                 <c:out value="${r.status == 'ACTIVE' ? 'Tắt' : 'Bật'}"/>
                               </button>
                             </form>
-                            <form method="post" action="${pageContext.request.contextPath}/manager/pricing-rules" class="mpr-inline-form"
+                            <form method="post" action="${pageContext.request.contextPath}/admin/pricing-rules" class="mpr-inline-form"
                                   onsubmit="return confirm('Xóa quy tắc này? Đơn đã đặt không bị ảnh hưởng.');">
                               <input type="hidden" name="action" value="delete"/>
                               <input type="hidden" name="id" value="${r.id}"/>
