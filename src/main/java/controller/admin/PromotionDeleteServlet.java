@@ -10,7 +10,7 @@ import utils.AdminAuthUtil;
 
 import java.io.IOException;
 
-@WebServlet(urlPatterns = {"/admin/promotions/delete"})
+@WebServlet(urlPatterns = {"/manager/promotions/delete"})
 public class PromotionDeleteServlet extends HttpServlet {
 
     @Override
@@ -21,7 +21,7 @@ public class PromotionDeleteServlet extends HttpServlet {
 
         String id = req.getParameter("promotionId");
         if (id == null || id.isBlank()) {
-            resp.sendRedirect(req.getContextPath() + "/admin/promotions");
+            resp.sendRedirect(req.getContextPath() + "/manager/promotions");
             return;
         }
 
@@ -38,6 +38,6 @@ public class PromotionDeleteServlet extends HttpServlet {
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR,
                     "Lỗi khi xóa: " + e.getMessage());
         }
-        resp.sendRedirect(req.getContextPath() + "/admin/promotions");
+        resp.sendRedirect(req.getContextPath() + "/manager/promotions");
     }
 }

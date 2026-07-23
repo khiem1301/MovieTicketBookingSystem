@@ -10,7 +10,7 @@
   <div class="container">
 
     <nav class="admin-breadcrumb">
-      <a href="${pageContext.request.contextPath}/admin/dashboard">Bảng điều khiển</a>
+      <a href="${pageContext.request.contextPath}/home">Trang chủ</a>
       <span class="admin-breadcrumb-sep">/</span>
       <span>Báo cáo &amp; thống kê</span>
     </nav>
@@ -42,7 +42,7 @@
     </c:if>
 
     <div class="admin-card" style="margin-bottom:24px;">
-      <form class="admin-filter" method="get" action="${pageContext.request.contextPath}/admin/reports">
+      <form class="admin-filter" method="get" action="${pageContext.request.contextPath}/manager/reports">
         <div class="admin-field">
           <label class="admin-label" for="range">Khoảng thời gian</label>
           <select id="range" name="range" class="admin-select">
@@ -78,12 +78,12 @@
           </select>
         </div>
         <button type="submit" class="admin-btn admin-btn--primary">Áp dụng</button>
-        <a href="${pageContext.request.contextPath}/admin/reports" class="admin-btn admin-btn--ghost">Xóa lọc</a>
-        <a href="${pageContext.request.contextPath}/admin/reports/export?${exportQuery}"
+        <a href="${pageContext.request.contextPath}/manager/reports" class="admin-btn admin-btn--ghost">Xóa lọc</a>
+        <a href="${pageContext.request.contextPath}/manager/reports/export?${exportQuery}"
            class="admin-btn admin-btn--ghost admin-btn--export">
           Xuất CSV doanh thu
         </a>
-        <a href="${pageContext.request.contextPath}/admin/reports/export-tickets?${ticketExportQuery}"
+        <a href="${pageContext.request.contextPath}/manager/reports/export-tickets?${ticketExportQuery}"
            class="admin-btn admin-btn--ghost admin-btn--export">
           Xuất CSV vé bán
         </a>

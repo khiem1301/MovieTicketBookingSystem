@@ -2,8 +2,6 @@ package controller.admin;
 
 import dal.SystemConfigDAO;
 import dal.SystemConfigLogDAO;
-import dal.VatRuleDAO;
-import model.entity.VatRule;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -45,8 +43,6 @@ public class SystemConfigListServlet extends HttpServlet {
                 .max((a, b) -> a.getUpdatedAt().compareTo(b.getUpdatedAt()))
                 .orElse(null);
 
-        VatRule currentVatRule = new VatRuleDAO().findEffectiveNow().orElse(null);
-
         int historyPage = AdminPaginationUtil.parsePage(req.getParameter("page"));
         List<SystemConfigLog> loyaltyHistory = List.of();
         int historyTotal = 0;
@@ -75,7 +71,6 @@ public class SystemConfigListServlet extends HttpServlet {
         req.setAttribute("pgTotalItems", historyTotal);
         req.setAttribute("pgPath", req.getContextPath() + "/admin/config");
         req.setAttribute("pgQueryExtra", "");
-        req.setAttribute("currentVatRule", currentVatRule);
         req.setAttribute("flashSuccess", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_SUCCESS));
         req.setAttribute("flashError", AdminAuthUtil.consumeFlash(req, AdminAuthUtil.FLASH_ERROR));
 

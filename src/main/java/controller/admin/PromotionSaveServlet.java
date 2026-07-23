@@ -19,7 +19,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-@WebServlet(urlPatterns = {"/admin/promotions/save"})
+@WebServlet(urlPatterns = {"/manager/promotions/save"})
 @MultipartConfig(
         fileSizeThreshold = 1024 * 1024,
         maxFileSize       = 5 * 1024 * 1024,
@@ -180,7 +180,7 @@ public class PromotionSaveServlet extends HttpServlet {
 
         if (!errors.isEmpty()) {
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, String.join(" ", errors));
-            String redirect = req.getContextPath() + "/admin/promotions"
+            String redirect = req.getContextPath() + "/manager/promotions"
                             + (isUpdate ? "?edit=" + id + "#promo-edit-form" : "");
             resp.sendRedirect(redirect);
             return;
@@ -216,7 +216,7 @@ public class PromotionSaveServlet extends HttpServlet {
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR,
                     "Đã xảy ra lỗi: " + e.getMessage());
         }
-        resp.sendRedirect(req.getContextPath() + "/admin/promotions");
+        resp.sendRedirect(req.getContextPath() + "/manager/promotions");
     }
 
     private String trim(String v) { return v == null ? null : v.trim(); }

@@ -535,7 +535,7 @@
       <div class="promo-section-header">
         <span class="promo-section-title">Tất Cả Mã Giảm Giá</span>
         <div class="promo-section-actions">
-          <form method="get" action="${pageContext.request.contextPath}/admin/promotions"
+          <form method="get" action="${pageContext.request.contextPath}/manager/promotions"
                 style="display:contents;">
             <input type="text" name="q" class="promo-search-input"
                    placeholder="Tìm mã hoặc tiêu đề..."
@@ -552,7 +552,7 @@
               Lọc
             </button>
             <c:if test="${not empty keyword or not empty statusFilter}">
-              <a href="${pageContext.request.contextPath}/admin/promotions"
+              <a href="${pageContext.request.contextPath}/manager/promotions"
                  class="promo-icon-btn">✕ Xóa lọc</a>
             </c:if>
           </form>
@@ -739,7 +739,7 @@
                       <%-- Toggle (không áp dụng khi đã hết hạn) --%>
                       <c:if test="${!p.expired}">
                         <form method="post"
-                              action="${pageContext.request.contextPath}/admin/promotions/toggle"
+                              action="${pageContext.request.contextPath}/manager/promotions/toggle"
                               style="display:inline;">
                           <input type="hidden" name="promotionId" value="${p.id}"/>
                           <button type="submit"
@@ -756,7 +756,7 @@
                       <c:choose>
                         <c:when test="${p.usedCount == 0}">
                           <form method="post"
-                                action="${pageContext.request.contextPath}/admin/promotions/delete"
+                                action="${pageContext.request.contextPath}/manager/promotions/delete"
                                 style="display:inline;"
                                 onsubmit="return confirm('Xóa mã \'${p.code}\'?');">
                             <input type="hidden" name="promotionId" value="${p.id}"/>
@@ -825,7 +825,7 @@
       </div>
 
       <form id="promoForm" method="post"
-            action="${pageContext.request.contextPath}/admin/promotions/save"
+            action="${pageContext.request.contextPath}/manager/promotions/save"
             enctype="multipart/form-data">
         <input type="hidden" id="modalPromotionId" name="promotionId" value=""/>
         <input type="hidden" id="modalExistingImageUrl" name="existingImageUrl" value=""/>

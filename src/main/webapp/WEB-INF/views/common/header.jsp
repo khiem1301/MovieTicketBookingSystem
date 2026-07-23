@@ -273,11 +273,11 @@ uri="jakarta.tags.functions" %>
                     <a href="${pageContext.request.contextPath}/manager/showtimes"
                       >Quản lý suất chiếu</a
                     >
-                    <a href="${pageContext.request.contextPath}/manager/pricing-rules"
-                      >Quy tắc giá</a
-                    >
-                    <a href="${pageContext.request.contextPath}/admin/promotions"
+                    <a href="${pageContext.request.contextPath}/manager/promotions"
                       >Quản lý voucher</a
+                    >
+                    <a href="${pageContext.request.contextPath}/manager/reports"
+                      >Báo cáo &amp; thống kê</a
                     >
                     <a href="${pageContext.request.contextPath}/manager/reviews"
                       >Quản lý đánh giá</a
@@ -292,16 +292,13 @@ uri="jakarta.tags.functions" %>
                       >Quản lý người dùng</a
                     >
                     <a href="${pageContext.request.contextPath}/admin/config"
-                      >Cấu hình hệ thống</a
+                      >Quy tắc tích điểm</a
                     >
                     <a href="${pageContext.request.contextPath}/admin/vat"
                       >Quy tắc VAT</a
                     >
-                    <a href="${pageContext.request.contextPath}/admin/promotions"
-                      >Quản lý voucher</a
-                    >
-                    <a href="${pageContext.request.contextPath}/admin/reports"
-                      >Báo cáo &amp; thống kê</a
+                    <a href="${pageContext.request.contextPath}/admin/pricing-rules"
+                      >Quy tắc giá</a
                     >
                   </c:if>
                   <a
