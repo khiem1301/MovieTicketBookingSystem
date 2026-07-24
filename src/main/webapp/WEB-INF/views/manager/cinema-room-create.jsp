@@ -3,7 +3,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt"       %>
 <%@ taglib prefix="fn"  uri="jakarta.tags.functions" %>
 
-<c:set var="pageTitle" value="${room.roomName} — Layout ghế — ÉPCINE"/>
+<c:set var="pageTitle" value="Thêm phòng chiếu — ÉPCINE"/>
 <c:set var="extraCss" value="manager-auditoriums"/>
 <c:set var="extraCss2" value="manager-seat-layout"/>
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
@@ -18,69 +18,54 @@
       <span>›</span>
       <a href="${pageContext.request.contextPath}/manager/rooms">Quản lý Phòng chiếu</a>
       <span>›</span>
-      <span><c:out value="${room.roomName}"/></span>
+      <span>Thêm phòng chiếu</span>
     </div>
 
-    <c:if test="${param.success == 'created'}">
-      <div class="mgr-alert mgr-alert--success aud-alert">✓ Đã tạo phòng chiếu kèm layout ghế thành công!</div>
-    </c:if>
-    <c:if test="${param.success == 'updated'}">
-      <div class="mgr-alert mgr-alert--success aud-alert">✓ Đã cập nhật tên phòng!</div>
-    </c:if>
-    <c:if test="${param.success == 'status_updated'}">
-      <div class="mgr-alert mgr-alert--success aud-alert">✓ Đã cập nhật trạng thái phòng!</div>
-    </c:if>
-    <c:if test="${param.success == 'layout_saved'}">
-      <div class="mgr-alert mgr-alert--success aud-alert">✓ Đã lưu layout ghế vào database!</div>
-    </c:if>
     <c:if test="${not empty error}">
       <div class="mgr-alert mgr-alert--error aud-alert"><c:out value="${error}"/></div>
     </c:if>
 
-    <%-- Hidden form lưu layout --%>
-    <form id="sltSaveForm" method="post" action="${pageContext.request.contextPath}/manager/rooms/save-layout" style="display:none">
-      <input type="hidden" name="roomId" value="<c:out value='${room.id}'/>"/>
+    <form id="sltSaveForm" method="post" action="${pageContext.request.contextPath}/manager/rooms/create">
       <input type="hidden" id="sltLayoutJsonInput" name="layoutJson" value=""/>
+
+      <div class="aud-detail-summary glass-panel">
+        <div class="aud-detail-summary__main">
+          <a href="${pageContext.request.contextPath}/manager/rooms" class="aud-back-link">
+            <span class="material-symbols-outlined">arrow_back</span>
+            Quay lại danh sách
+          </a>
+          <div class="aud-detail-summary__title-row">
+            <h1 class="aud-detail-summary__title">Thêm phòng chiếu</h1>
+          </div>
+          <p class="aud-detail-summary__meta">
+            Nhập tên phòng và thiết kế layout ghế. Chỉ lưu khi đã có ít nhất 1 ghế.
+          </p>
+          <label class="aud-create-name-field">
+            <span class="aud-create-name-label">Tên phòng <span class="required">*</span></span>
+            <input type="text" id="createRoomName" name="roomName" maxlength="100" required
+                   placeholder="VD: Phòng 5, IMAX 1..."
+                   value="<c:out value='${inputRoomName}'/>"
+                   class="aud-rename-input aud-create-name-input"/>
+          </label>
+        </div>
+        <div class="aud-detail-summary__actions">
+          <div class="slt-capacity-display">
+            <span class="slt-capacity-label">Tổng ghế</span>
+            <span class="slt-capacity-value" id="sltCapacityDisplay">0</span>
+          </div>
+        </div>
+      </div>
     </form>
 
-    <%-- Thông tin phòng (tóm tắt) --%>
-    <div class="aud-detail-summary glass-panel">
-      <div class="aud-detail-summary__main">
-        <a href="${pageContext.request.contextPath}/manager/rooms?room=<c:out value='${room.id}'/>"
-           class="aud-back-link">
-          <span class="material-symbols-outlined">arrow_back</span>
-          Quay lại danh sách
-        </a>
-        <div class="aud-detail-summary__title-row">
-          <h1 class="aud-detail-summary__title"><c:out value="${room.roomName}"/></h1>
-          <c:choose>
-            <c:when test="${room.status == 'ACTIVE'}">
-              <span class="aud-status-pill aud-status-pill--live">Hoạt động</span>
-            </c:when>
-            <c:otherwise>
-              <span class="aud-status-pill aud-status-pill--off">Ngưng hoạt động</span>
-            </c:otherwise>
-          </c:choose>
-        </div>
-        <c:if test="${not empty room.createdAt}">
-          <p class="aud-detail-summary__meta">
-            Tạo <fmt:formatDate value="${room.createdAt}" pattern="dd/MM/yyyy"/>
-          </p>
-        </c:if>
-      </div>
-    </div>
-
-    <%-- Layout Editor (design Seat Layout) --%>
     <div class="slt-editor glass-panel-heavy" id="sltEditor">
-
       <div class="slt-editor__header">
         <div class="slt-editor__header-left">
           <div class="slt-editor__icon">
             <span class="material-symbols-outlined">event_seat</span>
           </div>
           <div>
-            <h2 class="slt-editor__title"><c:out value="${room.roomName}"/></h2>
-            <p class="slt-editor__subtitle">Trình chỉnh sửa layout ghế</p>
+            <h2 class="slt-editor__title">Thiết kế layout ghế</h2>
+            <p class="slt-editor__subtitle">Thêm hàng, đặt ghế / lối đi rồi lưu để tạo phòng</p>
           </div>
           <div class="slt-editor__divider" aria-hidden="true"></div>
           <div class="slt-editor__history">
@@ -97,19 +82,14 @@
           </div>
         </div>
         <div class="slt-editor__header-right">
-          <div class="slt-capacity-display">
-            <span class="slt-capacity-label">Tổng ghế</span>
-            <span class="slt-capacity-value" id="sltCapacityDisplay">0</span>
-          </div>
           <button type="button" class="aud-btn aud-btn--primary slt-save-btn" id="sltSave">
             <span class="material-symbols-outlined">save</span>
-            Lưu layout
+            Lưu &amp; tạo phòng
           </button>
         </div>
       </div>
 
       <div class="slt-editor__body">
-        <%-- Sidebar --%>
         <aside class="slt-sidebar">
           <section class="slt-sidebar__section">
             <h3 class="slt-sidebar__title">Loại ghế</h3>
@@ -145,69 +125,9 @@
             </div>
           </section>
 
-          <section class="slt-sidebar__section slt-sidebar__section--room">
-            <h3 class="slt-sidebar__title">Phòng chiếu</h3>
-            <div class="slt-room-controls">
-              <form method="post" action="${pageContext.request.contextPath}/manager/rooms/update"
-                    class="slt-room-form slt-room-form--rename">
-                <input type="hidden" name="roomId" value="<c:out value='${room.id}'/>"/>
-                <input type="hidden" name="action" value="rename"/>
-                <input type="hidden" name="from" value="detail"/>
-                <label class="slt-field-label" for="sltRoomNameInput">Tên phòng</label>
-                <input id="sltRoomNameInput" type="text" name="roomName" maxlength="100" required
-                       value="<c:out value='${room.roomName}'/>"
-                       class="slt-field-input"/>
-                <button type="submit" class="slt-room-btn slt-room-btn--ghost">
-                  <span class="material-symbols-outlined">save</span>
-                  Lưu tên
-                </button>
-              </form>
-
-              <form method="post" action="${pageContext.request.contextPath}/manager/rooms/update"
-                    class="slt-room-form slt-room-form--status">
-                <input type="hidden" name="roomId" value="<c:out value='${room.id}'/>"/>
-                <input type="hidden" name="action" value="toggle"/>
-                <input type="hidden" name="from" value="detail"/>
-                <label class="slt-field-label" for="sltRoomStatus">Trạng thái</label>
-                <span class="aud-status-select-wrap slt-status-select-wrap">
-                  <select id="sltRoomStatus" name="status"
-                          class="aud-status-select aud-status-select--${room.status == 'ACTIVE' ? 'ACTIVE' : 'INACTIVE'}"
-                          onchange="this.form.submit()">
-                    <option value="ACTIVE" ${room.status == 'ACTIVE' ? 'selected' : ''}>Hoạt động</option>
-                    <option value="INACTIVE" ${room.status != 'ACTIVE' ? 'selected' : ''}>Ngưng hoạt động</option>
-                  </select>
-                  <span class="material-symbols-outlined aud-status-select-icon" aria-hidden="true">expand_more</span>
-                </span>
-              </form>
-
-              <c:choose>
-                <c:when test="${canDeleteRoom}">
-                  <form method="post" action="${pageContext.request.contextPath}/manager/rooms/delete"
-                        class="slt-room-form slt-room-form--delete"
-                        onsubmit="return confirm('Xóa phòng \'<c:out value="${room.roomName}"/>\'?\nChỉ dùng cho phòng tạo nhầm. Hành động này không thể hoàn tác.');">
-                    <input type="hidden" name="roomId" value="<c:out value='${room.id}'/>"/>
-                    <input type="hidden" name="from" value="detail"/>
-                    <button type="submit" class="slt-room-btn slt-room-btn--danger" title="Xóa phòng tạo nhầm">
-                      <span class="material-symbols-outlined">delete</span>
-                      Xóa phòng
-                    </button>
-                  </form>
-                </c:when>
-                <c:otherwise>
-                  <button type="button" class="slt-room-btn slt-room-btn--danger" disabled
-                          title="Không thể xóa — phòng đã có suất chiếu hoặc dữ liệu đặt ghế">
-                    <span class="material-symbols-outlined">delete</span>
-                    Xóa phòng
-                  </button>
-                </c:otherwise>
-              </c:choose>
-            </div>
-          </section>
-
-          <button type="button" class="slt-discard-btn" id="sltDiscard">Hủy thay đổi</button>
+          <button type="button" class="slt-discard-btn" id="sltDiscard">Đặt lại layout</button>
         </aside>
 
-        <%-- Workspace --%>
         <div class="slt-workspace">
           <div class="slt-screen">
             <div class="slt-screen__curve"></div>
@@ -252,7 +172,7 @@
 
       <p class="slt-backend-note">
         <span class="material-symbols-outlined">info</span>
-        Lối đi được lưu theo vị trí cột trong layout. Dùng <strong>Thêm hàng</strong> để thêm hàng D, E, … (tối đa A–Z).
+        Phòng chỉ được tạo sau khi bạn lưu layout có ít nhất 1 ghế.
       </p>
     </div>
   </div>
@@ -260,11 +180,14 @@
 
 <script>
   window.SLT_CONFIG = {
-    roomId: '<c:out value="${room.id}"/>',
-    roomName: '<c:out value="${room.roomName}"/>',
-    dbSeatCount: ${dbSeatCount != null ? dbSeatCount : 0},
+    mode: 'create',
+    startEmpty: true,
+    requireSeats: true,
+    roomId: 'new',
+    roomName: '',
+    dbSeatCount: 0,
     ctx: '<c:out value="${pageContext.request.contextPath}"/>',
-    layoutJson: <c:choose><c:when test="${not empty layoutJson}"><c:out value="${layoutJson}" escapeXml="false"/></c:when><c:otherwise>null</c:otherwise></c:choose>,
+    layoutJson: null,
     i18n: {
       emptyGap: 'Click \u0111\u1ec3 th\u00eam l\u1ed1i \u0111i',
       emptyAdd: 'Click \u0111\u1ec3 th\u00eam gh\u1ebf',
@@ -279,15 +202,17 @@
       maxRows: '\u0110\u00e3 \u0111\u1ea1t t\u1ed1i \u0111a 26 h\u00e0ng (A\u2013Z).',
       minRows: 'Ph\u1ea3i gi\u1eef \u00edt nh\u1ea5t m\u1ed9t h\u00e0ng gh\u1ebf.',
       confirmRemoveRow: 'H\u00e0ng {label} c\u00f2n gh\u1ebf. X\u00f3a h\u00e0ng s\u1ebd x\u00f3a to\u00e0n b\u1ed9 n\u1ed9i dung h\u00e0ng n\u00e0y. Ti\u1ebfp t\u1ee5c?',
-      confirmSaveEmpty: 'Layout kh\u00f4ng c\u00f3 gh\u1ebf n\u00e0o. L\u01b0u s\u1ebd x\u00f3a to\u00e0n b\u1ed9 gh\u1ebf hi\u1ec7n t\u1ea1i trong ph\u00f2ng. Ti\u1ebfp t\u1ee5c?',
-      confirmSave: 'L\u01b0u layout gh\u1ebf v\u00e0o database? ({n} gh\u1ebf)',
+      confirmSaveEmpty: 'Ph\u1ea3i \u0111\u1eb7t \u00edt nh\u1ea5t 1 gh\u1ebf tr\u01b0\u1edbc khi t\u1ea1o ph\u00f2ng.',
+      confirmSave: 'T\u1ea1o ph\u00f2ng chi\u1ebfu v\u1edbi {n} gh\u1ebf?',
       confirmClear: 'X\u00f3a to\u00e0n b\u1ed9 gh\u1ebf tr\u00ean layout?',
-      confirmDiscard: 'H\u1ee7y thay \u0111\u1ed5i v\u00e0 t\u1ea3i l\u1ea1i layout?',
+      confirmDiscard: 'Đ\u1eb7t l\u1ea1i layout tr\u1ed1ng?',
+      placedMeta: '{n} gh\u1ebf \u0111\u00e3 \u0111\u1eb7t layout',
       alertSelectTypeSidebar: 'Ch\u1ecdn lo\u1ea1i gh\u1ebf \u1edf sidebar tr\u01b0\u1edbc khi th\u00eam gh\u1ebf.',
-      alertNoSeatType: 'Ch\u01b0a c\u00f3 lo\u1ea1i gh\u1ebf n\u00e0o. Th\u00eam lo\u1ea1i gh\u1ebf trong Qu\u1ea3n l\u00fd lo\u1ea1i gh\u1ebf tr\u01b0\u1edbc.'
+      alertNoSeatType: 'Ch\u01b0a c\u00f3 lo\u1ea1i gh\u1ebf n\u00e0o. Th\u00eam lo\u1ea1i gh\u1ebf trong Qu\u1ea3n l\u00fd lo\u1ea1i gh\u1ebf tr\u01b0\u1edbc.',
+      alertRoomName: 'Vui l\u00f2ng nh\u1eadp t\u00ean ph\u00f2ng tr\u01b0\u1edbc khi l\u01b0u.'
     }
   };
 </script>
 <script charset="UTF-8" src="${pageContext.request.contextPath}/js/seat-type-colors.js"></script>
-<script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-seat-layout.js?v=5"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-seat-layout.js?v=4"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

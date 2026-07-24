@@ -14,6 +14,7 @@ import utils.AdminAuthUtil;
 import utils.AdminPaginationUtil;
 import utils.ReportDateUtil;
 import utils.ReportExportUtil;
+import utils.TicketChannelUtil;
 import utils.TicketStatsViewUtil;
 
 import java.io.IOException;
@@ -39,6 +40,7 @@ public class AdminReportServlet extends HttpServlet {
         String to = req.getParameter("to");
         String groupBy = ReportExportUtil.normalizeGroupBy(req.getParameter("groupBy"));
         String viewBy = TicketStatsViewUtil.normalizeViewBy(req.getParameter("viewBy"));
+        String channel = TicketChannelUtil.normalizeChannel(req.getParameter("channel"));
 
         ReportDateUtil.ResolveResult resolved = ReportDateUtil.resolve(range, from, to);
         ReportDateUtil.DateRange dateRange = resolved.range();
@@ -46,9 +48,9 @@ public class AdminReportServlet extends HttpServlet {
         int page = AdminPaginationUtil.parsePage(req.getParameter("page"));
         BookingStatsDAO statsDAO = new BookingStatsDAO();
         BookingOverviewStatsDTO overview = statsDAO.getOverviewStats(
-                dateRange.fromInclusive(), dateRange.toExclusive());
+                dateRange.fromInclusive(), dateRange.toExclusive(), channel);
         List<RevenuePeriodStatsDTO> periodStats = statsDAO.findRevenueByPeriod(
-                dateRange.fromInclusive(), dateRange.toExclusive(), groupBy);
+                dateRange.fromInclusive(), dateRange.toExclusive(), groupBy, channel);
 
         List<TopMovieStatsDTO> topMovies = Collections.emptyList();
         List<TopShowtimeStatsDTO> showtimeStats = Collections.emptyList();
@@ -57,37 +59,40 @@ public class AdminReportServlet extends HttpServlet {
 
         if (TicketStatsViewUtil.isShowtimeView(viewBy)) {
             ticketStatsTotal = statsDAO.countShowtimesWithTickets(
-                    dateRange.fromInclusive(), dateRange.toExclusive());
+                    dateRange.fromInclusive(), dateRange.toExclusive(), channel);
             totalPages = AdminPaginationUtil.totalPages(ticketStatsTotal, PAGE_SIZE);
             page = AdminPaginationUtil.clampPage(page, totalPages);
             showtimeStats = statsDAO.findTicketStatsByShowtime(
                     dateRange.fromInclusive(), dateRange.toExclusive(),
-                    AdminPaginationUtil.offset(page, PAGE_SIZE), PAGE_SIZE);
+                    AdminPaginationUtil.offset(page, PAGE_SIZE), PAGE_SIZE, channel);
         } else {
             ticketStatsTotal = statsDAO.countTopMovies(
-                    dateRange.fromInclusive(), dateRange.toExclusive());
+                    dateRange.fromInclusive(), dateRange.toExclusive(), channel);
             totalPages = AdminPaginationUtil.totalPages(ticketStatsTotal, PAGE_SIZE);
             page = AdminPaginationUtil.clampPage(page, totalPages);
             topMovies = statsDAO.findTopMoviesByTickets(
                     dateRange.fromInclusive(), dateRange.toExclusive(),
-                    AdminPaginationUtil.offset(page, PAGE_SIZE), PAGE_SIZE);
+                    AdminPaginationUtil.offset(page, PAGE_SIZE), PAGE_SIZE, channel);
         }
 
         String pgQueryExtra = AdminPaginationUtil.queryParam("range", dateRange.rangeKey())
                 + AdminPaginationUtil.queryParam("from", from)
                 + AdminPaginationUtil.queryParam("to", to)
                 + AdminPaginationUtil.queryParam("groupBy", groupBy)
-                + AdminPaginationUtil.queryParam("viewBy", viewBy);
+                + AdminPaginationUtil.queryParam("viewBy", viewBy)
+                + AdminPaginationUtil.queryParam("channel", channel);
 
         String exportQuery = ReportExportUtil.buildExportQuery(
-                dateRange.rangeKey(), from, to, groupBy);
+                dateRange.rangeKey(), from, to, groupBy, channel);
         String ticketExportQuery = ReportExportUtil.buildTicketExportQuery(
-                dateRange.rangeKey(), from, to, viewBy);
+                dateRange.rangeKey(), from, to, viewBy, channel);
 
         req.setAttribute("overview", overview);
         req.setAttribute("periodStats", periodStats);
         req.setAttribute("filterGroupBy", groupBy);
         req.setAttribute("filterViewBy", viewBy);
+        req.setAttribute("filterChannel", channel);
+        req.setAttribute("channelLabel", TicketChannelUtil.channelLabel(channel));
         req.setAttribute("periodColumnLabel", ReportExportUtil.periodColumnLabel(groupBy));
         req.setAttribute("exportQuery", exportQuery);
         req.setAttribute("ticketExportQuery", ticketExportQuery);

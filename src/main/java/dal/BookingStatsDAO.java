@@ -6,6 +6,7 @@ import model.dto.TopMovieStatsDTO;
 import model.dto.TopShowtimeStatsDTO;
 import utils.ReportDateUtil;
 import utils.ReportExportUtil;
+import utils.TicketChannelUtil;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -40,11 +41,17 @@ public class BookingStatsDAO {
             AND b.payment_status = 'PAID'
             """;
 
-    public BookingOverviewStatsDTO getOverviewStats(LocalDateTime fromInclusive, LocalDateTime toExclusive) {
+    public BookingOverviewStatsDTO getOverviewStats(
+            LocalDateTime fromInclusive, LocalDateTime toExclusive) {
+        return getOverviewStats(fromInclusive, toExclusive, TicketChannelUtil.CHANNEL_ALL);
+    }
+
+    public BookingOverviewStatsDTO getOverviewStats(
+            LocalDateTime fromInclusive, LocalDateTime toExclusive, String channel) {
         BookingOverviewStatsDTO stats = new BookingOverviewStatsDTO();
-        stats.setRevenue(sumRevenue(fromInclusive, toExclusive));
-        stats.setBookingCount(countBookings(fromInclusive, toExclusive));
-        stats.setTicketCount(countTickets(fromInclusive, toExclusive));
+        stats.setRevenue(sumRevenue(fromInclusive, toExclusive, channel));
+        stats.setBookingCount(countBookings(fromInclusive, toExclusive, channel));
+        stats.setTicketCount(countTickets(fromInclusive, toExclusive, channel));
         return stats;
     }
 
@@ -55,9 +62,15 @@ public class BookingStatsDAO {
 
     public List<RevenuePeriodStatsDTO> findRevenueByPeriod(
             LocalDateTime fromInclusive, LocalDateTime toExclusive, String groupBy) {
+        return findRevenueByPeriod(fromInclusive, toExclusive, groupBy, TicketChannelUtil.CHANNEL_ALL);
+    }
+
+    public List<RevenuePeriodStatsDTO> findRevenueByPeriod(
+            LocalDateTime fromInclusive, LocalDateTime toExclusive, String groupBy, String channel) {
         String normalized = ReportExportUtil.normalizeGroupBy(groupBy);
         PeriodSql periodSql = buildPeriodSql(normalized);
         String dateFilter = buildDateFilter("b.booked_at", fromInclusive, toExclusive);
+        String sourceFilter = TicketChannelUtil.buildSourceSql("b", channel);
 
         String sql = """
                 SELECT %s AS period_key,
@@ -69,6 +82,7 @@ public class BookingStatsDAO {
                 LEFT JOIN BookingSeats bs ON bs.booking_id = b.id
                 WHERE %s
                 %s
+                %s
                 GROUP BY %s
                 ORDER BY sort_key ASC
                 """.formatted(
@@ -76,6 +90,7 @@ public class BookingStatsDAO {
                 periodSql.sortExpr(),
                 PAID_BOOKING_WHERE_B,
                 dateFilter,
+                sourceFilter,
                 periodSql.groupByExpr());
 
         List<RevenuePeriodStatsDTO> result = new ArrayList<>();
@@ -102,12 +117,21 @@ public class BookingStatsDAO {
 
     public List<TopMovieStatsDTO> findTopMoviesByTickets(
             LocalDateTime fromInclusive, LocalDateTime toExclusive, int offset, int limit) {
+        return findTopMoviesByTickets(
+                fromInclusive, toExclusive, offset, limit, TicketChannelUtil.CHANNEL_ALL);
+    }
+
+    public List<TopMovieStatsDTO> findTopMoviesByTickets(
+            LocalDateTime fromInclusive, LocalDateTime toExclusive,
+            int offset, int limit, String channel) {
         if (limit <= 0) {
             return List.of();
         }
 
         String dateFilterB = buildDateFilter("b.booked_at", fromInclusive, toExclusive);
         String dateFilterB2 = buildDateFilter("b2.booked_at", fromInclusive, toExclusive);
+        String sourceB = TicketChannelUtil.buildSourceSql("b", channel);
+        String sourceB2 = TicketChannelUtil.buildSourceSql("b2", channel);
 
         String sql = """
                 SELECT m.id, m.title, m.poster_url,
@@ -124,6 +148,7 @@ public class BookingStatsDAO {
                     INNER JOIN BookingSeats bs ON bs.booking_id = b.id
                     WHERE %s
                     %s
+                    %s
                     GROUP BY s.movie_id
                 ) ticket_stats ON ticket_stats.movie_id = m.id
                 LEFT JOIN (
@@ -132,11 +157,14 @@ public class BookingStatsDAO {
                     INNER JOIN Showtimes s2 ON s2.id = b2.showtime_id
                     WHERE %s
                     %s
+                    %s
                     GROUP BY s2.movie_id
                 ) rev ON rev.movie_id = m.id
-                  ORDER BY rev.revenue ASC, ticket_stats.ticket_count ASC, m.title ASC
+                  ORDER BY rev.revenue DESC, ticket_stats.ticket_count DESC, m.title ASC
                 OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-                """.formatted(PAID_BOOKING_WHERE, dateFilterB, PAID_BOOKING_WHERE, dateFilterB2);
+                """.formatted(
+                PAID_BOOKING_WHERE, dateFilterB, sourceB,
+                PAID_BOOKING_WHERE, dateFilterB2, sourceB2);
 
         List<TopMovieStatsDTO> result = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
@@ -165,7 +193,12 @@ public class BookingStatsDAO {
     }
 
     public int countTopMovies(LocalDateTime fromInclusive, LocalDateTime toExclusive) {
+        return countTopMovies(fromInclusive, toExclusive, TicketChannelUtil.CHANNEL_ALL);
+    }
+
+    public int countTopMovies(LocalDateTime fromInclusive, LocalDateTime toExclusive, String channel) {
         String dateFilterB = buildDateFilter("b.booked_at", fromInclusive, toExclusive);
+        String sourceB = TicketChannelUtil.buildSourceSql("b", channel);
         String sql = """
                 SELECT COUNT(*) AS total
                 FROM (
@@ -175,9 +208,10 @@ public class BookingStatsDAO {
                     INNER JOIN BookingSeats bs ON bs.booking_id = b.id
                     WHERE %s
                     %s
+                    %s
                     GROUP BY s.movie_id
                 ) counted
-                """.formatted(PAID_BOOKING_WHERE, dateFilterB);
+                """.formatted(PAID_BOOKING_WHERE, dateFilterB, sourceB);
 
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -195,11 +229,19 @@ public class BookingStatsDAO {
 
     public List<TopShowtimeStatsDTO> findTicketStatsByShowtime(
             LocalDateTime fromInclusive, LocalDateTime toExclusive, int offset, int limit) {
+        return findTicketStatsByShowtime(
+                fromInclusive, toExclusive, offset, limit, TicketChannelUtil.CHANNEL_ALL);
+    }
+
+    public List<TopShowtimeStatsDTO> findTicketStatsByShowtime(
+            LocalDateTime fromInclusive, LocalDateTime toExclusive,
+            int offset, int limit, String channel) {
         if (limit <= 0) {
             return List.of();
         }
 
         String dateFilter = buildDateFilter("s.start_time", fromInclusive, toExclusive);
+        String sourceFilter = TicketChannelUtil.buildSourceSql("b", channel);
         String sql = """
                 SELECT s.id, m.title, r.room_name, s.start_time, s.end_time, s.status,
                        COUNT(bs.id) AS ticket_count,
@@ -212,10 +254,11 @@ public class BookingStatsDAO {
                 INNER JOIN CinemaRooms r ON r.id = s.room_id
                 WHERE %s
                 %s
+                %s
                 GROUP BY s.id, m.title, r.room_name, s.start_time, s.end_time, s.status
                 ORDER BY ticket_count DESC, s.start_time DESC
                 OFFSET ? ROWS FETCH NEXT ? ROWS ONLY
-                """.formatted(PAID_BOOKING_WHERE_B, dateFilter);
+                """.formatted(PAID_BOOKING_WHERE_B, dateFilter, sourceFilter);
 
         List<TopShowtimeStatsDTO> result = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
@@ -252,7 +295,13 @@ public class BookingStatsDAO {
     }
 
     public int countShowtimesWithTickets(LocalDateTime fromInclusive, LocalDateTime toExclusive) {
+        return countShowtimesWithTickets(fromInclusive, toExclusive, TicketChannelUtil.CHANNEL_ALL);
+    }
+
+    public int countShowtimesWithTickets(
+            LocalDateTime fromInclusive, LocalDateTime toExclusive, String channel) {
         String dateFilter = buildDateFilter("s.start_time", fromInclusive, toExclusive);
+        String sourceFilter = TicketChannelUtil.buildSourceSql("b", channel);
         String sql = """
                 SELECT COUNT(*) AS total
                 FROM (
@@ -262,9 +311,10 @@ public class BookingStatsDAO {
                     INNER JOIN BookingSeats bs ON bs.booking_id = b.id
                     WHERE %s
                     %s
+                    %s
                     GROUP BY s.id
                 ) counted
-                """.formatted(PAID_BOOKING_WHERE_B, dateFilter);
+                """.formatted(PAID_BOOKING_WHERE_B, dateFilter, sourceFilter);
 
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -280,13 +330,17 @@ public class BookingStatsDAO {
         return 0;
     }
 
-    private BigDecimal sumRevenue(LocalDateTime fromInclusive, LocalDateTime toExclusive) {
+    private BigDecimal sumRevenue(LocalDateTime fromInclusive, LocalDateTime toExclusive, String channel) {
         String sql = """
                 SELECT COALESCE(SUM(final_amount), 0) AS revenue
                 FROM Bookings
                 WHERE %s
                 %s
-                """.formatted(PAID_BOOKING_WHERE, buildDateFilter("booked_at", fromInclusive, toExclusive));
+                %s
+                """.formatted(
+                PAID_BOOKING_WHERE,
+                buildDateFilter("booked_at", fromInclusive, toExclusive),
+                TicketChannelUtil.buildSourceSql(null, channel));
 
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -302,13 +356,17 @@ public class BookingStatsDAO {
         return BigDecimal.ZERO;
     }
 
-    private int countBookings(LocalDateTime fromInclusive, LocalDateTime toExclusive) {
+    private int countBookings(LocalDateTime fromInclusive, LocalDateTime toExclusive, String channel) {
         String sql = """
                 SELECT COUNT(*) AS total
                 FROM Bookings
                 WHERE %s
                 %s
-                """.formatted(PAID_BOOKING_WHERE, buildDateFilter("booked_at", fromInclusive, toExclusive));
+                %s
+                """.formatted(
+                PAID_BOOKING_WHERE,
+                buildDateFilter("booked_at", fromInclusive, toExclusive),
+                TicketChannelUtil.buildSourceSql(null, channel));
 
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -324,14 +382,18 @@ public class BookingStatsDAO {
         return 0;
     }
 
-    private int countTickets(LocalDateTime fromInclusive, LocalDateTime toExclusive) {
+    private int countTickets(LocalDateTime fromInclusive, LocalDateTime toExclusive, String channel) {
         String sql = """
                 SELECT COUNT(bs.id) AS total
                 FROM BookingSeats bs
                 INNER JOIN Bookings b ON b.id = bs.booking_id
                 WHERE %s
                 %s
-                """.formatted(PAID_BOOKING_WHERE_B, buildDateFilter("b.booked_at", fromInclusive, toExclusive));
+                %s
+                """.formatted(
+                PAID_BOOKING_WHERE_B,
+                buildDateFilter("b.booked_at", fromInclusive, toExclusive),
+                TicketChannelUtil.buildSourceSql("b", channel));
 
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

@@ -11,6 +11,7 @@ import model.dto.TopShowtimeStatsDTO;
 import utils.AdminAuthUtil;
 import utils.ReportDateUtil;
 import utils.ReportExportUtil;
+import utils.TicketChannelUtil;
 import utils.TicketStatsViewUtil;
 
 import java.io.IOException;
@@ -31,6 +32,7 @@ public class AdminReportExportTicketsServlet extends HttpServlet {
         String from = req.getParameter("from");
         String to = req.getParameter("to");
         String viewBy = TicketStatsViewUtil.normalizeViewBy(req.getParameter("viewBy"));
+        String channel = TicketChannelUtil.normalizeChannel(req.getParameter("channel"));
 
         ReportDateUtil.ResolveResult resolved = ReportDateUtil.resolve(range, from, to);
         ReportDateUtil.DateRange dateRange = resolved.range();
@@ -40,16 +42,16 @@ public class AdminReportExportTicketsServlet extends HttpServlet {
         if (TicketStatsViewUtil.isShowtimeView(viewBy)) {
             List<TopShowtimeStatsDTO> rows = statsDAO.findTicketStatsByShowtime(
                     dateRange.fromInclusive(), dateRange.toExclusive(),
-                    0, BookingStatsDAO.EXPORT_ROW_LIMIT);
-            csv = ReportExportUtil.buildShowtimeTicketCsvBytes(rows, dateRange.label());
+                    0, BookingStatsDAO.EXPORT_ROW_LIMIT, channel);
+            csv = ReportExportUtil.buildShowtimeTicketCsvBytes(rows, dateRange.label(), channel);
         } else {
             List<TopMovieStatsDTO> rows = statsDAO.findTopMoviesByTickets(
                     dateRange.fromInclusive(), dateRange.toExclusive(),
-                    0, BookingStatsDAO.EXPORT_ROW_LIMIT);
-            csv = ReportExportUtil.buildMovieTicketCsvBytes(rows, dateRange.label());
+                    0, BookingStatsDAO.EXPORT_ROW_LIMIT, channel);
+            csv = ReportExportUtil.buildMovieTicketCsvBytes(rows, dateRange.label(), channel);
         }
 
-        String filename = ReportExportUtil.buildTicketFilename(viewBy, dateRange.rangeKey());
+        String filename = ReportExportUtil.buildTicketFilename(viewBy, dateRange.rangeKey(), channel);
 
         resp.setCharacterEncoding("UTF-8");
         resp.setContentType("text/csv; charset=UTF-8");

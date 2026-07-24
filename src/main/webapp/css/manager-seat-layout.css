@@ -13,11 +13,6 @@
 }
 
 .aud-detail-summary {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 20px;
   padding: 20px 24px;
   border-radius: 16px;
   margin-bottom: 24px;
@@ -86,54 +81,86 @@
 
 .aud-meta-sep { margin: 0 8px; opacity: 0.5; }
 
-.aud-detail-summary__actions {
+.slt-sidebar__section--room {
+  margin-top: auto;
+}
+
+.slt-room-controls {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-  min-width: 220px;
+  gap: 14px;
 }
 
-.aud-rename-form {
+.slt-room-form {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  width: 100%;
-}
-
-.aud-rename-input {
-  flex: 1;
-  min-width: 140px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(175, 135, 130, 0.25);
-  background: rgba(26, 9, 8, 0.5);
-  color: #ffdad5;
-  font-size: 14px;
-}
-
-.aud-rename-input:focus {
-  outline: none;
-  border-color: rgba(229, 9, 20, 0.4);
-}
-
-.aud-status-form--detail {
+  flex-direction: column;
+  gap: 6px;
   margin: 0;
   width: 100%;
 }
 
-.aud-status-form--detail .aud-status-field {
-  width: 100%;
+.slt-room-form .slt-field-label {
+  margin-left: 0;
 }
 
-.aud-status-form--detail .aud-status-select-wrap {
+.slt-status-select-wrap {
   width: 100%;
+  display: block;
+  position: relative;
 }
 
-.aud-status-form--detail .aud-status-select {
+.slt-status-select-wrap .aud-status-select {
   width: 100%;
   min-width: 0;
+}
+
+.slt-room-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slt-room-btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.slt-room-btn--ghost {
+  background: rgba(42, 22, 20, 0.6);
+  border: 1px solid rgba(175, 135, 130, 0.2);
+  color: #ffdad5;
+}
+
+.slt-room-btn--ghost:hover {
+  background: rgba(58, 37, 34, 0.85);
+  border-color: rgba(255, 180, 170, 0.35);
+}
+
+.slt-room-btn--danger {
+  background: rgba(120, 24, 28, 0.55);
+  border: 1px solid rgba(255, 140, 130, 0.35);
+  color: #ffdad5;
+}
+
+.slt-room-btn--danger:not(:disabled):hover {
+  background: rgba(160, 28, 34, 0.75);
+  border-color: rgba(255, 160, 150, 0.55);
+}
+
+.slt-room-btn--danger:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.slt-room-form--rename .slt-room-btn {
+  margin-top: 2px;
 }
 
 /* ── Editor shell ── */
@@ -371,51 +398,6 @@
   box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.15);
 }
 
-.slt-toggle-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #ffdad5;
-}
-
-.slt-toggle-check { position: absolute; opacity: 0; width: 0; height: 0; }
-
-.slt-toggle-ui {
-  width: 40px;
-  height: 22px;
-  border-radius: 999px;
-  background: #462f2c;
-  border: 1px solid rgba(94, 63, 59, 0.3);
-  position: relative;
-  flex-shrink: 0;
-  transition: background 0.2s ease;
-}
-
-.slt-toggle-ui::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #af8782;
-  transition: transform 0.2s ease, background 0.2s ease;
-}
-
-.slt-toggle-check:checked + .slt-toggle-ui {
-  background: rgba(229, 9, 20, 0.35);
-  border-color: rgba(229, 9, 20, 0.5);
-}
-
-.slt-toggle-check:checked + .slt-toggle-ui::after {
-  transform: translateX(18px);
-  background: #ffb4aa;
-}
-
 .slt-discard-btn {
   margin-top: auto;
   width: 100%;
@@ -547,20 +529,21 @@
   border: none;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  font-size: 11px;
-  font-weight: 600;
-  color: rgba(0, 0, 0, 0.55);
+  font-size: 12px;
+  font-weight: 700;
+  color: #1a1a1a;
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
 }
 
 .slt-seat--wide {
   width: 100px;
 }
 
-.slt-seat--regular  { background: #cccccc; }
-.slt-seat--vip      { background: #ffd700; box-shadow: 0 0 12px rgba(255, 215, 0, 0.25); }
+.slt-seat--regular  { background: #cccccc; color: #1a1a1a; }
+.slt-seat--vip      { background: #ffd700; color: #1a1a1a; box-shadow: 0 0 12px rgba(255, 215, 0, 0.25); }
 .slt-seat--couple   { background: #ff4d94; color: #fff; }
 .slt-seat--sweetbox { background: #0072d7; color: #fff; }
 

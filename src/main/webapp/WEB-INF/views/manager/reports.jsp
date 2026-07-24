@@ -77,6 +77,14 @@
             <option value="showtime"  <c:if test="${filterViewBy == 'showtime'}">selected</c:if>>Suất chiếu</option>
           </select>
         </div>
+        <div class="admin-field">
+          <label class="admin-label" for="channel">Kênh bán vé</label>
+          <select id="channel" name="channel" class="admin-select">
+            <option value="all"     <c:if test="${filterChannel == 'all'}">selected</c:if>>Tất cả kênh</option>
+            <option value="online"  <c:if test="${filterChannel == 'online'}">selected</c:if>>Web online (khách hàng)</option>
+            <option value="offline" <c:if test="${filterChannel == 'offline'}">selected</c:if>>Quầy trực tiếp (staff)</option>
+          </select>
+        </div>
         <button type="submit" class="admin-btn admin-btn--primary">Áp dụng</button>
         <a href="${pageContext.request.contextPath}/manager/reports" class="admin-btn admin-btn--ghost">Xóa lọc</a>
         <a href="${pageContext.request.contextPath}/manager/reports/export?${exportQuery}"
@@ -90,6 +98,10 @@
       </form>
       <p class="admin-stats" style="margin-top:12px;margin-bottom:0;">
         Chỉ tính đơn đã thanh toán (<strong>CONFIRMED</strong> + <strong>PAID</strong>).
+        <strong>Kênh bán vé</strong> lọc theo nơi đặt
+        (<strong>Web online</strong> = khách tự đặt;
+        <strong>Quầy staff</strong> = bán trực tiếp) —
+        <em>không</em> phân biệt tiền mặt / chuyển khoản.
         Nhập từ/đến ngày để lọc tùy chọn; để trống cả hai sẽ dùng preset bên trái.
       </p>
     </div>
@@ -164,6 +176,7 @@
             <c:out value="${rangeLabel}"/>.
           </c:otherwise>
         </c:choose>
+        Kênh: <strong><c:out value="${channelLabel}"/></strong>.
         <c:if test="${not empty ticketStatsTotal}">
           — <strong><c:out value="${ticketStatsTotal}"/></strong>
           <c:choose>
