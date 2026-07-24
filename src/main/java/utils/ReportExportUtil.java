@@ -82,27 +82,52 @@ public final class ReportExportUtil {
     }
 
     public static String buildExportQuery(String range, String from, String to, String groupBy) {
+        return buildExportQuery(range, from, to, groupBy, TicketChannelUtil.CHANNEL_ALL);
+    }
+
+    public static String buildExportQuery(
+            String range, String from, String to, String groupBy, String channel) {
         StringBuilder q = new StringBuilder();
         appendParam(q, "range", range);
         appendParam(q, "from", from);
         appendParam(q, "to", to);
         appendParam(q, "groupBy", normalizeGroupBy(groupBy));
+        String ch = TicketChannelUtil.normalizeChannel(channel);
+        if (!TicketChannelUtil.isAll(ch)) {
+            appendParam(q, "channel", ch);
+        }
         return q.toString();
     }
 
     public static String buildTicketExportQuery(String range, String from, String to, String viewBy) {
+        return buildTicketExportQuery(range, from, to, viewBy, TicketChannelUtil.CHANNEL_ALL);
+    }
+
+    public static String buildTicketExportQuery(
+            String range, String from, String to, String viewBy, String channel) {
         StringBuilder q = new StringBuilder();
         appendParam(q, "range", range);
         appendParam(q, "from", from);
         appendParam(q, "to", to);
         appendParam(q, "viewBy", TicketStatsViewUtil.normalizeViewBy(viewBy));
+        String ch = TicketChannelUtil.normalizeChannel(channel);
+        if (!TicketChannelUtil.isAll(ch)) {
+            appendParam(q, "channel", ch);
+        }
         return q.toString();
     }
 
     public static byte[] buildMovieTicketCsvBytes(List<TopMovieStatsDTO> rows, String rangeLabel) {
+        return buildMovieTicketCsvBytes(rows, rangeLabel, TicketChannelUtil.CHANNEL_ALL);
+    }
+
+    public static byte[] buildMovieTicketCsvBytes(
+            List<TopMovieStatsDTO> rows, String rangeLabel, String channel) {
         StringBuilder sb = new StringBuilder();
         sb.append("# ÉPCINE — Thống kê vé bán theo phim\n");
         sb.append("# Khoảng: ").append(escapeCsv(rangeLabel)).append('\n');
+        sb.append("# Kênh bán: ").append(escapeCsv(TicketChannelUtil.channelLabel(channel))).append('\n');
+        sb.append("# Lọc theo kênh đặt vé (ONLINE/OFFLINE), không phải hình thức thanh toán\n");
         sb.append("# Lọc theo: ngày đặt vé (booked_at)\n");
         sb.append("# Tạo lúc: ").append(LocalDateTime.now().format(EXPORT_TS_FMT)).append('\n');
         sb.append("Phim,Số vé,Số đơn,Doanh thu (VND)\n");
@@ -121,9 +146,16 @@ public final class ReportExportUtil {
     }
 
     public static byte[] buildShowtimeTicketCsvBytes(List<TopShowtimeStatsDTO> rows, String rangeLabel) {
+        return buildShowtimeTicketCsvBytes(rows, rangeLabel, TicketChannelUtil.CHANNEL_ALL);
+    }
+
+    public static byte[] buildShowtimeTicketCsvBytes(
+            List<TopShowtimeStatsDTO> rows, String rangeLabel, String channel) {
         StringBuilder sb = new StringBuilder();
         sb.append("# ÉPCINE — Thống kê vé bán theo suất chiếu\n");
         sb.append("# Khoảng: ").append(escapeCsv(rangeLabel)).append('\n');
+        sb.append("# Kênh bán: ").append(escapeCsv(TicketChannelUtil.channelLabel(channel))).append('\n');
+        sb.append("# Lọc theo kênh đặt vé (ONLINE/OFFLINE), không phải hình thức thanh toán\n");
         sb.append("# Lọc theo: giờ chiếu (start_time)\n");
         sb.append("# Tạo lúc: ").append(LocalDateTime.now().format(EXPORT_TS_FMT)).append('\n');
         sb.append("Phim,Phòng,Giờ chiếu,Trạng thái,Số vé,Số đơn,Doanh thu (VND)\n");
@@ -145,9 +177,15 @@ public final class ReportExportUtil {
     }
 
     public static String buildTicketFilename(String viewBy, String rangeKey) {
+        return buildTicketFilename(viewBy, rangeKey, TicketChannelUtil.CHANNEL_ALL);
+    }
+
+    public static String buildTicketFilename(String viewBy, String rangeKey, String channel) {
         String normalized = TicketStatsViewUtil.normalizeViewBy(viewBy);
         String safeRange = rangeKey == null || rangeKey.isBlank() ? "all" : rangeKey.replaceAll("[^a-zA-Z0-9_-]", "");
-        return "tickets-" + normalized + "-" + safeRange + ".csv";
+        String ch = TicketChannelUtil.normalizeChannel(channel);
+        String chPart = TicketChannelUtil.isAll(ch) ? "" : ("-" + ch);
+        return "tickets-" + normalized + chPart + "-" + safeRange + ".csv";
     }
 
     private static String formatShowtime(Date value) {

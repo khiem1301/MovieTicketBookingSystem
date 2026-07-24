@@ -127,7 +127,6 @@
   var seatCountEl = document.getElementById('sltSeatCount');
   var rowCountEl = document.getElementById('sltRowCount');
   var capacityEl = document.getElementById('sltCapacityDisplay');
-  var placedMetaEl = document.getElementById('sltPlacedMeta');
   var saveBtn = document.getElementById('sltSave');
 
   function uid() {
@@ -227,7 +226,6 @@
     if (seatCountEl) seatCountEl.textContent = String(n);
     if (rowCountEl) rowCountEl.textContent = String(state.rows.length);
     if (capacityEl) capacityEl.textContent = String(n);
-    if (placedMetaEl) placedMetaEl.textContent = t('placedMeta', { n: n });
   }
 
   function nextRowLabel() {
@@ -308,6 +306,10 @@
       return prepareRows(cfg.layoutJson.rows);
     }
 
+    if (cfg.startEmpty || cfg.mode === 'create') {
+      return emptyLayout();
+    }
+
     if ((cfg.dbSeatCount || 0) === 0) {
       try {
         var raw = localStorage.getItem(storageKey());
@@ -324,12 +326,31 @@
 
   function submitToBackend() {
     var n = countSeats();
-    if (n === 0) {
-      if (!confirm(t('confirmSaveEmpty'))) {
+    var isCreate = cfg.mode === 'create' || cfg.requireSeats;
+
+    if (isCreate) {
+      var nameInput = document.getElementById('createRoomName');
+      var roomName = nameInput ? String(nameInput.value || '').trim() : '';
+      if (!roomName) {
+        alert(t('alertRoomName') || 'Vui lòng nhập tên phòng trước khi lưu.');
+        if (nameInput) nameInput.focus();
         return;
       }
-    } else if (!confirm(t('confirmSave', { n: n }))) {
-      return;
+      if (n === 0) {
+        alert(t('confirmSaveEmpty') || 'Phải đặt ít nhất 1 ghế trước khi tạo phòng.');
+        return;
+      }
+      if (!confirm(t('confirmSave', { n: n }))) {
+        return;
+      }
+    } else {
+      if (n === 0) {
+        if (!confirm(t('confirmSaveEmpty'))) {
+          return;
+        }
+      } else if (!confirm(t('confirmSave', { n: n }))) {
+        return;
+      }
     }
 
     var form = document.getElementById('sltSaveForm');
@@ -486,18 +507,13 @@
         }
         seatEl.dataset.row = String(rowIdx);
         seatEl.dataset.col = String(cellIdx);
+        var numLabel = seatNumberLabel(row, cell, cellIdx);
         seatEl.title = state.tool === 'delete'
-          ? (cell.code ? cell.code + ' \u2014 ' + t('deleteSeat') : t('deleteSeat'))
-          : (cell.code || '');
+          ? ((cell.code || (row.label + numLabel)) + ' \u2014 ' + t('deleteSeat'))
+          : (cell.code || (row.label + numLabel));
 
-        if (meta.icon) {
-          var icon = document.createElement('span');
-          icon.className = 'material-symbols-outlined slt-seat-icon';
-          icon.textContent = meta.icon;
-          seatEl.appendChild(icon);
-        } else if (document.getElementById('sltAutoNumber') && document.getElementById('sltAutoNumber').checked && cell.code) {
-          seatEl.textContent = cell.code.replace(/^[A-Z]/, '');
-        }
+        // Always show seat number on the cell.
+        seatEl.textContent = numLabel;
 
         seatEl.addEventListener('click', onCellClick);
         cellsEl.appendChild(seatEl);
@@ -567,11 +583,25 @@
     var max = 0;
     row.cells.forEach(function (c) {
       if (c.kind === 'seat' && c.code) {
-        var num = parseInt(c.code.replace(/^[A-Z]+/, ''), 10);
+        var num = parseInt(c.code.replace(/^[A-Za-z]+/, ''), 10);
         if (!isNaN(num) && num > max) max = num;
       }
     });
     return label + (max + 1);
+  }
+
+  /** Số hiện trên ô ghế — luôn có giá trị. */
+  function seatNumberLabel(row, cell, cellIdx) {
+    if (cell.code) {
+      var stripped = String(cell.code).replace(/^[A-Za-z]+/, '');
+      if (stripped) return stripped;
+      return String(cell.code);
+    }
+    var n = 0;
+    for (var i = 0; i <= cellIdx; i++) {
+      if (row.cells[i] && row.cells[i].kind === 'seat') n++;
+    }
+    return String(n || 1);
   }
 
   function addSeatToRow(rowIdx) {

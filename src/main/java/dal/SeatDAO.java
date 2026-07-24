@@ -130,57 +130,7 @@ public class SeatDAO {
         try {
             conn = DBContext.getConnection();
             conn.setAutoCommit(false);
-
-            String deleteSql = "DELETE FROM Seats WHERE room_id = ? AND status <> 'BROKEN'";
-            try (PreparedStatement ps = conn.prepareStatement(deleteSql)) {
-                ps.setString(1, roomId);
-                ps.executeUpdate();
-            }
-
-            String updateBrokenSql = """
-                    UPDATE Seats SET status = 'ACTIVE', seat_type_id = ?, seat_row = ?, seat_column = ?
-                    WHERE room_id = ? AND seat_code = ? AND status = 'BROKEN'
-                    """;
-            String insertSql = """
-                    INSERT INTO Seats (id, room_id, seat_type_id, seat_row, seat_column, seat_code, status)
-                    VALUES (NEWID(), ?, ?, ?, ?, ?, 'ACTIVE')
-                    """;
-
-            for (Seat seat : seats) {
-                int updated;
-                try (PreparedStatement ps = conn.prepareStatement(updateBrokenSql)) {
-                    ps.setString(1, seat.getSeatTypeId());
-                    ps.setString(2, seat.getSeatRow());
-                    ps.setInt(3, seat.getSeatColumn());
-                    ps.setString(4, roomId);
-                    ps.setString(5, seat.getSeatCode());
-                    updated = ps.executeUpdate();
-                }
-                if (updated == 0) {
-                    try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
-                        ps.setString(1, roomId);
-                        ps.setString(2, seat.getSeatTypeId());
-                        ps.setString(3, seat.getSeatRow());
-                        ps.setInt(4, seat.getSeatColumn());
-                        ps.setString(5, seat.getSeatCode());
-                        ps.executeUpdate();
-                    }
-                }
-            }
-
-            String syncCapSql = """
-                    UPDATE CinemaRooms
-                    SET capacity = (
-                        SELECT COUNT(*) FROM Seats WHERE room_id = ? AND status = 'ACTIVE'
-                    )
-                    WHERE id = ?
-                    """;
-            try (PreparedStatement ps = conn.prepareStatement(syncCapSql)) {
-                ps.setString(1, roomId);
-                ps.setString(2, roomId);
-                ps.executeUpdate();
-            }
-
+            saveLayout(conn, roomId, seats);
             conn.commit();
         } catch (SQLException e) {
             if (conn != null) {
@@ -194,6 +144,59 @@ public class SeatDAO {
                     conn.close();
                 } catch (SQLException ignored) { }
             }
+        }
+    }
+
+    /** Lưu layout trong transaction đang mở (dùng khi tạo phòng + layout cùng lúc). */
+    public void saveLayout(Connection conn, String roomId, List<Seat> seats) throws SQLException {
+        String deleteSql = "DELETE FROM Seats WHERE room_id = ? AND status <> 'BROKEN'";
+        try (PreparedStatement ps = conn.prepareStatement(deleteSql)) {
+            ps.setString(1, roomId);
+            ps.executeUpdate();
+        }
+
+        String updateBrokenSql = """
+                UPDATE Seats SET status = 'ACTIVE', seat_type_id = ?, seat_row = ?, seat_column = ?
+                WHERE room_id = ? AND seat_code = ? AND status = 'BROKEN'
+                """;
+        String insertSql = """
+                INSERT INTO Seats (id, room_id, seat_type_id, seat_row, seat_column, seat_code, status)
+                VALUES (NEWID(), ?, ?, ?, ?, ?, 'ACTIVE')
+                """;
+
+        for (Seat seat : seats) {
+            int updated;
+            try (PreparedStatement ps = conn.prepareStatement(updateBrokenSql)) {
+                ps.setString(1, seat.getSeatTypeId());
+                ps.setString(2, seat.getSeatRow());
+                ps.setInt(3, seat.getSeatColumn());
+                ps.setString(4, roomId);
+                ps.setString(5, seat.getSeatCode());
+                updated = ps.executeUpdate();
+            }
+            if (updated == 0) {
+                try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                    ps.setString(1, roomId);
+                    ps.setString(2, seat.getSeatTypeId());
+                    ps.setString(3, seat.getSeatRow());
+                    ps.setInt(4, seat.getSeatColumn());
+                    ps.setString(5, seat.getSeatCode());
+                    ps.executeUpdate();
+                }
+            }
+        }
+
+        String syncCapSql = """
+                UPDATE CinemaRooms
+                SET capacity = (
+                    SELECT COUNT(*) FROM Seats WHERE room_id = ? AND status = 'ACTIVE'
+                )
+                WHERE id = ?
+                """;
+        try (PreparedStatement ps = conn.prepareStatement(syncCapSql)) {
+            ps.setString(1, roomId);
+            ps.setString(2, roomId);
+            ps.executeUpdate();
         }
     }
 

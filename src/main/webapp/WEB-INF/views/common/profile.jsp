@@ -157,32 +157,7 @@
         </form>
       </section>
 
-      <div class="profile-cards-row">
-        <%@ include file="/WEB-INF/views/common/profile-security.jspf" %>
-
-        <section class="profile-card profile-card--preferences" aria-labelledby="preferences-heading">
-          <header class="profile-card-header">
-            <span class="profile-card-icon" aria-hidden="true">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
-            </span>
-            <h2 class="profile-card-title" id="preferences-heading">Sở thích</h2>
-          </header>
-          <p class="profile-preferences-lead">
-            Chọn thể loại phim yêu thích để nhận gợi ý phù hợp hơn.
-          </p>
-          <div class="profile-tag-cloud" aria-hidden="true">
-            <span class="profile-tag profile-tag--active">Hành động</span>
-            <span class="profile-tag profile-tag--active">Khoa học viễn tưởng</span>
-            <span class="profile-tag profile-tag--active">Giật gân</span>
-            <span class="profile-tag">Tâm lý</span>
-            <span class="profile-tag">Hài</span>
-            <span class="profile-tag profile-tag--disabled">+ Thêm</span>
-          </div>
-          <p class="profile-coming-soon">Tính năng sắp ra mắt</p>
-        </section>
-      </div>
+      <%@ include file="/WEB-INF/views/common/profile-security.jspf" %>
     </div>
   </div>
 </main>

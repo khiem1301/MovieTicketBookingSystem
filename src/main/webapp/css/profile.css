@@ -75,13 +75,6 @@
   min-width: 0;
 }
 
-.profile-cards-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.25rem;
-  align-items: stretch;
-}
-
 /* ── Sidebar ────────────────────────────────────────────────── */
 
 .profile-sidebar {
@@ -277,11 +270,9 @@
   padding-bottom: 1.75rem;
 }
 
-.profile-card--security,
-.profile-card--preferences {
+.profile-card--security {
   display: flex;
   flex-direction: column;
-  height: 100%;
 }
 
 /* ── Forms ──────────────────────────────────────────────────── */
@@ -418,51 +409,7 @@
   margin-top: auto;
 }
 
-/* ── Preferences placeholder ─────────────────────────────────── */
-
-.profile-preferences-lead {
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  line-height: 1.55;
-  margin: 0 0 1rem;
-}
-
-.profile-tag-cloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.profile-tag {
-  display: inline-block;
-  padding: 0.4rem 0.85rem;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text-muted);
-  border: 1px solid transparent;
-}
-
-.profile-tag--active {
-  background: rgba(229, 57, 53, 0.14);
-  color: var(--accent);
-  border-color: rgba(229, 57, 53, 0.35);
-}
-
-.profile-tag--disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
-.profile-coming-soon {
-  margin-top: auto;
-  font-size: 0.78rem;
-  color: var(--text-dim);
-  font-style: italic;
-  padding-top: 0.5rem;
-}
+/* ── Legacy / misc ───────────────────────────────────────────── */
 
 /* ── Security verify page (shared) ──────────────────────────── */
 
@@ -578,10 +525,6 @@
 }
 
 @media (max-width: 768px) {
-  .profile-cards-row {
-    grid-template-columns: 1fr;
-  }
-
   .profile-form--grid {
     grid-template-columns: 1fr;
   }

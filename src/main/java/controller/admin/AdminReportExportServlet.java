@@ -10,6 +10,7 @@ import model.dto.RevenuePeriodStatsDTO;
 import utils.AdminAuthUtil;
 import utils.ReportDateUtil;
 import utils.ReportExportUtil;
+import utils.TicketChannelUtil;
 
 import java.io.IOException;
 import java.util.List;
@@ -29,12 +30,13 @@ public class AdminReportExportServlet extends HttpServlet {
         String from = req.getParameter("from");
         String to = req.getParameter("to");
         String groupBy = ReportExportUtil.normalizeGroupBy(req.getParameter("groupBy"));
+        String channel = TicketChannelUtil.normalizeChannel(req.getParameter("channel"));
 
         ReportDateUtil.ResolveResult resolved = ReportDateUtil.resolve(range, from, to);
         ReportDateUtil.DateRange dateRange = resolved.range();
 
         List<RevenuePeriodStatsDTO> rows = new BookingStatsDAO().findRevenueByPeriod(
-                dateRange.fromInclusive(), dateRange.toExclusive(), groupBy);
+                dateRange.fromInclusive(), dateRange.toExclusive(), groupBy, channel);
 
         byte[] csv = ReportExportUtil.buildCsvBytes(rows, dateRange.label(), groupBy);
         String filename = ReportExportUtil.buildFilename(groupBy, dateRange.rangeKey());

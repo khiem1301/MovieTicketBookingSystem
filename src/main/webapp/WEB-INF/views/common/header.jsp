@@ -16,13 +16,13 @@ uri="jakarta.tags.functions" %>
     <c:if test="${not empty extraCss}">
       <link
         rel="stylesheet"
-        href="${pageContext.request.contextPath}/css/${extraCss}.css?v=3"
+        href="${pageContext.request.contextPath}/css/${extraCss}.css?v=4"
       />
     </c:if>
     <c:if test="${not empty extraCss2}">
       <link
         rel="stylesheet"
-        href="${pageContext.request.contextPath}/css/${extraCss2}.css?v=4"
+        href="${pageContext.request.contextPath}/css/${extraCss2}.css?v=6"
       />
     </c:if>
   </head>

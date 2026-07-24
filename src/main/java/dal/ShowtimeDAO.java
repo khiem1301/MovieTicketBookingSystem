@@ -136,7 +136,7 @@ public class ShowtimeDAO {
                 FROM Showtimes s
                 JOIN Movies m       ON m.id = s.movie_id
                 JOIN CinemaRooms cr ON cr.id = s.room_id
-                ORDER BY s.start_time DESC
+                ORDER BY cr.room_name ASC, s.start_time DESC
                 """;
         List<Showtime> result = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
