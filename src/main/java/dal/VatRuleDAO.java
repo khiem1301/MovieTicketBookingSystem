@@ -4,10 +4,12 @@ import model.entity.VatRule;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -133,10 +135,6 @@ public class VatRuleDAO {
         return result;
     }
 
-    /**
-     * Deactivates all ACTIVE rules and inserts a new ACTIVE rule.
-     * Preserves history — old rules become INACTIVE with end_date set.
-     */
     public Optional<VatRule> findById(String id) {
         if (id == null || id.isBlank()) {
             return Optional.empty();
@@ -156,6 +154,47 @@ public class VatRuleDAO {
         return Optional.empty();
     }
 
+    /**
+     * Đã có quy tắc ACTIVE hoặc đang hiệu lực bắt đầu đúng ngày {@code date}.
+     * Quy tắc đã hủy (INACTIVE + chưa tới ngày) không tính.
+     */
+    public boolean existsByStartDate(LocalDate date, String excludeId) {
+        if (date == null) {
+            return false;
+        }
+        String sql = """
+                SELECT 1 FROM VatRules
+                WHERE CAST(start_date AS DATE) = ?
+                  AND (
+                    status = 'ACTIVE'
+                    OR (
+                      start_date <= GETDATE()
+                      AND (end_date IS NULL OR end_date >= GETDATE())
+                    )
+                  )
+                  AND (? IS NULL OR id <> ?)
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setDate(1, Date.valueOf(date));
+            ps.setString(2, blankToNull(excludeId));
+            ps.setString(3, blankToNull(excludeId));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("existsByStartDate failed", e);
+        }
+    }
+
+    /** Quy tắc đang hiệu lực đã bắt đầu hôm nay → đã thay/áp dụng trong ngày. */
+    public boolean hasReplacedEffectiveToday() {
+        return findEffectiveNow()
+                .map(VatRule::getStartDate)
+                .map(ts -> ts.toLocalDateTime().toLocalDate().equals(LocalDate.now()))
+                .orElse(false);
+    }
+
     public boolean isScheduledEditable(VatRule rule) {
         return rule != null
                 && "ACTIVE".equals(rule.getStatus())
@@ -173,17 +212,15 @@ public class VatRuleDAO {
             throw new RuntimeException("Rule is not editable: " + id);
         }
 
-        Timestamp oldStartDate = existing.getStartDate();
+        LocalDate newDay = newStartDate.toLocalDateTime().toLocalDate();
+        if (existsByStartDate(newDay, id)) {
+            throw new DuplicateStartDateException(newDay);
+        }
+
         String updateRuleSql = """
                 UPDATE VatRules
                 SET rule_name = ?, vat_rate = ?, start_date = ?
                 WHERE id = ? AND status = 'ACTIVE' AND start_date > GETDATE()
-                """;
-        String shiftEndDateSql = """
-                UPDATE VatRules
-                SET end_date = ?
-                WHERE status = 'INACTIVE'
-                  AND end_date = ?
                 """;
 
         try (Connection conn = DBContext.getConnection()) {
@@ -198,13 +235,7 @@ public class VatRuleDAO {
                         throw new SQLException("Scheduled rule no longer editable: " + id);
                     }
                 }
-                if (!oldStartDate.equals(newStartDate)) {
-                    try (PreparedStatement ps = conn.prepareStatement(shiftEndDateSql)) {
-                        ps.setTimestamp(1, newStartDate);
-                        ps.setTimestamp(2, oldStartDate);
-                        ps.executeUpdate();
-                    }
-                }
+                rechainTimeline(conn);
                 conn.commit();
             } catch (SQLException e) {
                 conn.rollback();
@@ -212,13 +243,15 @@ public class VatRuleDAO {
             } finally {
                 conn.setAutoCommit(true);
             }
+        } catch (DuplicateStartDateException e) {
+            throw e;
         } catch (SQLException e) {
             throw new RuntimeException("updateScheduled failed", e);
         }
     }
 
     /**
-     * Hủy quy tắc đã lên lịch — khôi phục end_date của quy tắc trước đó (nếu có).
+     * Hủy quy tắc đã lên lịch — nối lại end_date của các quy tắc còn lại.
      */
     public void cancelScheduled(String id) {
         VatRule existing = findById(id)
@@ -227,21 +260,10 @@ public class VatRuleDAO {
             throw new RuntimeException("Rule is not cancellable: " + id);
         }
 
-        Timestamp scheduledStart = existing.getStartDate();
         String cancelSql = """
                 UPDATE VatRules
                 SET status = 'INACTIVE'
                 WHERE id = ? AND status = 'ACTIVE' AND start_date > GETDATE()
-                """;
-        String restoreEndDateSql = """
-                UPDATE VatRules
-                SET end_date = NULL
-                WHERE id = (
-                    SELECT TOP 1 id FROM VatRules
-                    WHERE status = 'INACTIVE'
-                      AND end_date = ?
-                    ORDER BY start_date DESC
-                )
                 """;
 
         try (Connection conn = DBContext.getConnection()) {
@@ -253,10 +275,7 @@ public class VatRuleDAO {
                         throw new SQLException("Scheduled rule no longer cancellable: " + id);
                     }
                 }
-                try (PreparedStatement ps = conn.prepareStatement(restoreEndDateSql)) {
-                    ps.setTimestamp(1, scheduledStart);
-                    ps.executeUpdate();
-                }
+                rechainTimeline(conn);
                 conn.commit();
             } catch (SQLException e) {
                 conn.rollback();
@@ -269,13 +288,19 @@ public class VatRuleDAO {
         }
     }
 
+    /**
+     * Tạo quy tắc mới (áp dụng ngay hoặc lên lịch). Cho phép nhiều lịch khác ngày;
+     * mỗi ngày bắt đầu chỉ một quy tắc.
+     */
     public void createAndActivate(String ruleName, BigDecimal vatRate, Timestamp startDate) {
-        String deactivateSql = """
-                UPDATE VatRules
-                SET status = 'INACTIVE',
-                    end_date = CASE WHEN end_date IS NULL THEN ? ELSE end_date END
-                WHERE status = 'ACTIVE'
-                """;
+        LocalDate startDay = startDate.toLocalDateTime().toLocalDate();
+        if (startDay.equals(LocalDate.now()) && hasReplacedEffectiveToday()) {
+            throw new SameDayReplaceLimitException();
+        }
+        if (existsByStartDate(startDay, null)) {
+            throw new DuplicateStartDateException(startDay);
+        }
+
         String insertSql = """
                 INSERT INTO VatRules (id, rule_name, vat_rate, start_date, end_date, status)
                 VALUES (?, ?, ?, ?, NULL, 'ACTIVE')
@@ -284,10 +309,6 @@ public class VatRuleDAO {
         try (Connection conn = DBContext.getConnection()) {
             conn.setAutoCommit(false);
             try {
-                try (PreparedStatement ps = conn.prepareStatement(deactivateSql)) {
-                    ps.setTimestamp(1, startDate);
-                    ps.executeUpdate();
-                }
                 try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
                     ps.setString(1, UUID.randomUUID().toString());
                     ps.setString(2, ruleName);
@@ -295,6 +316,7 @@ public class VatRuleDAO {
                     ps.setTimestamp(4, startDate);
                     ps.executeUpdate();
                 }
+                rechainTimeline(conn);
                 conn.commit();
             } catch (SQLException e) {
                 conn.rollback();
@@ -302,9 +324,85 @@ public class VatRuleDAO {
             } finally {
                 conn.setAutoCommit(true);
             }
+        } catch (DuplicateStartDateException | SameDayReplaceLimitException e) {
+            throw e;
         } catch (SQLException e) {
             throw new RuntimeException("createAndActivate failed", e);
         }
+    }
+
+    /**
+     * Nối chuỗi theo start_date tăng dần cho mọi rule ACTIVE + rule đang mở (end_date NULL).
+     * Rule đã qua ngày bắt đầu và bị rule sau thay → INACTIVE; lịch tương lai giữ ACTIVE.
+     */
+    private void rechainTimeline(Connection conn) throws SQLException {
+        List<VatRule> chain = loadChainRules(conn);
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+
+        String updateSql = """
+                UPDATE VatRules
+                SET end_date = ?, status = ?
+                WHERE id = ?
+                """;
+
+        try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+            for (int i = 0; i < chain.size(); i++) {
+                VatRule cur = chain.get(i);
+                Timestamp end = (i < chain.size() - 1) ? chain.get(i + 1).getStartDate() : null;
+                boolean startsInFuture = cur.getStartDate().after(now);
+                String status;
+                if (startsInFuture) {
+                    status = "ACTIVE";
+                } else if (end != null) {
+                    status = "INACTIVE";
+                } else {
+                    status = "ACTIVE";
+                }
+
+                if (end != null) {
+                    ps.setTimestamp(1, end);
+                } else {
+                    ps.setNull(1, java.sql.Types.TIMESTAMP);
+                }
+                ps.setString(2, status);
+                ps.setString(3, cur.getId());
+                ps.executeUpdate();
+            }
+        }
+    }
+
+    /**
+     * Rule thuộc chuỗi: ACTIVE, hoặc đang mở end_date NULL (current), hoặc INACTIVE nhưng
+     * end_date vẫn trỏ tới một ACTIVE (tiền nhiệm của lịch).
+     * Loại trừ lịch đã hủy: INACTIVE + start trong tương lai.
+     */
+    private List<VatRule> loadChainRules(Connection conn) throws SQLException {
+        String sql = SELECT_COLUMNS + """
+                WHERE status = 'ACTIVE'
+                   OR (
+                     end_date IS NULL
+                     AND start_date <= GETDATE()
+                   )
+                   OR (
+                     status = 'INACTIVE'
+                     AND end_date IS NOT NULL
+                     AND start_date <= GETDATE()
+                     AND end_date >= GETDATE()
+                   )
+                ORDER BY start_date ASC
+                """;
+        List<VatRule> result = new ArrayList<>();
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                result.add(mapRow(rs));
+            }
+        }
+        return result;
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private VatRule mapRow(ResultSet rs) throws SQLException {
@@ -317,5 +415,24 @@ public class VatRuleDAO {
         rule.setStatus(rs.getString("status"));
         rule.setCreatedAt(rs.getTimestamp("created_at"));
         return rule;
+    }
+
+    public static final class DuplicateStartDateException extends RuntimeException {
+        private final LocalDate startDate;
+
+        public DuplicateStartDateException(LocalDate startDate) {
+            super("Duplicate VAT start date: " + startDate);
+            this.startDate = startDate;
+        }
+
+        public LocalDate getStartDate() {
+            return startDate;
+        }
+    }
+
+    public static final class SameDayReplaceLimitException extends RuntimeException {
+        public SameDayReplaceLimitException() {
+            super("VAT already replaced today");
+        }
     }
 }

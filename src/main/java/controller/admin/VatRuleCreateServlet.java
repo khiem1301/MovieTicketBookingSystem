@@ -20,6 +20,11 @@ import java.util.List;
 @WebServlet(urlPatterns = {"/admin/vat/create"})
 public class VatRuleCreateServlet extends HttpServlet {
 
+    public static final String MSG_DUPLICATE_START_DATE =
+            "Không thể lên lịch 2 quy tắc VAT trong cùng một ngày. Hãy chọn ngày khác hoặc hủy quy tắc trùng ngày.";
+    public static final String MSG_SAME_DAY_REPLACE_LIMIT =
+            "Chỉ được thay quy tắc VAT hiện tại 1 lần trong ngày.";
+
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
@@ -39,23 +44,35 @@ public class VatRuleCreateServlet extends HttpServlet {
             return;
         }
 
+        LocalDate start = form.getStartDate().toLocalDate();
+        VatRuleDAO dao = new VatRuleDAO();
+
+        if (start.equals(LocalDate.now()) && dao.hasReplacedEffectiveToday()) {
+            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, MSG_SAME_DAY_REPLACE_LIMIT);
+            resp.sendRedirect(req.getContextPath() + "/admin/vat");
+            return;
+        }
+        if (dao.existsByStartDate(start, null)) {
+            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, MSG_DUPLICATE_START_DATE);
+            resp.sendRedirect(req.getContextPath() + "/admin/vat");
+            return;
+        }
+
         try {
             BigDecimal rate = new BigDecimal(form.getVatRate().trim());
-            Timestamp startDate = Timestamp.valueOf(form.getStartDate().toLocalDate().atStartOfDay());
+            Timestamp startDate = Timestamp.valueOf(start.atStartOfDay());
 
-            new VatRuleDAO().createAndActivate(
-                    form.getRuleName().trim(),
-                    rate,
-                    startDate
-            );
+            dao.createAndActivate(form.getRuleName().trim(), rate, startDate);
 
             String rateText = rate.stripTrailingZeros().toPlainString() + "%";
-            LocalDate start = form.getStartDate().toLocalDate();
             String message = start.isAfter(LocalDate.now())
-                    ? "Đã lên lịch thuế suất VAT " + rateText + " — áp dụng từ "
-                      + start + "."
+                    ? "Đã lên lịch thuế suất VAT " + rateText + " — áp dụng từ " + start + "."
                     : "Đã áp dụng thuế suất VAT mới: " + rateText + ".";
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_SUCCESS, message);
+        } catch (VatRuleDAO.SameDayReplaceLimitException ex) {
+            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, MSG_SAME_DAY_REPLACE_LIMIT);
+        } catch (VatRuleDAO.DuplicateStartDateException ex) {
+            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, MSG_DUPLICATE_START_DATE);
         } catch (RuntimeException ex) {
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR,
                     "Không thể lưu quy tắc VAT. Vui lòng thử lại sau.");

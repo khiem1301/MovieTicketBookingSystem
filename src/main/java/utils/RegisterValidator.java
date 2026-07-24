@@ -35,16 +35,11 @@ public final class RegisterValidator {
             errors.add("Ngày sinh không được là ngày trong tương lai.");
         }
 
-        if (isBlank(form.getEmail())) {
-            errors.add("Email không được để trống.");
-        } else {
-            String email = form.getEmail().trim().toLowerCase();
-            form.setEmail(email);
-            if (!EMAIL_PATTERN.matcher(email).matches()) {
-                errors.add("Email không đúng định dạng.");
-            } else if (userDAO.existsByEmail(email)) {
-                errors.add("Email đã được sử dụng.");
-            }
+        Optional<String> emailError = validateEmail(form.getEmail(), userDAO);
+        if (emailError.isPresent()) {
+            errors.add(emailError.get());
+        } else if (!isBlank(form.getEmail())) {
+            form.setEmail(form.getEmail().trim().toLowerCase());
         }
 
         Optional<String> phoneError = validatePhone(form.getPhoneNumber(), userDAO);
@@ -57,6 +52,23 @@ public final class RegisterValidator {
         errors.addAll(PasswordValidator.validate(form.getPassword(), form.getConfirmPassword()));
 
         return errors;
+    }
+
+    public static Optional<String> validateEmail(String rawEmail, UserDAO userDAO) {
+        if (isBlank(rawEmail)) {
+            return Optional.of("Email không được để trống.");
+        }
+        String email = rawEmail.trim().toLowerCase();
+        if (email.length() > 255) {
+            return Optional.of("Email không được vượt quá 255 ký tự.");
+        }
+        if (!EMAIL_PATTERN.matcher(email).matches()) {
+            return Optional.of("Email không đúng định dạng.");
+        }
+        if (userDAO.existsByEmail(email)) {
+            return Optional.of("Email đã được sử dụng.");
+        }
+        return Optional.empty();
     }
 
     public static Optional<String> validatePhone(String rawPhone, UserDAO userDAO) {

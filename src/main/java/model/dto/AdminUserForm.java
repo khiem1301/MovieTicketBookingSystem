@@ -8,6 +8,9 @@ public class AdminUserForm {
     private String phoneNumber;
     private String fullName;
     private Date dateOfBirth;
+    private Integer dobDay;
+    private Integer dobMonth;
+    private Integer dobYear;
     private String roleName;
     private String password;
 
@@ -27,6 +30,15 @@ public class AdminUserForm {
 
     public Date getDateOfBirth() { return dateOfBirth; }
     public void setDateOfBirth(Date dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+
+    public Integer getDobDay() { return dobDay; }
+    public void setDobDay(Integer dobDay) { this.dobDay = dobDay; }
+
+    public Integer getDobMonth() { return dobMonth; }
+    public void setDobMonth(Integer dobMonth) { this.dobMonth = dobMonth; }
+
+    public Integer getDobYear() { return dobYear; }
+    public void setDobYear(Integer dobYear) { this.dobYear = dobYear; }
 
     public String getRoleName() { return roleName; }
     public void setRoleName(String roleName) { this.roleName = roleName; }

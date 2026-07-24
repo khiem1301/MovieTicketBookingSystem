@@ -225,17 +225,6 @@
             </div>
           </form>
         </c:if>
-
-        <div class="admin-btn-group" style="margin-bottom:24px;">
-          <c:if test="${user.status == 'ACTIVE'}">
-            <form method="post" action="${pageContext.request.contextPath}/admin/users/status"
-                  onsubmit="return confirm('Vô hiệu hóa tài khoản? Người dùng cần xác thực lại trước khi đăng nhập.');">
-              <input type="hidden" name="userId" value="${user.id}"/>
-              <input type="hidden" name="action" value="deactivate"/>
-              <button type="submit" class="admin-btn admin-btn--ghost">Vô hiệu hóa</button>
-            </form>
-          </c:if>
-        </div>
       </div>
     </c:if>
 

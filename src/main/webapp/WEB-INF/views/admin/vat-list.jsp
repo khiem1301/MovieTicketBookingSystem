@@ -81,10 +81,6 @@
 
     <div class="admin-card">
       <h2 class="admin-section-title">Áp dụng thuế suất mới</h2>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">
-        Quy tắc ACTIVE hiện tại sẽ chuyển sang <code>INACTIVE</code> và lưu vào lịch sử.
-        Chọn <strong>ngày bắt đầu = hôm nay</strong> để áp dụng ngay; ngày trong tương lai chỉ có hiệu lực từ ngày đó.
-      </p>
 
       <form class="admin-form admin-form--wide" method="post"
             action="${pageContext.request.contextPath}/admin/vat/create" novalidate>
@@ -117,10 +113,6 @@
 
     <div class="admin-card">
       <h2 class="admin-section-title">Lịch sử quy tắc</h2>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
-        Quy tắc <strong>chưa đến ngày áp dụng</strong> có nút <strong>Sửa</strong>.
-        Các dòng <code>INACTIVE</code> bên dưới là quy tắc đã hết hiệu lực.
-      </p>
 
       <c:if test="${not empty scheduledList or not empty history}">
         <div class="admin-table-wrap">
