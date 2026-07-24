@@ -661,10 +661,13 @@
           document.getElementById('custPhone').value    = data.phone || phone;
           document.getElementById('formMemberId').value = data.userId;
 
-          const isLocked  = data.status === 'LOCKED' || data.status === 'INACTIVE';
+          // Backend khóa tài khoản bằng status=BANNED (UserStatusServlet), không dùng LOCKED
+          const isLocked  = data.status === 'BANNED' || data.status === 'INACTIVE';
           memberLocked = isLocked;
-          const statusBadge = isLocked
-            ? `<span class="member-status-badge member-status-badge--locked">Tạm khóa</span>`
+          const statusBadge = data.status === 'BANNED'
+            ? `<span class="member-status-badge member-status-badge--locked">Đã khóa</span>`
+            : data.status === 'INACTIVE'
+            ? `<span class="member-status-badge member-status-badge--locked">Ngừng hoạt động</span>`
             : `<span class="member-status-badge member-status-badge--active">Hoạt động</span>`;
 
           memberPointsBalance = data.loyaltyPoints || 0;
