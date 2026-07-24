@@ -1,20 +1,20 @@
 /* ============================================================
-   Counter POS — FR-35 / FR-36 / FR-38
-   3-panel layout: movie list → showtimes → seat map → summary
+   Counter POS \u2014 FR-35 / FR-36 / FR-38
+   3-panel layout: movie list \u2192 showtimes \u2192 seat map \u2192 summary
    ============================================================ */
 (function () {
   'use strict';
 
   const CTX = document.querySelector('meta[name="ctx"]')?.content ?? '';
 
-  // Back từ màn thanh toán: bfcache có thể trả POS cũ (ghế khóa, thiếu banner đơn chờ)
+  // Back t\u1eeb m\u00e0n thanh to\u00e1n: bfcache c\u00f3 th\u1ec3 tr\u1ea3 POS c\u0169 (gh\u1ebf kh\u00f3a, thi\u1ebfu banner \u0111\u01a1n ch\u1edd)
   window.addEventListener('pageshow', function (e) {
     if (e.persisted) {
       window.location.reload();
     }
   });
 
-  // ── State ──────────────────────────────────────────────────────
+  // \u2500\u2500 State \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   const MAX_SEATS = 8;
 
   let selectedMovieEl  = null;
@@ -27,15 +27,15 @@
   let selectedStartTime = '';
   let selectedSeats    = [];   // [{id, code, type, price}]
   let memberLocked     = false;
-  let appliedPoints    = 0;    // điểm đã áp dụng để trừ tiền
-  let memberPointsBalance = 0; // số dư điểm của thành viên
-  let appliedVoucherCode   = '';  // mã voucher đang áp dụng
-  let voucherDiscountAmount = 0;  // số tiền giảm từ voucher (VND)
+  let appliedPoints    = 0;    // \u0111i\u1ec3m \u0111\u00e3 \u00e1p d\u1ee5ng \u0111\u1ec3 tr\u1eeb ti\u1ec1n
+  let memberPointsBalance = 0; // s\u1ed1 d\u01b0 \u0111i\u1ec3m c\u1ee7a th\u00e0nh vi\u00ean
+  let appliedVoucherCode   = '';  // m\u00e3 voucher \u0111ang \u00e1p d\u1ee5ng
+  let voucherDiscountAmount = 0;  // s\u1ed1 ti\u1ec1n gi\u1ea3m t\u1eeb voucher (VND)
   let holdSyncing          = false;
   const SEAT_REFRESH_MS    = 2000;
   let seatRefreshTimer     = null;
 
-  // ── Movie tab / search ─────────────────────────────────────────
+  // \u2500\u2500 Movie tab / search \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   window.switchTab = function (tab) {
     document.getElementById('tabNowShowing').classList.toggle('pos-tab--active', tab === 'now');
     document.getElementById('tabComingSoon').classList.toggle('pos-tab--active', tab === 'coming');
@@ -64,15 +64,15 @@
       document.getElementById('movieList').appendChild(emptyEl);
     }
     if (visibleCount === 0) {
-      const tabName = activeTab === 'coming' ? 'Sắp chiếu' : 'Đang chiếu';
-      emptyEl.textContent = q ? 'Không tìm thấy phim phù hợp.' : `Không có phim ${tabName}.`;
+      const tabName = activeTab === 'coming' ? 'S\u1eafp chi\u1ebfu' : '\u0110ang chi\u1ebfu';
+      emptyEl.textContent = q ? 'Kh\u00f4ng t\u00ecm th\u1ea5y phim ph\u00f9 h\u1ee3p.' : `Kh\u00f4ng c\u00f3 phim ${tabName}.`;
       emptyEl.style.display = '';
     } else {
       emptyEl.style.display = 'none';
     }
   };
 
-  // ── Movie selection ────────────────────────────────────────────
+  // \u2500\u2500 Movie selection \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   window.selectMovie = function (el) {
     if (selectedMovieEl) selectedMovieEl.classList.remove('pos-movie-item--active');
     selectedMovieEl = el;
@@ -104,11 +104,11 @@
         renderDateTabs(data);
       })
       .catch(() => {
-        loading.textContent = 'Không tải được suất chiếu.';
+        loading.textContent = 'Kh\u00f4ng t\u1ea3i \u0111\u01b0\u1ee3c su\u1ea5t chi\u1ebfu.';
       });
   }
 
-  // ── Showtime / Date selection ──────────────────────────────────
+  // \u2500\u2500 Showtime / Date selection \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   function renderDateTabs(showtimes) {
     const dateMap = {};
     showtimes.forEach(st => {
@@ -122,9 +122,9 @@
       const area = document.getElementById('seatArea');
       area.innerHTML =
         '<div class="pos-seat-placeholder">' +
-        '<div class="placeholder-icon">📅</div>' +
-        '<div>Phim này chưa có lịch chiếu.<br/>' +
-        '<small>Quản lý cần tạo lịch chiếu trước.</small></div></div>';
+        '<div class="placeholder-icon">\ud83d\udcc5</div>' +
+        '<div>Phim n\u00e0y ch\u01b0a c\u00f3 l\u1ecbch chi\u1ebfu.<br/>' +
+        '<small>Qu\u1ea3n l\u00fd c\u1ea7n t\u1ea1o l\u1ecbch chi\u1ebfu tr\u01b0\u1edbc.</small></div></div>';
       return;
     }
 
@@ -139,7 +139,7 @@
       btn.className = 'pos-date-tab' + (idx === 0 ? ' pos-date-tab--active' : '');
       btn.dataset.date = date;
       btn.innerHTML = `
-        <div class="date-tab-day">${isToday ? 'HÔM NAY' : weekday(d)}</div>
+        <div class="date-tab-day">${isToday ? 'H\u00d4M NAY' : weekday(d)}</div>
         <div class="date-tab-num">${d.getDate()}</div>`;
       btn.addEventListener('click', () => selectDate(date));
       container.appendChild(btn);
@@ -172,13 +172,13 @@
     });
 
     if (filtered.length === 0) {
-      grid.innerHTML = '<div class="pos-empty-small">Không có suất cho ngày này.</div>';
+      grid.innerHTML = '<div class="pos-empty-small">Kh\u00f4ng c\u00f3 su\u1ea5t cho ng\u00e0y n\u00e0y.</div>';
     }
   }
 
   function selectShowtime(st) {
     if (st.status === 'CANCELLED') {
-      alert(`Suất chiếu ${st.time} đã bị hủy, không thể đặt vé.`);
+      alert(`Su\u1ea5t chi\u1ebfu ${st.time} \u0111\u00e3 b\u1ecb h\u1ee7y, kh\u00f4ng th\u1ec3 \u0111\u1eb7t v\u00e9.`);
       return;
     }
     if (selectedShowtimeId && selectedShowtimeId !== st.id) {
@@ -195,10 +195,10 @@
     clearSeats();
     updateSummaryMovie();
     updatePendingShowtimeUi(st.id);
-    loadSeats(st.id); // poll ghế liên tục bên trong startSeatRefresh
+    loadSeats(st.id); // poll gh\u1ebf li\u00ean t\u1ee5c b\u00ean trong startSeatRefresh
   }
 
-  /** Highlight đơn PENDING của suất đang chọn + cảnh báo / khóa nút tạo đơn mới */
+  /** Highlight \u0111\u01a1n PENDING c\u1ee7a su\u1ea5t \u0111ang ch\u1ecdn + c\u1ea3nh b\u00e1o / kh\u00f3a n\u00fat t\u1ea1o \u0111\u01a1n m\u1edbi */
   function updatePendingShowtimeUi(showtimeId) {
     const warn = document.getElementById('posShowtimePendingWarn');
     let hasPending = false;
@@ -221,10 +221,10 @@
     return found;
   }
 
-  // ── Seat map ────────────────────────────────────────────────────
+  // \u2500\u2500 Seat map \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   function loadSeats(showtimeId) {
     const area = document.getElementById('seatArea');
-    area.innerHTML = '<div class="pos-loading-seats">Đang tải sơ đồ ghế...</div>';
+    area.innerHTML = '<div class="pos-loading-seats">\u0110ang t\u1ea3i s\u01a1 \u0111\u1ed3 gh\u1ebf...</div>';
 
     fetch(`${CTX}/staff/counter?action=seats&showtimeId=${encodeURIComponent(showtimeId)}`)
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
@@ -234,7 +234,7 @@
       })
       .catch(() => {
         stopSeatRefresh();
-        area.innerHTML = '<div class="pos-seat-placeholder">Không tải được sơ đồ ghế.</div>';
+        area.innerHTML = '<div class="pos-seat-placeholder">Kh\u00f4ng t\u1ea3i \u0111\u01b0\u1ee3c s\u01a1 \u0111\u1ed3 gh\u1ebf.</div>';
       });
   }
 
@@ -351,7 +351,7 @@
     area.innerHTML = '';
 
     if (!rows || rows.length === 0) {
-      area.innerHTML = '<div class="pos-seat-placeholder">Phòng chưa có ghế nào.</div>';
+      area.innerHTML = '<div class="pos-seat-placeholder">Ph\u00f2ng ch\u01b0a c\u00f3 gh\u1ebf n\u00e0o.</div>';
       return;
     }
 
@@ -423,7 +423,7 @@
     });
 
     updateSeatLegend(rows);
-    // Bỏ ghế đã bán khỏi selection nếu map vừa refresh
+    // B\u1ecf gh\u1ebf \u0111\u00e3 b\u00e1n kh\u1ecfi selection n\u1ebfu map v\u1eeba refresh
     selectedSeats = selectedSeats.filter(s => {
       for (const row of rows || []) {
         for (const seat of row.seats || []) {
@@ -463,8 +463,8 @@
         `${escHtml(label)}</span>`;
     });
     html +=
-      '<span class="legend-item"><span class="leg-dot leg-selected"></span>Đang chọn</span>' +
-      '<span class="legend-item"><span class="leg-dot leg-sold"></span>Đã bán</span>';
+      '<span class="legend-item"><span class="leg-dot leg-selected"></span>\u0110ang ch\u1ecdn</span>' +
+      '<span class="legend-item"><span class="leg-dot leg-sold"></span>\u0110\u00e3 b\u00e1n</span>';
     legend.innerHTML = html;
   }
 
@@ -485,7 +485,7 @@
       }
     } else {
       if (selectedSeats.length >= MAX_SEATS) {
-        alert(`Tối đa ${MAX_SEATS} ghế mỗi lần đặt.`);
+        alert(`T\u1ed1i \u0111a ${MAX_SEATS} gh\u1ebf m\u1ed7i l\u1ea7n \u0111\u1eb7t.`);
         return;
       }
       selectedSeats.push({
@@ -536,13 +536,13 @@
     selectedSeats = [];
     document.getElementById('seatArea').innerHTML =
       '<div class="pos-seat-placeholder" id="seatPlaceholder">' +
-      '<div class="placeholder-icon">🎬</div>' +
-      '<div>Chọn suất chiếu để xem sơ đồ ghế</div></div>';
+      '<div class="placeholder-icon">\ud83c\udfac</div>' +
+      '<div>Ch\u1ecdn su\u1ea5t chi\u1ebfu \u0111\u1ec3 xem s\u01a1 \u0111\u1ed3 gh\u1ebf</div></div>';
     const legend = document.getElementById('posSeatLegend');
     if (legend) {
       legend.innerHTML =
-        '<span class="legend-item"><span class="leg-dot leg-selected"></span>Đang chọn</span>' +
-        '<span class="legend-item"><span class="leg-dot leg-sold"></span>Đã bán</span>';
+        '<span class="legend-item"><span class="leg-dot leg-selected"></span>\u0110ang ch\u1ecdn</span>' +
+        '<span class="legend-item"><span class="leg-dot leg-sold"></span>\u0110\u00e3 b\u00e1n</span>';
     }
     updateSummarySeats();
   }
@@ -556,11 +556,11 @@
     document.getElementById('timeGrid').innerHTML = '';
   }
 
-  // ── Summary panel ───────────────────────────────────────────────
+  // \u2500\u2500 Summary panel \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   function updateSummaryMovie() {
     const el = document.getElementById('summaryMovie');
     if (!selectedMovieId) {
-      el.innerHTML = '<div class="pos-summary-placeholder">Chưa chọn phim</div>';
+      el.innerHTML = '<div class="pos-summary-placeholder">Ch\u01b0a ch\u1ecdn phim</div>';
       return;
     }
     el.innerHTML = `
@@ -570,18 +570,18 @@
           <div class="summary-show-info">
             <span>${escHtml(selectedStartTime)}</span>
             <span>${escHtml(selectedRoomName)}</span>
-          </div>` : '<div class="summary-show-info text-dim">Chưa chọn suất</div>'}
+          </div>` : '<div class="summary-show-info text-dim">Ch\u01b0a ch\u1ecdn su\u1ea5t</div>'}
       </div>`;
   }
 
   function updateSummarySeats() {
     const listEl = document.getElementById('seatSummaryList');
     if (selectedSeats.length === 0) {
-      listEl.innerHTML = '<span class="pos-empty-small">Chưa có ghế nào</span>';
+      listEl.innerHTML = '<span class="pos-empty-small">Ch\u01b0a c\u00f3 gh\u1ebf n\u00e0o</span>';
     } else {
       listEl.innerHTML = selectedSeats.map(s => `
         <div class="pos-seat-summary-row">
-          <span>${escHtml(s.type)} — ${escHtml(s.code)}</span>
+          <span>${escHtml(s.type)} \u2014 ${escHtml(s.code)}</span>
           <span>${formatVnd(s.price)}</span>
         </div>`).join('');
     }
@@ -596,13 +596,13 @@
     if (discRow) discRow.style.display = discount > 0 ? '' : 'none';
     if (discount > 0) {
       if (discDisplay) discDisplay.textContent = '-' + formatVnd(discount);
-      if (discLabel)   discLabel.textContent   = `Giảm (${appliedPoints.toLocaleString('vi-VN')} điểm)`;
+      if (discLabel)   discLabel.textContent   = `Gi\u1ea3m (${appliedPoints.toLocaleString('vi-VN')} \u0111i\u1ec3m)`;
     }
 
     document.getElementById('totalDisplay').textContent = formatVnd(finalTotal);
   }
 
-  // ── Voucher / Khuyến mãi ───────────────────────────────────────────────
+  // \u2500\u2500 Voucher / Khuy\u1ebfn m\u00e3i \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   function resetVoucherSection() {
     appliedVoucherCode    = '';
     voucherDiscountAmount = 0;
@@ -623,19 +623,19 @@
     if (!code) {
       res.style.display = 'block';
       res.style.color   = '#ef9a9a';
-      res.textContent   = 'Vui lòng nhập mã voucher.';
+      res.textContent   = 'Vui l\u00f2ng nh\u1eadp m\u00e3 voucher.';
       return;
     }
     if (selectedSeats.length === 0) {
       res.style.display = 'block';
       res.style.color   = '#ef9a9a';
-      res.textContent   = 'Vui lòng chọn ghế trước khi áp dụng voucher.';
+      res.textContent   = 'Vui l\u00f2ng ch\u1ecdn gh\u1ebf tr\u01b0\u1edbc khi \u00e1p d\u1ee5ng voucher.';
       return;
     }
     var rawTotal = selectedSeats.reduce(function (s, seat) { return s + seat.price; }, 0);
     res.style.display  = 'block';
     res.style.color    = '#aaa';
-    res.textContent    = 'Đang kiểm tra...';
+    res.textContent    = '\u0110ang ki\u1ec3m tra...';
 
     fetch(CTX + '/staff/counter?action=checkVoucher&code=' + encodeURIComponent(code)
                 + '&total=' + rawTotal)
@@ -651,14 +651,14 @@
           appliedVoucherCode    = data.code;
           voucherDiscountAmount = data.discount;
           res.style.color = '#66bb6a';
-          res.textContent = '✓ ' + data.code + ' — ' + escHtml(data.title)
-                          + ': −' + formatVnd(data.discount);
+          res.textContent = '\u2713 ' + data.code + ' \u2014 ' + escHtml(data.title)
+                          + ': \u2212' + formatVnd(data.discount);
           updateSummarySeats();
         } else {
           appliedVoucherCode    = '';
           voucherDiscountAmount = 0;
           res.style.color = '#ef9a9a';
-          res.textContent = data.error || 'Mã voucher không hợp lệ.';
+          res.textContent = data.error || 'M\u00e3 voucher kh\u00f4ng h\u1ee3p l\u1ec7.';
           updateSummarySeats();
         }
       })
@@ -667,14 +667,14 @@
         voucherDiscountAmount = 0;
         res.style.color = '#ef9a9a';
         if (err && err.message === 'not-json') {
-          res.textContent = 'Ứng dụng cần được rebuild để dùng tính năng voucher.';
+          res.textContent = '\u1ee8ng d\u1ee5ng c\u1ea7n \u0111\u01b0\u1ee3c rebuild \u0111\u1ec3 d\u00f9ng t\u00ednh n\u0103ng voucher.';
         } else {
-          res.textContent = 'Lỗi kết nối. Vui lòng thử lại.';
+          res.textContent = 'L\u1ed7i k\u1ebft n\u1ed1i. Vui l\u00f2ng th\u1eed l\u1ea1i.';
         }
       });
   };
 
-  // ── FR-42: Member Lookup ────────────────────────────────────────
+  // \u2500\u2500 FR-42: Member Lookup \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   window.lookupMember = function () {
     const phone = (document.getElementById('lookupPhone')?.value ?? '').trim();
     const resultEl = document.getElementById('memberResult');
@@ -682,7 +682,7 @@
 
     resultEl.style.display = 'block';
     resultEl.className = 'pos-member-result pos-member-result--loading';
-    resultEl.textContent = 'Đang tra cứu...';
+    resultEl.textContent = '\u0110ang tra c\u1ee9u...';
 
     fetch(`${CTX}/staff/counter?action=lookup&phone=${encodeURIComponent(phone)}`)
       .then(r => r.json())
@@ -692,14 +692,14 @@
           document.getElementById('custPhone').value    = data.phone || phone;
           document.getElementById('formMemberId').value = data.userId;
 
-          // Backend khóa tài khoản bằng status=BANNED (UserStatusServlet), không dùng LOCKED
+          // Backend kh\u00f3a t\u00e0i kho\u1ea3n b\u1eb1ng status=BANNED (UserStatusServlet), kh\u00f4ng d\u00f9ng LOCKED
           const isLocked  = data.status === 'BANNED' || data.status === 'INACTIVE';
           memberLocked = isLocked;
           const statusBadge = data.status === 'BANNED'
-            ? `<span class="member-status-badge member-status-badge--locked">Đã khóa</span>`
+            ? `<span class="member-status-badge member-status-badge--locked">\u0110\u00e3 kh\u00f3a</span>`
             : data.status === 'INACTIVE'
-            ? `<span class="member-status-badge member-status-badge--locked">Ngừng hoạt động</span>`
-            : `<span class="member-status-badge member-status-badge--active">Hoạt động</span>`;
+            ? `<span class="member-status-badge member-status-badge--locked">Ng\u1eebng ho\u1ea1t \u0111\u1ed9ng</span>`
+            : `<span class="member-status-badge member-status-badge--active">Ho\u1ea1t \u0111\u1ed9ng</span>`;
 
           memberPointsBalance = data.loyaltyPoints || 0;
           resultEl.className = 'pos-member-result pos-member-result--found';
@@ -708,26 +708,26 @@
               <div class="member-card-avatar">${escHtml(data.fullName.charAt(0).toUpperCase())}</div>
               <div class="member-card-info">
                 <div class="member-card-name">
-                  <span class="member-badge">&#9733; THÀNH VIÊN</span>
+                  <span class="member-badge">&#9733; TH\u00c0NH VI\u00caN</span>
                   <strong>${escHtml(data.fullName)}</strong>
                   ${statusBadge}
                 </div>
-                ${data.email ? `<div class="member-card-row" style="word-break:break-all"><span class="member-card-icon">✉</span>${escHtml(data.email)}</div>` : ''}
-                <div class="member-card-row"><span class="member-card-icon">📱</span>${escHtml(data.phone || phone)}</div>
+                ${data.email ? `<div class="member-card-row" style="word-break:break-all"><span class="member-card-icon">\u2709</span>${escHtml(data.email)}</div>` : ''}
+                <div class="member-card-row"><span class="member-card-icon">\ud83d\udcf1</span>${escHtml(data.phone || phone)}</div>
                 <div class="member-card-row member-card-points">
-                  <span class="member-card-icon">★</span>
-                  <strong>${memberPointsBalance.toLocaleString('vi-VN')}</strong>&nbsp;điểm tích luỹ
+                  <span class="member-card-icon">\u2605</span>
+                  <strong>${memberPointsBalance.toLocaleString('vi-VN')}</strong>&nbsp;\u0111i\u1ec3m t\u00edch lu\u1ef9
                 </div>
                 ${data.joinedDate ? `<div class="member-card-row member-card-joined">Tham gia: ${escHtml(data.joinedDate)}</div>` : ''}
               </div>
             </div>`;
 
-          // Show loyalty section (chỉ hiện khi không bị khóa)
+          // Show loyalty section (ch\u1ec9 hi\u1ec7n khi kh\u00f4ng b\u1ecb kh\u00f3a)
           if (!isLocked) {
             const loyaltySection = document.getElementById('loyaltySection');
             if (loyaltySection) loyaltySection.style.display = '';
             const balanceEl = document.getElementById('loyaltyBalanceInfo');
-            if (balanceEl) balanceEl.textContent = `Số dư: ${memberPointsBalance.toLocaleString('vi-VN')} điểm`;
+            if (balanceEl) balanceEl.textContent = `S\u1ed1 d\u01b0: ${memberPointsBalance.toLocaleString('vi-VN')} \u0111i\u1ec3m`;
             document.getElementById('loyaltyPointsInput').value = '';
             document.getElementById('loyaltyDiscountPreview').textContent = '';
           }
@@ -740,8 +740,8 @@
             <div class="member-notfound">
               <span class="member-notfound-icon">?</span>
               <div>
-                <div style="font-weight:600;color:#ef9a9a">Không tìm thấy thành viên</div>
-                <div style="font-size:12px;color:#888;margin-top:2px">SĐT <strong>${escHtml(phone)}</strong> chưa đăng ký tài khoản</div>
+                <div style="font-weight:600;color:#ef9a9a">Kh\u00f4ng t\u00ecm th\u1ea5y th\u00e0nh vi\u00ean</div>
+                <div style="font-size:12px;color:#888;margin-top:2px">S\u0110T <strong>${escHtml(phone)}</strong> ch\u01b0a \u0111\u0103ng k\u00fd t\u00e0i kho\u1ea3n</div>
               </div>
             </div>`;
           document.getElementById('custPhone').value = phone;
@@ -750,11 +750,11 @@
       })
       .catch(() => {
         resultEl.className = 'pos-member-result pos-member-result--notfound';
-        resultEl.textContent = 'Lỗi tra cứu. Vui lòng nhập tay thông tin khách.';
+        resultEl.textContent = 'L\u1ed7i tra c\u1ee9u. Vui l\u00f2ng nh\u1eadp tay th\u00f4ng tin kh\u00e1ch.';
       });
   };
 
-  // ── Proceed to payment ─────────────────────────────────────────
+  // \u2500\u2500 Proceed to payment \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   window.checkProceedBtn = function () {
     const pendingBlock = showtimeHasPendingBooking(selectedShowtimeId);
     const seatsOk = selectedSeats.length > 0 && selectedShowtimeId && !pendingBlock;
@@ -767,10 +767,10 @@
 
   window.proceedToPayment = function () {
     if (showtimeHasPendingBooking(selectedShowtimeId)) {
-      alert('Suất này đã có đơn đang chờ thanh toán. Hãy Tiếp tục hoặc Hủy đơn đó trước.');
+      alert('Su\u1ea5t n\u00e0y \u0111\u00e3 c\u00f3 \u0111\u01a1n \u0111ang ch\u1edd thanh to\u00e1n. H\u00e3y Ti\u1ebfp t\u1ee5c ho\u1eb7c H\u1ee7y \u0111\u01a1n \u0111\u00f3 tr\u01b0\u1edbc.');
       return;
     }
-    const name  = (document.getElementById('custName')?.value ?? '').trim() || 'Khách vãng lai';
+    const name  = (document.getElementById('custName')?.value ?? '').trim() || 'Kh\u00e1ch v\u00e3ng lai';
     const phone = (document.getElementById('custPhone')?.value ?? '').trim();
     if (!selectedShowtimeId || selectedSeats.length === 0) return;
 
@@ -792,7 +792,7 @@
     form.submit();
   };
 
-  // ── Loyalty Points ──────────────────────────────────────────
+  // \u2500\u2500 Loyalty Points \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   function resetLoyaltySection() {
     appliedPoints = 0;
     memberPointsBalance = 0;
@@ -814,7 +814,7 @@
     if (effective >= 100) {
       const disc = (effective / 100) * 10000;
       preview.style.color = '#aaa';
-      preview.textContent = `→ Giảm ${formatVnd(disc)} (${effective.toLocaleString('vi-VN')} điểm)`;
+      preview.textContent = `\u2192 Gi\u1ea3m ${formatVnd(disc)} (${effective.toLocaleString('vi-VN')} \u0111i\u1ec3m)`;
     } else {
       preview.textContent = '';
     }
@@ -827,15 +827,15 @@
     const effective = Math.floor(pts / 100) * 100;
 
     if (pts > 0 && effective < 100) {
-      alert('Điểm tối thiểu để đổi là 100 điểm.');
+      alert('\u0110i\u1ec3m t\u1ed1i thi\u1ec3u \u0111\u1ec3 \u0111\u1ed5i l\u00e0 100 \u0111i\u1ec3m.');
       return;
     }
     if (effective > memberPointsBalance) {
-      alert(`Số điểm nhập (${effective.toLocaleString('vi-VN')}) vượt quá số dư (${memberPointsBalance.toLocaleString('vi-VN')} điểm).`);
+      alert(`S\u1ed1 \u0111i\u1ec3m nh\u1eadp (${effective.toLocaleString('vi-VN')}) v\u01b0\u1ee3t qu\u00e1 s\u1ed1 d\u01b0 (${memberPointsBalance.toLocaleString('vi-VN')} \u0111i\u1ec3m).`);
       return;
     }
     if (effective > 5000) {
-      alert('Tối đa 5.000 điểm mỗi đơn hàng.');
+      alert('T\u1ed1i \u0111a 5.000 \u0111i\u1ec3m m\u1ed7i \u0111\u01a1n h\u00e0ng.');
       inp.value = 5000;
       return;
     }
@@ -847,15 +847,15 @@
     if (preview) {
       if (appliedPoints > 0) {
         preview.style.color = '#66bb6a';
-        preview.textContent = `✓ Đã áp dụng: -${formatVnd((appliedPoints / 100) * 10000)}`;
+        preview.textContent = `\u2713 \u0110\u00e3 \u00e1p d\u1ee5ng: -${formatVnd((appliedPoints / 100) * 10000)}`;
       } else {
-        preview.textContent = 'Không áp dụng điểm.';
+        preview.textContent = 'Kh\u00f4ng \u00e1p d\u1ee5ng \u0111i\u1ec3m.';
         preview.style.color = '#aaa';
       }
     }
   };
 
-  // ── Seat hold sync (giống customer checkout) ─────────────────────
+  // \u2500\u2500 Seat hold sync (gi\u1ed1ng customer checkout) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   function syncHoldsWithServer(showtimeId, revertSnapshot, seatIdsOverride) {
     if (!showtimeId) return;
 
@@ -876,13 +876,13 @@
     })
       .then(r => r.json().then(data => ({ httpOk: r.ok, data })).catch(() => ({
         httpOk: r.ok,
-        data: { ok: false, error: 'Phản hồi không hợp lệ từ máy chủ' }
+        data: { ok: false, error: 'Ph\u1ea3n h\u1ed3i kh\u00f4ng h\u1ee3p l\u1ec7 t\u1eeb m\u00e1y ch\u1ee7' }
       })))
       .then(res => {
         holdSyncing = false;
         if (!res.data || !res.data.ok) {
           if (revertSnapshot) {
-            const msg = (res.data && res.data.error) || 'Không thể giữ ghế';
+            const msg = (res.data && res.data.error) || 'Kh\u00f4ng th\u1ec3 gi\u1eef gh\u1ebf';
             revertSelection(revertSnapshot, msg);
           }
           if (res.data && res.data.blocked && selectedShowtimeId === showtimeId) {
@@ -899,12 +899,12 @@
       .catch(() => {
         holdSyncing = false;
         if (revertSnapshot) {
-          revertSelection(revertSnapshot, 'Lỗi kết nối. Vui lòng thử lại.');
+          revertSelection(revertSnapshot, 'L\u1ed7i k\u1ebft n\u1ed1i. Vui l\u00f2ng th\u1eed l\u1ea1i.');
         }
       });
   }
 
-  // ── Seat hold countdown ─────────────────────────────────────────
+  // \u2500\u2500 Seat hold countdown \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   let holdExpiryMs  = null;
   let countdownTimer = null;
 
@@ -950,7 +950,7 @@
     }
   }
 
-  // ── Utils ───────────────────────────────────────────────────────
+  // \u2500\u2500 Utils \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
   function append(form, name, value) {
     const inp = document.createElement('input');
     inp.type  = 'hidden';
@@ -960,7 +960,7 @@
   }
 
   function formatVnd(n) {
-    return new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' ₫';
+    return new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' \u20ab';
   }
 
   function escHtml(str) {

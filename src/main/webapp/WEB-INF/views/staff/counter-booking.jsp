@@ -325,8 +325,8 @@
   </div><%-- /pos-layout --%>
 </div><%-- /pos-container --%>
 
-<script charset="UTF-8" src="${pageContext.request.contextPath}/js/seat-type-colors.js?v=6"></script>
-<script src="${pageContext.request.contextPath}/js/counter-booking.js?v=13"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/seat-type-colors.js?v=7"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/counter-booking.js?v=16"></script>
 <script>
 (function () {
   // Countdown từng đơn PENDING

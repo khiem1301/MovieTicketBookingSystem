@@ -98,7 +98,7 @@
                     </c:otherwise>
                   </c:choose>
                   <div class="card-overlay">
-                    <a href="${ctx}/showtimes?movieId=${movie.id}" class="btn-book btn-book--muted">Xem chi tiết</a>
+                    <a href="${ctx}/showtimes?movieId=${movie.id}" class="btn-book">Mua vé</a>
                   </div>
                   <c:if test="${not empty movie.ageRating}">
                     <span class="age-badge"><c:out value="${movie.ageRating}"/></span>
