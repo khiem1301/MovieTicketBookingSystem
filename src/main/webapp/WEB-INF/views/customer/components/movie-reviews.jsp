@@ -59,6 +59,23 @@
           </c:otherwise>
         </c:choose>
       </div>
+
+      <c:if test="${reviewTotalPages > 1}">
+        <div class="movies-pagination mi-review-pagination">
+          <c:if test="${reviewPage > 1}">
+            <a class="movies-page-btn"
+               href="${ctx}/showtimes?movieId=${movie.id}&amp;reviewPage=${reviewPage - 1}#movie-reviews-section">‹</a>
+          </c:if>
+          <c:forEach begin="1" end="${reviewTotalPages}" var="pg">
+            <a class="movies-page-btn ${pg == reviewPage ? 'is-active' : ''}"
+               href="${ctx}/showtimes?movieId=${movie.id}&amp;reviewPage=${pg}#movie-reviews-section">${pg}</a>
+          </c:forEach>
+          <c:if test="${reviewPage < reviewTotalPages}">
+            <a class="movies-page-btn"
+               href="${ctx}/showtimes?movieId=${movie.id}&amp;reviewPage=${reviewPage + 1}#movie-reviews-section">›</a>
+          </c:if>
+        </div>
+      </c:if>
     </div>
 
     <aside class="mi-reviews-form-col">

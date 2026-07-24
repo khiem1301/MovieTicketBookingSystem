@@ -4,6 +4,7 @@ import model.dto.BookingDetailDTO;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -249,10 +250,10 @@ public final class EmailUtil {
 
             int ticketCount = detail.getTickets() != null ? detail.getTickets().size() : 0;
             String qrBlock = """
-                    <div style="max-width:360px;margin:0 auto 20px;border:1px solid #2a2a2a;border-radius:10px;overflow:hidden;background:#0a0a0a;font-family:Courier New,monospace;color:#e0e0e0;text-align:center">
+                    <div style="max-width:360px;margin:0 auto 20px;border:1px solid #2a2a2a;border-radius:10px;overflow:hidden;background:#0a0a0a;font-family:Arial,Helvetica,sans-serif;color:#e0e0e0;text-align:center">
                       <div style="background:#1a0a0a;padding:14px 20px;border-bottom:1px dashed #2a2a2a">
                         <div style="font-size:11px;font-weight:700;color:#e53935;letter-spacing:2px">ÉPCINE PREMIUM</div>
-                        <div style="font-size:12px;color:#aaa;font-weight:700;margin-top:6px">%s</div>
+                        <div style="font-size:12px;color:#aaa;font-weight:700;margin-top:6px;font-family:Courier New,monospace">%s</div>
                       </div>
                       <div style="padding:14px 20px 8px;font-size:18px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:1px">%s</div>
                       <div style="padding:0 20px 12px;font-size:13px;color:#ccc">
@@ -444,7 +445,8 @@ public final class EmailUtil {
                 return null;
             }
             Properties props = new Properties();
-            props.load(in);
+            // UTF-8 so mail.from.name=ÉPCINE is not mojibaked (props.load(InputStream) is ISO-8859-1)
+            props.load(new InputStreamReader(in, StandardCharsets.UTF_8));
             return props;
         } catch (IOException ex) {
             LOG.log(Level.WARNING, "Cannot load email.properties", ex);

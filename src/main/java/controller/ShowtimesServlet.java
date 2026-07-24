@@ -76,8 +76,20 @@ public class ShowtimesServlet extends HttpServlet {
         Map<String, Map<String, List<Showtime>>> showtimeMap = buildShowtimeMap(showtimes, dateKeys);
 
         MovieReviewDAO reviewDAO = new MovieReviewDAO();
-        List<MovieReview> movieReviews = reviewDAO.findByMovie(movie.getId(), 0, 10);
+        final int reviewPageSize = 10;
         int movieReviewCount = reviewDAO.countByMovie(movie.getId());
+
+        int reviewTotalPages = Math.max(1, (int) Math.ceil(movieReviewCount / (double) reviewPageSize));
+        int reviewPage = 1;
+        try {
+            reviewPage = Integer.parseInt(req.getParameter("reviewPage"));
+        } catch (Exception ignored) { /* default 1 */ }
+        if (reviewPage < 1) reviewPage = 1;
+        if (reviewPage > reviewTotalPages) reviewPage = reviewTotalPages;
+        int reviewOffset = (reviewPage - 1) * reviewPageSize;
+
+        List<MovieReview> movieReviews = reviewDAO.findByMovie(movie.getId(), reviewOffset, reviewPageSize);
+
         MovieReview myReview = null;
         boolean canReview = false;
         boolean reviewBanned = false;
@@ -99,6 +111,9 @@ public class ShowtimesServlet extends HttpServlet {
         req.setAttribute("reviewBanned", reviewBanned);
         req.setAttribute("movieReviews", movieReviews);
         req.setAttribute("movieReviewCount", movieReviewCount);
+        req.setAttribute("reviewPage", reviewPage);
+        req.setAttribute("reviewTotalPages", reviewTotalPages);
+        req.setAttribute("reviewPageSize", reviewPageSize);
         req.setAttribute("myReview", myReview);
 
         req.getRequestDispatcher("/WEB-INF/views/customer/showtimes.jsp").forward(req, resp);

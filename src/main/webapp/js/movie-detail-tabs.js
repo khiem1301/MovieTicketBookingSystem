@@ -32,7 +32,9 @@
 
   const search = window.location.search || '';
   const needsReviewsTab = window.location.hash === '#movie-reviews-section' ||
-    search.indexOf('reviewError') !== -1 || search.indexOf('reviewSuccess') !== -1;
+    search.indexOf('reviewError') !== -1 ||
+    search.indexOf('reviewSuccess') !== -1 ||
+    search.indexOf('reviewPage') !== -1;
   if (needsReviewsTab) {
     activate('reviews');
   }

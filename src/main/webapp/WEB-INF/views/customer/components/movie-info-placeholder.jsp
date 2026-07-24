@@ -75,10 +75,11 @@
             <span class="mi-meta-badge"><c:out value="${movie.ageRating}"/></span>
           </c:if>
           <c:if test="${movie.durationMinutes > 0}">
+            <c:set var="durH" value="${movie.durationMinutes div 60}"/>
+            <c:set var="durM" value="${movie.durationMinutes mod 60}"/>
             <span class="mi-meta-item">
               <span class="mi-meta-icon">⏱</span>
-              ${movie.durationMinutes div 60}h
-              <fmt:formatNumber value="${movie.durationMinutes mod 60}" minIntegerDigits="2" maxFractionDigits="0"/>m
+              <fmt:formatNumber value="${durH}" minIntegerDigits="2" maxFractionDigits="0"/>h<fmt:formatNumber value="${durM}" minIntegerDigits="2" maxFractionDigits="0"/>p
             </span>
           </c:if>
           <c:if test="${not empty movie.releaseDate}">

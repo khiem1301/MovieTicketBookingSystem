@@ -272,8 +272,8 @@
               <div class="card-footer">
                 <a href="${pageContext.request.contextPath}/showtimes?movieId=${movie.id}"
                    class="btn-buy-ticket" onclick="event.stopPropagation()">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                  XEM CHI TIẾT
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22 10V6c0-1.11-.9-2-2-2H4c-1.11 0-2 .89-2 2v4c1.11 0 2 .89 2 2s-.89 2-2 2v4c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2v-4c-1.11 0-2-.89-2-2s.89-2 2-2z"/></svg>
+                  MUA VÉ
                 </a>
               </div>
             </div>
