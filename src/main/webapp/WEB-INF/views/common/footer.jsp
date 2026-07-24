@@ -1,4 +1,5 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <footer class="site-footer">
   <div class="footer-inner">
 
@@ -126,5 +127,8 @@
 </footer>
 
 <script charset="UTF-8" src="${pageContext.request.contextPath}/js/main.js"></script>
+<c:if test="${extraCss == 'admin' || extraCss2 == 'admin'}">
+  <script charset="UTF-8" src="${pageContext.request.contextPath}/js/admin.js?v=1"></script>
+</c:if>
 </body>
 </html>

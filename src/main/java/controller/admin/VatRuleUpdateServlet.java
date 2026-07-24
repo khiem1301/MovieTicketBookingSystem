@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.List;
 
 @WebServlet(urlPatterns = {"/admin/vat/update"})
@@ -45,11 +46,20 @@ public class VatRuleUpdateServlet extends HttpServlet {
             return;
         }
 
+        LocalDate start = form.getStartDate().toLocalDate();
+        VatRuleDAO dao = new VatRuleDAO();
+        if (dao.existsByStartDate(start, ruleId)) {
+            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR,
+                    VatRuleCreateServlet.MSG_DUPLICATE_START_DATE);
+            resp.sendRedirect(redirect);
+            return;
+        }
+
         try {
             BigDecimal rate = new BigDecimal(form.getVatRate().trim());
-            Timestamp startDate = Timestamp.valueOf(form.getStartDate().toLocalDate().atStartOfDay());
+            Timestamp startDate = Timestamp.valueOf(start.atStartOfDay());
 
-            new VatRuleDAO().updateScheduled(
+            dao.updateScheduled(
                     ruleId,
                     form.getRuleName().trim(),
                     rate,
@@ -58,6 +68,9 @@ public class VatRuleUpdateServlet extends HttpServlet {
 
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_SUCCESS,
                     "Đã cập nhật quy tắc VAT đã lên lịch.");
+        } catch (VatRuleDAO.DuplicateStartDateException ex) {
+            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR,
+                    VatRuleCreateServlet.MSG_DUPLICATE_START_DATE);
         } catch (RuntimeException ex) {
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR,
                     "Không thể sửa quy tắc. Chỉ sửa được quy tắc chưa đến ngày áp dụng.");
