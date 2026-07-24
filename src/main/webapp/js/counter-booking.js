@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    Counter POS — FR-35 / FR-36 / FR-38
    3-panel layout: movie list → showtimes → seat map → summary
    ============================================================ */
@@ -6,6 +6,13 @@
   'use strict';
 
   const CTX = document.querySelector('meta[name="ctx"]')?.content ?? '';
+
+  // Back từ màn thanh toán: bfcache có thể trả POS cũ (ghế khóa, thiếu banner đơn chờ)
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) {
+      window.location.reload();
+    }
+  });
 
   // ── State ──────────────────────────────────────────────────────
   const MAX_SEATS = 8;
@@ -187,7 +194,31 @@
 
     clearSeats();
     updateSummaryMovie();
-    loadSeats(st.id);
+    updatePendingShowtimeUi(st.id);
+    loadSeats(st.id); // poll ghế liên tục bên trong startSeatRefresh
+  }
+
+  /** Highlight đơn PENDING của suất đang chọn + cảnh báo / khóa nút tạo đơn mới */
+  function updatePendingShowtimeUi(showtimeId) {
+    const warn = document.getElementById('posShowtimePendingWarn');
+    let hasPending = false;
+    document.querySelectorAll('.pos-pending-card[data-showtime-id]').forEach(card => {
+      const match = showtimeId && card.dataset.showtimeId === showtimeId;
+      card.classList.toggle('pos-pending-card--active', !!match);
+      if (match) hasPending = true;
+    });
+    if (warn) warn.style.display = hasPending ? '' : 'none';
+    window.__posShowtimeHasPending = hasPending;
+    checkProceedBtn();
+  }
+
+  function showtimeHasPendingBooking(showtimeId) {
+    if (!showtimeId) return false;
+    var found = false;
+    document.querySelectorAll('.pos-pending-card[data-showtime-id]').forEach(function (card) {
+      if (card.dataset.showtimeId === showtimeId) found = true;
+    });
+    return found;
   }
 
   // ── Seat map ────────────────────────────────────────────────────
@@ -725,15 +756,20 @@
 
   // ── Proceed to payment ─────────────────────────────────────────
   window.checkProceedBtn = function () {
-    const seatsOk = selectedSeats.length > 0 && selectedShowtimeId;
+    const pendingBlock = showtimeHasPendingBooking(selectedShowtimeId);
+    const seatsOk = selectedSeats.length > 0 && selectedShowtimeId && !pendingBlock;
     const btn = document.getElementById('proceedBtn');
-    btn.disabled = !seatsOk || memberLocked;
+    if (btn) btn.disabled = !seatsOk || memberLocked;
 
     const warn = document.getElementById('memberLockedWarn');
     if (warn) warn.style.display = memberLocked ? 'block' : 'none';
   };
 
   window.proceedToPayment = function () {
+    if (showtimeHasPendingBooking(selectedShowtimeId)) {
+      alert('Suất này đã có đơn đang chờ thanh toán. Hãy Tiếp tục hoặc Hủy đơn đó trước.');
+      return;
+    }
     const name  = (document.getElementById('custName')?.value ?? '').trim() || 'Khách vãng lai';
     const phone = (document.getElementById('custPhone')?.value ?? '').trim();
     if (!selectedShowtimeId || selectedSeats.length === 0) return;

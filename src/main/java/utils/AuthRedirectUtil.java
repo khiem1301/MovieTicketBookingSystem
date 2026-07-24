@@ -25,25 +25,37 @@ public final class AuthRedirectUtil {
         if ("STAFF".equals(role)) {
             return req.getContextPath() + STAFF_HOME;
         }
+        if ("ADMIN".equals(role)) {
+            return req.getContextPath() + "/admin/dashboard";
+        }
+        // MANAGER → /home (xem giao diện khách); quản lý phim vào từ menu
         return req.getContextPath() + DEFAULT_HOME;
     }
 
     /**
-     * Staff must not land on the public home page after login
-     * (or via {@code ?redirect=/home}).
+     * Chặn redirect sang URL thuộc role khác (vd. ADMIN không được ?redirect=/manager/...).
      */
     public static boolean isAllowedLandingForRole(String role, String redirect) {
-        if (!"STAFF".equals(role)) {
-            return true;
+        if (redirect == null || redirect.isBlank()) {
+            return false;
         }
         String path = redirect;
         int q = path.indexOf('?');
         if (q >= 0) {
             path = path.substring(0, q);
         }
-        return !"/".equals(path)
-                && !"/home".equals(path)
-                && !"/index.jsp".equals(path);
+
+        if ("STAFF".equals(role)) {
+            if ("/".equals(path) || "/home".equals(path) || "/index.jsp".equals(path)) {
+                return false;
+            }
+        }
+
+        var required = AccessControl.requiredRoles(path);
+        if (required.isEmpty()) {
+            return true;
+        }
+        return role != null && required.get().contains(role);
     }
 
     public static boolean isSafeRedirect(String redirect) {

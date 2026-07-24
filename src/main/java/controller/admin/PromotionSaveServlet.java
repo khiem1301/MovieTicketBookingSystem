@@ -31,7 +31,7 @@ public class PromotionSaveServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        if (!AdminAuthUtil.requireAdminOrManager(req, resp)) return;
+        if (!AdminAuthUtil.requireManager(req, resp)) return;
 
         String id            = trim(req.getParameter("promotionId"));
         String code          = trim(req.getParameter("code"));

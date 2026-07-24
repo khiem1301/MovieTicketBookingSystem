@@ -338,7 +338,7 @@ public class ManageCinemaRoomServlet extends HttpServlet {
 
     private boolean isAuthorized(HttpServletRequest req) {
         Object role = req.getSession().getAttribute("userRole");
-        return "MANAGER".equals(role) || "ADMIN".equals(role);
+        return "MANAGER".equals(role);
     }
 
     private static String detailUrl(String ctx, String roomId, String query) {

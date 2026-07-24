@@ -239,6 +239,11 @@ public class CheckoutServlet extends HttpServlet {
                     req.setAttribute("holdExpiresAt", expiry.getTime()));
         }
 
+        // Tránh Back từ /payment hiện checkout cũ (không có nút tiếp tục đơn PENDING)
+        resp.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+        resp.setHeader("Pragma", "no-cache");
+        resp.setDateHeader("Expires", 0);
+
         req.getRequestDispatcher(VIEW).forward(req, resp);
     }
 

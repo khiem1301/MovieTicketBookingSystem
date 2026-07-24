@@ -39,6 +39,6 @@
   </div>
 </div>
 
-<script charset="UTF-8" src="${ctx}/js/seat-type-colors.js?v=3"></script>
-<script charset="UTF-8" src="${ctx}/js/customer-checkout.js?v=3"></script>
+<script charset="UTF-8" src="${ctx}/js/seat-type-colors.js?v=6"></script>
+<script charset="UTF-8" src="${ctx}/js/customer-checkout.js?v=6"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

@@ -32,6 +32,8 @@ public class BookingDAO {
 
     /** Thời gian thanh toán online (Customer) — countdown trên /payment. */
     public static final int ONLINE_EXPIRE_MINUTES = 5;
+    /** Quầy: lâu hơn để khách thanh toán tại chỗ không bị gấp. */
+    public static final int OFFLINE_EXPIRE_MINUTES = 15;
 
     /**
      * FR-35 / FR-38 — Tạo booking tại quầy (OFFLINE).
@@ -106,9 +108,10 @@ public class BookingDAO {
                     (booking_code, user_id, showtime_id, booking_source,
                      created_by_staff_id, customer_name, customer_phone,
                      vat_rate_snapshot, total_amount, discount_amount, final_amount, points_redeemed,
-                     booking_status, payment_status)
+                     booking_status, payment_status, expired_at)
                 OUTPUT INSERTED.id
-                VALUES (?, ?, ?, 'OFFLINE', ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', 'UNPAID')
+                VALUES (?, ?, ?, 'OFFLINE', ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', 'UNPAID',
+                        DATEADD(MINUTE, ?, GETDATE()))
                 """;
 
         String insertSeat = """
@@ -147,6 +150,7 @@ public class BookingDAO {
                 ps.setBigDecimal(9, pointsDiscount);
                 ps.setBigDecimal(10, discountedFinal);
                 ps.setInt(11, effectivePoints);
+                ps.setInt(12, OFFLINE_EXPIRE_MINUTES);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (!rs.next()) throw new SQLException("Không lấy được booking ID");
                     bookingId = rs.getString(1);
@@ -341,6 +345,251 @@ public class BookingDAO {
             throw new RuntimeException("findActiveOnlinePendingBookingId failed", e);
         }
         return null;
+    }
+
+    /**
+     * Tất cả đơn OFFLINE PENDING/UNPAID còn hạn của nhân viên (nhiều đơn / nhiều suất).
+     */
+    public List<BookingDetailDTO> findActiveOfflinePendingsByStaff(String staffId) {
+        List<BookingDetailDTO> result = new ArrayList<>();
+        if (staffId == null || staffId.isBlank()) {
+            return result;
+        }
+        String sql = """
+                SELECT id
+                FROM Bookings
+                WHERE created_by_staff_id = ?
+                  AND booking_source = 'OFFLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND expired_at IS NOT NULL
+                  AND expired_at > GETDATE()
+                ORDER BY booked_at DESC
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, staffId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    BookingDetailDTO detail = getDetailById(rs.getString("id"));
+                    if (detail != null) {
+                        result.add(detail);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findActiveOfflinePendingsByStaff failed", e);
+        }
+        return result;
+    }
+
+    /**
+     * Đơn OFFLINE PENDING còn hạn của nhân viên trên một suất (chặn tạo đơn trùng suất).
+     */
+    public String findActiveOfflinePendingByStaffAndShowtime(String staffId, String showtimeId) {
+        if (staffId == null || staffId.isBlank() || showtimeId == null || showtimeId.isBlank()) {
+            return null;
+        }
+        String sql = """
+                SELECT TOP 1 id
+                FROM Bookings
+                WHERE created_by_staff_id = ?
+                  AND showtime_id = ?
+                  AND booking_source = 'OFFLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND expired_at IS NOT NULL
+                  AND expired_at > GETDATE()
+                ORDER BY booked_at DESC
+                """;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, staffId);
+            ps.setString(2, showtimeId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("id");
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findActiveOfflinePendingByStaffAndShowtime failed", e);
+        }
+        return null;
+    }
+
+    /** @deprecated dùng {@link #findActiveOfflinePendingsByStaff} — giữ để tương thích. */
+    public String findActiveOfflinePendingByStaff(String staffId) {
+        List<BookingDetailDTO> list = findActiveOfflinePendingsByStaff(staffId);
+        return list.isEmpty() ? null : list.get(0).getBookingId();
+    }
+
+    /** Hủy đơn OFFLINE PENDING tại quầy. */
+    public boolean cancelOfflinePendingBooking(String bookingId, String staffId) {
+        return releaseOfflinePendingBooking(bookingId, staffId, "CANCELLED");
+    }
+
+    /** Hết hạn đơn OFFLINE PENDING tại quầy. */
+    public boolean expireOfflinePendingBooking(String bookingId, String staffId) {
+        return releaseOfflinePendingBooking(bookingId, staffId, "EXPIRED");
+    }
+
+    /**
+     * Đánh EXPIRED mọi đơn OFFLINE PENDING quá hạn (kể cả expired_at NULL — đơn cũ trước khi có hạn).
+     * Hoàn voucher + điểm đã trừ lúc tạo đơn.
+     */
+    public int expireAllStaleOfflinePendingBookings() {
+        String selectSql = """
+                SELECT id, created_by_staff_id
+                FROM Bookings
+                WHERE booking_source = 'OFFLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                  AND (expired_at IS NULL OR expired_at <= GETDATE())
+                """;
+        int count = 0;
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(selectSql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                String bookingId = rs.getString("id");
+                String staffId = rs.getString("created_by_staff_id");
+                if (staffId != null && expireOfflinePendingBooking(bookingId, staffId)) {
+                    count++;
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("expireAllStaleOfflinePendingBookings failed", e);
+        }
+        return count;
+    }
+
+    /**
+     * Hủy/hết hạn đơn OFFLINE PENDING — giải phóng ghế; hoàn voucher + điểm đã trừ lúc tạo đơn.
+     */
+    private boolean releaseOfflinePendingBooking(String bookingId, String staffId, String newStatus) {
+        if (bookingId == null || bookingId.isBlank() || staffId == null || staffId.isBlank()) {
+            return false;
+        }
+        if (!"CANCELLED".equals(newStatus) && !"EXPIRED".equals(newStatus)) {
+            throw new IllegalArgumentException("newStatus must be CANCELLED or EXPIRED");
+        }
+        String selectSql = """
+                SELECT user_id, points_redeemed, showtime_id
+                FROM Bookings
+                WHERE id = ?
+                  AND created_by_staff_id = ?
+                  AND booking_source = 'OFFLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                """;
+        String updateSql = """
+                UPDATE Bookings
+                SET booking_status = ?
+                WHERE id = ?
+                  AND created_by_staff_id = ?
+                  AND booking_source = 'OFFLINE'
+                  AND booking_status = 'PENDING'
+                  AND payment_status = 'UNPAID'
+                """;
+
+        Connection conn = null;
+        try {
+            conn = DBContext.getConnection();
+            conn.setAutoCommit(false);
+
+            String userId;
+            int pointsRedeemed;
+            String showtimeId;
+            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+                ps.setString(1, bookingId);
+                ps.setString(2, staffId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        conn.rollback();
+                        return false;
+                    }
+                    userId = rs.getString("user_id");
+                    pointsRedeemed = rs.getInt("points_redeemed");
+                    showtimeId = rs.getString("showtime_id");
+                }
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                ps.setString(1, newStatus);
+                ps.setString(2, bookingId);
+                ps.setString(3, staffId);
+                if (ps.executeUpdate() == 0) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
+            BookingPromotionDAO bpDao = new BookingPromotionDAO();
+            PromotionDAO promoDao = new PromotionDAO();
+            var appliedPromo = bpDao.findByBookingId(conn, bookingId);
+            if (appliedPromo.isPresent()) {
+                bpDao.deleteByBookingId(conn, bookingId);
+                promoDao.decrementUsedCount(conn, appliedPromo.get().promotionId());
+            }
+
+            if (userId != null && pointsRedeemed > 0) {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE Users SET loyalty_points = loyalty_points + ? WHERE id = ?")) {
+                    ps.setInt(1, pointsRedeemed);
+                    ps.setString(2, userId);
+                    ps.executeUpdate();
+                }
+                String note = "EXPIRED".equals(newStatus)
+                        ? "Hoàn điểm khi hết hạn thanh toán đơn quầy"
+                        : "Hoàn điểm khi hủy đơn quầy chưa thanh toán";
+                try (PreparedStatement ps = conn.prepareStatement("""
+                        INSERT INTO LoyaltyPointsLog (user_id, booking_id, points_delta, transaction_type, note)
+                        VALUES (?, ?, ?, 'ADJUST', ?)
+                        """)) {
+                    ps.setString(1, userId);
+                    ps.setString(2, bookingId);
+                    ps.setInt(3, pointsRedeemed);
+                    ps.setString(4, note);
+                    ps.executeUpdate();
+                }
+            }
+
+            if (showtimeId != null) {
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "DELETE FROM SeatHolds WHERE showtime_id = ? AND user_id = ?")) {
+                    ps.setString(1, showtimeId);
+                    ps.setString(2, staffId);
+                    ps.executeUpdate();
+                }
+            }
+
+            // Fail VietQR PENDING còn sót
+            try (PreparedStatement ps = conn.prepareStatement("""
+                    UPDATE Payments
+                    SET payment_status = 'FAILED'
+                    WHERE booking_id = ?
+                      AND payment_method = 'VIETQR'
+                      AND payment_status = 'PENDING'
+                    """)) {
+                ps.setString(1, bookingId);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) { }
+            }
+            throw new RuntimeException("releaseOfflinePendingBooking failed", e);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) { }
+            }
+        }
     }
 
     private List<BigDecimal> computeSeatPrices(String showtimeId, List<String> seatIds,
@@ -552,14 +801,18 @@ public class BookingDAO {
             BigDecimal finalAmount = BigDecimal.ZERO;
             String userId = null;
             String bookingCode = "";
+            int pointsRedeemed = 0;
+            String bookingSource = null;
             try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT final_amount, user_id, booking_code FROM Bookings WHERE id = ?")) {
+                    "SELECT final_amount, user_id, booking_code, points_redeemed, booking_source FROM Bookings WHERE id = ?")) {
                 ps.setString(1, bookingId);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
                         finalAmount = rs.getBigDecimal("final_amount");
                         userId = rs.getString("user_id");
                         bookingCode = rs.getString("booking_code");
+                        pointsRedeemed = rs.getInt("points_redeemed");
+                        bookingSource = rs.getString("booking_source");
                     }
                 }
             }
@@ -606,6 +859,11 @@ public class BookingDAO {
 
             // FR-18 — Tạo Tickets (idempotent) — cùng TicketDAO với online/VietQR
             new TicketDAO().issueTicketsForBooking(conn, bookingId, bookingCode);
+
+            // FR-43 — Online trừ điểm lúc thanh toán; Offline đã trừ lúc tạo đơn
+            if (userId != null && pointsRedeemed > 0 && "ONLINE".equals(bookingSource)) {
+                LoyaltyDAO.redeemPoints(conn, userId, bookingId, pointsRedeemed);
+            }
 
             // FR-42 — Tích điểm loyalty nếu khách là thành viên
             if (userId != null) {
@@ -746,6 +1004,118 @@ public class BookingDAO {
                 try { conn.rollback(); } catch (SQLException ignored) { }
             }
             throw new RuntimeException("completeOnlinePayment failed", e);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) { }
+            }
+        }
+    }
+
+    /**
+     * Hoàn tất đơn final_amount = 0 (voucher / điểm đủ trừ hết) — không tạo bản ghi Payments
+     * (CK_Payments_Amount bắt amount &gt; 0). Idempotent nếu đã PAID.
+     */
+    public boolean completeZeroAmountPayment(String bookingId) {
+        Connection conn = null;
+        try {
+            conn = DBContext.getConnection();
+            conn.setAutoCommit(false);
+
+            String statusSql = """
+                    SELECT booking_code, booking_status, payment_status, user_id, showtime_id,
+                           final_amount, points_redeemed, booking_source, created_by_staff_id
+                    FROM Bookings WHERE id = ?
+                    """;
+            String bookingCode;
+            String bookingStatus;
+            String paymentStatus;
+            String userId;
+            String showtimeId;
+            String bookingSource;
+            String createdByStaffId;
+            BigDecimal finalAmount;
+            int pointsRedeemed;
+            try (PreparedStatement ps = conn.prepareStatement(statusSql)) {
+                ps.setString(1, bookingId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        conn.rollback();
+                        return false;
+                    }
+                    bookingCode = rs.getString("booking_code");
+                    bookingStatus = rs.getString("booking_status");
+                    paymentStatus = rs.getString("payment_status");
+                    userId = rs.getString("user_id");
+                    showtimeId = rs.getString("showtime_id");
+                    bookingSource = rs.getString("booking_source");
+                    createdByStaffId = rs.getString("created_by_staff_id");
+                    finalAmount = rs.getBigDecimal("final_amount");
+                    pointsRedeemed = rs.getInt("points_redeemed");
+                }
+            }
+
+            if ("PAID".equals(paymentStatus) && "CONFIRMED".equals(bookingStatus)) {
+                conn.commit();
+                return true;
+            }
+            if (!"PENDING".equals(bookingStatus) || !"UNPAID".equals(paymentStatus)) {
+                conn.rollback();
+                return false;
+            }
+            if (finalAmount == null || finalAmount.compareTo(BigDecimal.ZERO) > 0) {
+                conn.rollback();
+                return false;
+            }
+
+            String updateBookingSql = """
+                    UPDATE Bookings
+                    SET booking_status = 'CONFIRMED', payment_status = 'PAID'
+                    WHERE id = ? AND booking_status = 'PENDING' AND payment_status = 'UNPAID'
+                    """;
+            try (PreparedStatement ps = conn.prepareStatement(updateBookingSql)) {
+                ps.setString(1, bookingId);
+                if (ps.executeUpdate() == 0) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+
+            new TicketDAO().issueTicketsForBooking(conn, bookingId, bookingCode);
+
+            if (showtimeId != null) {
+                if (userId != null) {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "DELETE FROM SeatHolds WHERE showtime_id = ? AND user_id = ?")) {
+                        ps.setString(1, showtimeId);
+                        ps.setString(2, userId);
+                        ps.executeUpdate();
+                    }
+                }
+                if ("OFFLINE".equals(bookingSource) && createdByStaffId != null) {
+                    try (PreparedStatement ps = conn.prepareStatement(
+                            "DELETE FROM SeatHolds WHERE showtime_id = ? AND user_id = ?")) {
+                        ps.setString(1, showtimeId);
+                        ps.setString(2, createdByStaffId);
+                        ps.executeUpdate();
+                    }
+                }
+            }
+
+            if (userId != null && pointsRedeemed > 0) {
+                LoyaltyDAO.redeemPoints(conn, userId, bookingId, pointsRedeemed);
+            }
+            // final_amount = 0 → earnPoints sẽ không cộng điểm (pts = 0)
+
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) { }
+            }
+            throw new RuntimeException("completeZeroAmountPayment failed", e);
         } finally {
             if (conn != null) {
                 try {

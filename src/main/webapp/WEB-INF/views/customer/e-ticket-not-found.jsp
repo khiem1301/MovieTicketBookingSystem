@@ -7,7 +7,8 @@
 <div class="container" style="max-width:480px;margin:48px auto;padding:0 16px;text-align:center">
   <h1 style="font-size:1.4rem;margin-bottom:12px">Không tìm thấy vé</h1>
   <p style="color:#888;margin-bottom:24px">
-    Mã vé không hợp lệ hoặc đơn chưa được thanh toán.
+    Mã vé không hợp lệ, đơn chưa thanh toán, hoặc bạn không phải người đặt vé này.
+    Hãy đăng nhập đúng tài khoản đã đặt để xem vé.
   </p>
   <a href="${pageContext.request.contextPath}/home" class="btn btn-primary">Về trang chủ</a>
 </div>

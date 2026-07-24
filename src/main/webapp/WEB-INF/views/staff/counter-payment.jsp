@@ -103,6 +103,19 @@
         <%-- Phương thức thanh toán --%>
         <div class="payment-method-section">
           <div class="payment-section-title">Phương thức thanh toán</div>
+          <c:choose>
+            <c:when test="${detail.finalAmount != null && detail.finalAmount.signum() == 0}">
+              <div class="payment-method-tabs">
+                <button type="button" class="pay-method-btn pay-method-btn--active" disabled>
+                  🎁 Đơn miễn phí (0 ₫)
+                </button>
+              </div>
+              <p style="margin-top:10px;font-size:13px;color:#b0b0c0;line-height:1.45">
+                Đã giảm hết bằng voucher/điểm. Không cần thu tiền hay tạo QR —
+                bấm xác nhận bên phải để phát hành vé.
+              </p>
+            </c:when>
+            <c:otherwise>
           <div class="payment-method-tabs">
             <button class="pay-method-btn <c:if test="${not vietqrActive}">pay-method-btn--active</c:if>"
                     id="btnCash" onclick="setPayMethod('CASH')">
@@ -113,6 +126,8 @@
               📱 Chuyển khoản
             </button>
           </div>
+            </c:otherwise>
+          </c:choose>
         </div>
 
       </div>
@@ -126,6 +141,15 @@
 
         <div class="payment-offline-booking-badge">OFFLINE BOOKING</div>
 
+        <c:if test="${not empty detail.expiredAt}">
+          <div class="pos-pay-expire" id="posPayExpire"
+               data-expires="<c:out value='${detail.expiredAt.time}'/>"
+               data-ctx="${pageContext.request.contextPath}">
+            Thời gian thanh toán còn lại:
+            <strong id="posPayCountdown">--:--</strong>
+          </div>
+        </c:if>
+
         <div class="numpad-total-section">
           <div class="numpad-total-label">Tổng cần thanh toán</div>
           <div class="numpad-total-amount" id="totalDue">
@@ -133,8 +157,9 @@
           </div>
         </div>
 
-        <%-- Tiền nhận (chỉ hiện khi chọn tiền mặt) --%>
-        <div id="cashSection">
+        <%-- Tiền nhận (chỉ hiện khi chọn tiền mặt và đơn > 0) --%>
+        <div id="cashSection" style="display:<c:choose><c:when test="${detail.finalAmount != null && detail.finalAmount.signum() == 0}">none</c:when><c:when test="${vietqrActive}">none</c:when><c:otherwise></c:otherwise></c:choose>">
+          <c:if test="${detail.finalAmount == null || detail.finalAmount.signum() != 0}">
           <div class="numpad-received-row">
             <div>
               <div class="numpad-label">Tiền nhận</div>
@@ -170,10 +195,12 @@
             <button class="numpad-btn" onclick="numpadPress('0')">0</button>
             <button class="numpad-btn numpad-btn--del" onclick="numpadDel()">⌫</button>
           </div>
+          </c:if>
         </div>
 
-        <%-- VietQR / Chuyển khoản --%>
-        <div id="vietqrSection" style="display:<c:choose><c:when test="${vietqrActive}">block</c:when><c:otherwise>none</c:otherwise></c:choose>">
+        <%-- VietQR / Chuyển khoản (ẩn khi đơn 0₫) --%>
+        <div id="vietqrSection" style="display:<c:choose><c:when test="${detail.finalAmount != null && detail.finalAmount.signum() == 0}">none</c:when><c:when test="${vietqrActive}">block</c:when><c:otherwise>none</c:otherwise></c:choose>">
+          <c:if test="${detail.finalAmount == null || detail.finalAmount.signum() != 0}">
           <c:choose>
             <c:when test="${vietqrActive}">
               <div class="vietqr-qr-block">
@@ -267,10 +294,11 @@
               </div>
             </c:otherwise>
           </c:choose>
+          </c:if>
         </div>
 
         <%-- Nút xác nhận tiền mặt --%>
-        <div id="cashConfirmSection" style="display:<c:choose><c:when test="${vietqrActive}">none</c:when><c:otherwise>block</c:otherwise></c:choose>">
+        <div id="cashConfirmSection" style="display:<c:choose><c:when test="${detail.finalAmount != null && detail.finalAmount.signum() == 0}">block</c:when><c:when test="${vietqrActive}">none</c:when><c:otherwise>block</c:otherwise></c:choose>">
           <form method="post" id="paymentForm"
                 action="${pageContext.request.contextPath}/staff/counter?action=payment">
             <input type="hidden" name="bookingId"    value="${detail.bookingId}"/>
@@ -278,7 +306,14 @@
             <input type="hidden" name="changeAmount" id="hiddenChangAmt" value="0"/>
             <button type="button" class="pos-proceed-btn pos-proceed-btn--green"
                     id="markSuccessBtn" onclick="submitPayment()">
-              ✓ Xác nhận thanh toán thành công
+              <c:choose>
+                <c:when test="${detail.finalAmount != null && detail.finalAmount.signum() == 0}">
+                  ✓ Xác nhận phát hành vé (miễn phí)
+                </c:when>
+                <c:otherwise>
+                  ✓ Xác nhận thanh toán thành công
+                </c:otherwise>
+              </c:choose>
             </button>
           </form>
         </div>
@@ -304,16 +339,23 @@
   let payMethod   = '${vietqrActive ? "VIETQR" : "CASH"}';
 
   function setPayMethod(method) {
+    if (TOTAL_DUE <= 0) return;
     payMethod = method;
     const isCash   = method === 'CASH';
-    document.getElementById('btnCash').classList.toggle('pay-method-btn--active', isCash);
-    document.getElementById('btnVietqr').classList.toggle('pay-method-btn--active', !isCash);
+    const btnCash = document.getElementById('btnCash');
+    const btnVqr  = document.getElementById('btnVietqr');
+    if (btnCash) btnCash.classList.toggle('pay-method-btn--active', isCash);
+    if (btnVqr)  btnVqr.classList.toggle('pay-method-btn--active', !isCash);
     document.getElementById('cashSection').style.display        = isCash ? '' : 'none';
     document.getElementById('cashConfirmSection').style.display = isCash ? '' : 'none';
     document.getElementById('vietqrSection').style.display      = isCash ? 'none' : '';
   }
 
   (function () {
+    if (TOTAL_DUE <= 0) {
+      payMethod = 'CASH';
+      return;
+    }
     if ('${vietqrActive}' === 'true') setPayMethod('VIETQR');
   })();
 
@@ -404,6 +446,34 @@
   }
 
   poll();
+})();
+</script>
+
+<%-- Countdown hết hạn thanh toán quầy (giống customer) --%>
+<script>
+(function () {
+  var box = document.getElementById('posPayExpire');
+  if (!box) return;
+  var expiresMs = parseInt(box.dataset.expires || '0', 10);
+  var ctx = box.dataset.ctx || '';
+  var el = document.getElementById('posPayCountdown');
+  if (!expiresMs || !el) return;
+
+  function tick() {
+    var remaining = Math.max(0, expiresMs - Date.now());
+    var secs = Math.floor(remaining / 1000);
+    var mm = String(Math.floor(secs / 60)).padStart(2, '0');
+    var ss = String(secs % 60).padStart(2, '0');
+    el.textContent = mm + ':' + ss;
+    box.classList.toggle('pos-pay-expire--warn', secs < 60);
+    if (remaining <= 0) {
+      alert('Đơn đã hết thời gian thanh toán. Ghế sẽ được giải phóng.');
+      window.location.href = ctx + '/staff/counter';
+      return;
+    }
+    setTimeout(tick, 1000);
+  }
+  tick();
 })();
 </script>
 

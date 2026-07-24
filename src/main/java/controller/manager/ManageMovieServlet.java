@@ -317,7 +317,7 @@ public class ManageMovieServlet extends HttpServlet {
 
     private boolean isAuthorized(HttpServletRequest req) {
         Object role = req.getSession().getAttribute("userRole");
-        return "MANAGER".equals(role) || "ADMIN".equals(role);
+        return "MANAGER".equals(role);
     }
 
     private void loadAndForward(HttpServletRequest req, HttpServletResponse resp)

@@ -58,6 +58,28 @@
         <div class="pay-momo-glow" aria-hidden="true"></div>
         <h2 class="pay-momo-heading">Phương thức thanh toán</h2>
 
+        <c:choose>
+          <%-- Đơn 0₫ (voucher / điểm) — xác nhận ngay, không VietQR --%>
+          <c:when test="${detail.finalAmount != null && detail.finalAmount.signum() == 0}">
+            <div class="pay-momo-method pay-momo-method--selected">
+              <div class="pay-momo-method-icon">0₫</div>
+              <span class="pay-momo-method-label">Đơn miễn phí</span>
+              <span class="pay-momo-method-check" aria-hidden="true">✓</span>
+            </div>
+            <div class="pay-momo-start">
+              <p class="pay-momo-start-text">
+                Tổng thanh toán là <strong>0 ₫</strong>
+                (đã áp dụng voucher và/hoặc điểm tích luỹ).
+                Không cần chuyển khoản — bấm xác nhận để nhận vé.
+              </p>
+              <form method="post" action="${ctx}/payment" class="pay-momo-start-form">
+                <input type="hidden" name="bookingId" value="<c:out value='${detail.bookingId}'/>"/>
+                <input type="hidden" name="action" value="confirmFree"/>
+                <button type="submit" class="pay-momo-pay-btn">Xác nhận nhận vé</button>
+              </form>
+            </div>
+          </c:when>
+          <c:otherwise>
         <%-- VietQR (+ SePay tự xác nhận khi bật) --%>
         <div class="pay-momo-method pay-momo-method--selected pay-momo-method--vietqr">
           <div class="pay-momo-method-icon pay-momo-method-icon--vietqr">VQR</div>
@@ -178,6 +200,8 @@
                 <p class="pay-stub-note">Sao chép <code>vietqr.properties.example</code> → <code>vietqr.properties</code> và điền STK ngân hàng.</p>
               </c:if>
             </div>
+          </c:otherwise>
+        </c:choose>
           </c:otherwise>
         </c:choose>
       </div>

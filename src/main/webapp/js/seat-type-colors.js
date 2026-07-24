@@ -78,27 +78,36 @@
     });
   }
 
+  function paintAvailableSeat(el) {
+    var key = normalizeType(
+      el.dataset.type || el.dataset.seatType || el.dataset.typeKey || 'regular'
+    );
+    var color = el.dataset.typeColor || colorForType(key);
+    // Luôn tính contrast theo nền (giống staff POS) — không tin data-type-text có thể lệch
+    var text = textColorFor(color);
+    el.style.setProperty('background', color, 'important');
+    el.style.setProperty('border-color', color, 'important');
+    el.style.setProperty('color', text, 'important');
+    var num = el.querySelector('.ck-seat-num, .pos-seat-code');
+    if (num) {
+      num.style.setProperty('color', text, 'important');
+    }
+    if (key === 'vip') {
+      el.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.25)';
+    } else {
+      el.style.boxShadow = '';
+    }
+  }
+
   function clearSeatInlineStyle(el) {
     if (!el || !el.style) return;
     el.style.removeProperty('background');
     el.style.removeProperty('border-color');
     el.style.removeProperty('color');
     el.style.boxShadow = '';
-  }
-
-  function paintAvailableSeat(el) {
-    var key = normalizeType(
-      el.dataset.type || el.dataset.seatType || el.dataset.typeKey || 'regular'
-    );
-    var color = el.dataset.typeColor || colorForType(key);
-    var text = el.dataset.typeText || textColorFor(color);
-    el.style.setProperty('background', color, 'important');
-    el.style.setProperty('border-color', color, 'important');
-    el.style.setProperty('color', text, 'important');
-    if (key === 'vip') {
-      el.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.25)';
-    } else {
-      el.style.boxShadow = '';
+    var num = el.querySelector('.ck-seat-num, .pos-seat-code');
+    if (num && num.style) {
+      num.style.removeProperty('color');
     }
   }
 

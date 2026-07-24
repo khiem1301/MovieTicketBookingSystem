@@ -16,24 +16,30 @@ uri="jakarta.tags.functions" %>
     <c:if test="${not empty extraCss}">
       <link
         rel="stylesheet"
-        href="${pageContext.request.contextPath}/css/${extraCss}.css?v=4"
+        href="${pageContext.request.contextPath}/css/${extraCss}.css?v=6"
       />
     </c:if>
     <c:if test="${not empty extraCss2}">
       <link
         rel="stylesheet"
-        href="${pageContext.request.contextPath}/css/${extraCss2}.css?v=6"
+        href="${pageContext.request.contextPath}/css/${extraCss2}.css?v=8"
       />
     </c:if>
   </head>
   <body>
     <header class="site-header">
       <div class="header-inner">
-        <%-- Logo: staff về quầy vé, các role khác về trang chủ --%>
+        <%-- Logo: về màn hình bắt đầu theo role --%>
         <c:set var="logoHref" value="${pageContext.request.contextPath}/home"/>
-        <c:if test="${sessionScope.userRole == 'STAFF'}">
-          <c:set var="logoHref" value="${pageContext.request.contextPath}/staff/counter"/>
-        </c:if>
+        <c:choose>
+          <c:when test="${sessionScope.userRole == 'ADMIN'}">
+            <c:set var="logoHref" value="${pageContext.request.contextPath}/admin/dashboard"/>
+          </c:when>
+          <c:when test="${sessionScope.userRole == 'STAFF'}">
+            <c:set var="logoHref" value="${pageContext.request.contextPath}/staff/counter"/>
+          </c:when>
+          <%-- MANAGER + CUSTOMER: /home — manager cần xem giao diện khách --%>
+        </c:choose>
         <a href="${logoHref}" class="logo">
           <img
             src="${pageContext.request.contextPath}/images/logorapchieuphim.png"
@@ -47,6 +53,8 @@ uri="jakarta.tags.functions" %>
           <span class="logo-text" style="display: none">ÉpCine</span>
         </a>
 
+        <%-- Search + nav phim: ẩn với ADMIN (chỉ dùng khu vực quản trị) --%>
+        <c:if test="${sessionScope.userRole != 'ADMIN'}">
         <%-- Search --%>
         <form
           class="header-search"
@@ -195,6 +203,7 @@ uri="jakarta.tags.functions" %>
             </div>
           </div>
         </nav>
+        </c:if>
 
         <%-- Auth / User area --%>
         <div class="header-auth">
