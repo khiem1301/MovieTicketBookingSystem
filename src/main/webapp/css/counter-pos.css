@@ -99,6 +99,224 @@
   border-bottom: 1px solid rgba(229,57,53,.4);
   color: #ef9a9a;
 }
+.pos-alert--info {
+  background: rgba(66,165,245,.15);
+  border-bottom: 1px solid rgba(66,165,245,.35);
+  color: #90caf9;
+}
+
+.pos-pending-list {
+  max-height: 42vh;
+  overflow-y: auto;
+  padding: 10px 12px 4px;
+  border-bottom: 1px solid #1e1e1e;
+  flex-shrink: 0;
+}
+.pos-pending-list__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #c9a066;
+  margin-bottom: 8px;
+}
+.pos-pending-list__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #f5a623;
+  color: #1a1200;
+  font-size: 11px;
+  font-weight: 800;
+}
+.pos-pending-card--compact {
+  margin: 0 0 10px;
+}
+.pos-pending-card--compact .pos-pending-btn {
+  padding: 9px 12px;
+  font-size: 13px;
+}
+.pos-pending-card--active {
+  border-color: #f5a623;
+  box-shadow: 0 0 0 1px rgba(245,166,35,.45), 0 8px 24px rgba(0,0,0,.35);
+}
+.pos-showtime-pending-warn {
+  margin: 10px 12px 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(229,57,53,.12);
+  border: 1px solid rgba(229,57,53,.35);
+  color: #ef9a9a;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.pos-showtime-pending-warn strong { color: #ffcdd2; }
+
+/* Đơn chờ thanh toán — card sidebar */
+.pos-pending-card {
+  margin: 14px 12px 16px;
+  padding: 0;
+  border-radius: 12px;
+  background: #181818;
+  border: 1px solid #2a2a2a;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.pos-pending-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #3d2a0a 0%, #1f1608 100%);
+  border-bottom: 1px solid rgba(245,166,35,.35);
+}
+.pos-pending-card__badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+  color: #1a1200;
+  background: #f5a623;
+  padding: 5px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.pos-pending-timer {
+  text-align: right;
+  line-height: 1.15;
+}
+.pos-pending-timer__label {
+  display: block;
+  font-size: 10px;
+  color: #c9a066;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 2px;
+}
+.pos-pending-timer__value {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffe0b2;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}
+.pos-pending-card__rows {
+  padding: 6px 0;
+}
+.pos-pending-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #222;
+}
+.pos-pending-row:last-child { border-bottom: none; }
+.pos-pending-row__label {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #888;
+  padding-top: 2px;
+}
+.pos-pending-row__value {
+  text-align: right;
+  font-size: 13px;
+  font-weight: 600;
+  color: #eee;
+  line-height: 1.35;
+  word-break: break-word;
+}
+.pos-pending-row__value--mono {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: .02em;
+  color: #90caf9;
+}
+.pos-pending-row--total {
+  background: rgba(229,57,53,.08);
+}
+.pos-pending-row__value--price {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ff8a80;
+}
+.pos-pending-card__note {
+  margin: 0;
+  padding: 10px 14px 4px;
+  font-size: 12px;
+  color: #8a8a8a;
+  line-height: 1.45;
+}
+.pos-pending-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px 14px;
+}
+.pos-pending-btn {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px 14px;
+  text-align: center;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.pos-pending-btn--primary {
+  background: #e53935;
+  color: #fff;
+}
+.pos-pending-btn--primary:hover {
+  background: #c62828;
+  color: #fff;
+}
+.pos-pending-btn--ghost {
+  background: transparent;
+  color: #bbb;
+  border: 1px solid #3a3a3a;
+}
+.pos-pending-btn--ghost:hover {
+  border-color: #ef9a9a;
+  color: #ef9a9a;
+}
+
+.pos-pay-expire {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(245,166,35,.12);
+  border: 1px solid rgba(245,166,35,.35);
+  color: #ffcc80;
+  font-size: 13px;
+  text-align: center;
+}
+.pos-pay-expire strong {
+  color: #ffe0b2;
+  font-variant-numeric: tabular-nums;
+  margin-left: 4px;
+}
+.pos-pay-expire--warn {
+  background: rgba(229,57,53,.15);
+  border-color: rgba(229,57,53,.4);
+  color: #ef9a9a;
+}
+.pos-pay-expire--warn strong { color: #ffcdd2; }
 
 /* ── 3-Panel Main Layout ──────────────────────────────────── */
 .pos-layout {

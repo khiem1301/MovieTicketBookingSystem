@@ -95,9 +95,22 @@ public class CounterBookingServlet extends HttpServlet {
         // ── Page steps ────────────────────────────────────────────────
         try {
             if ("payment".equals(step) && !isBlank(bookingId)) {
+                resp.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+                resp.setHeader("Pragma", "no-cache");
+                resp.setDateHeader("Expires", 0);
+
+                // Hết hạn thanh toán → EXPIRED + về POS
+                new BookingDAO().expireAllStaleOfflinePendingBookings();
+
                 BookingDetailDTO detail = new BookingDAO().getDetailById(bookingId);
                 if (detail == null) {
                     forwardError(req, resp, "Không tìm thấy đơn đặt vé.");
+                    return;
+                }
+                if ("EXPIRED".equals(detail.getBookingStatus())
+                        || "CANCELLED".equals(detail.getBookingStatus())) {
+                    forwardError(req, resp,
+                            "Đơn đã hết hạn hoặc đã hủy. Ghế đã được giải phóng — vui lòng đặt lại.");
                     return;
                 }
                 // SePay webhook đã xác nhận → nhảy thẳng màn in vé (thành công offline)
@@ -107,9 +120,15 @@ public class CounterBookingServlet extends HttpServlet {
                             + "/staff/counter?step=print&bookingId=" + bookingId);
                     return;
                 }
+                if (!"PENDING".equals(detail.getBookingStatus())
+                        || !"UNPAID".equals(detail.getPaymentStatus())) {
+                    forwardError(req, resp, "Đơn không còn ở trạng thái chờ thanh toán.");
+                    return;
+                }
                 req.setAttribute("detail", detail);
                 req.setAttribute("vietqrConfigured", VietQRConfig.isConfigured());
                 req.setAttribute("sepayEnabled", SePayConfig.isEnabled());
+                req.setAttribute("paymentExpireMinutes", BookingDAO.OFFLINE_EXPIRE_MINUTES);
                 // Nếu đã tạo QR từ trước, load lại từ session
                 jakarta.servlet.http.HttpSession hs = req.getSession(false);
                 if (hs != null && bookingId.equals(hs.getAttribute("vietqrBookingId"))) {
@@ -130,6 +149,7 @@ public class CounterBookingServlet extends HttpServlet {
                 // Tránh bfcache khi Back — nút in phụ thuộc is_printed từ DB
                 resp.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
                 resp.setHeader("Pragma", "no-cache");
+                resp.setDateHeader("Expires", 0);
                 BookingDetailDTO detail = new BookingDAO().getDetailById(bookingId);
                 if (detail == null) {
                     forwardError(req, resp, "Không tìm thấy đơn đặt vé.");
@@ -139,6 +159,10 @@ public class CounterBookingServlet extends HttpServlet {
                 req.getRequestDispatcher(VIEW_PRINT).forward(req, resp);
 
             } else {
+                // Tránh Back từ payment hiện POS cũ (ghế khóa mà không có nút tiếp tục đơn)
+                resp.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+                resp.setHeader("Pragma", "no-cache");
+                resp.setDateHeader("Expires", 0);
                 loadMainPage(req);
                 req.getRequestDispatcher(VIEW_MAIN).forward(req, resp);
             }
@@ -178,6 +202,8 @@ public class CounterBookingServlet extends HttpServlet {
             handleMarkPrinted(req, resp);
         } else if ("holdSeats".equals(action)) {
             handleHoldSeats(req, resp);
+        } else if ("cancelPending".equals(action)) {
+            handleCancelPending(req, resp);
         } else {
             handleCreateBooking(req, resp);
         }
@@ -191,8 +217,36 @@ public class CounterBookingServlet extends HttpServlet {
         if (staff != null) {
             try { new SeatHoldDAO().releaseAllHoldsForUser(staff.getId()); }
             catch (RuntimeException ignored) { }
+
+            // Dọn đơn OFFLINE PENDING quá hạn (kể cả đơn cũ không có expired_at)
+            try { new BookingDAO().expireAllStaleOfflinePendingBookings(); }
+            catch (RuntimeException e) { log("expire stale offline pending failed", e); }
+
+            // Nhiều đơn PENDING (suất khác nhau) → hiện danh sách tiếp tục / hủy
+            List<BookingDetailDTO> pendings =
+                    new BookingDAO().findActiveOfflinePendingsByStaff(staff.getId());
+            if (!pendings.isEmpty()) {
+                req.setAttribute("pendingBookings", pendings);
+            }
         }
         req.setAttribute("movies", new ShowtimeDAO().getMoviesWithActiveShowtimes());
+    }
+
+    /** Hủy đơn OFFLINE PENDING khi staff Back từ thanh toán. */
+    private void handleCancelPending(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
+        String bookingId = trim(req.getParameter("bookingId"));
+        SessionUser staff = SessionUtil.getLoggedUser(req);
+        if (isBlank(bookingId) || staff == null) {
+            forwardError(req, resp, "Thiếu thông tin đơn cần hủy.");
+            return;
+        }
+        boolean ok = new BookingDAO().cancelOfflinePendingBooking(bookingId, staff.getId());
+        if (!ok) {
+            forwardError(req, resp, "Không hủy được đơn. Đơn có thể đã thanh toán hoặc không thuộc phiên này.");
+            return;
+        }
+        resp.sendRedirect(req.getContextPath() + "/staff/counter");
     }
 
     // ── Helpers: JSON API ──────────────────────────────────────────────
@@ -229,6 +283,13 @@ public class CounterBookingServlet extends HttpServlet {
                                 String showtimeId) throws IOException {
         resp.setContentType("application/json; charset=UTF-8");
         try {
+            // Giải phóng ghế của đơn OFFLINE PENDING quá hạn trước khi vẽ sơ đồ
+            try { new BookingDAO().expireAllStaleOfflinePendingBookings(); }
+            catch (RuntimeException ignored) { }
+            // Đồng thời expire online stale trên suất (customer đặt song song)
+            try { new BookingDAO().expireStaleOnlinePendingForShowtime(showtimeId); }
+            catch (RuntimeException ignored) { }
+
             SessionUser staff = SessionUtil.getLoggedUser(req);
             String staffId = staff != null ? staff.getId() : null;
             List<Seat> seats = staffId != null
@@ -405,15 +466,25 @@ public class CounterBookingServlet extends HttpServlet {
         SessionUser staff = SessionUtil.getLoggedUser(req);
         String userId = isBlank(memberId) ? null : memberId;
 
+        BookingDAO bookingDAO = new BookingDAO();
+        // Cho phép nhiều PENDING — chỉ chặn trùng suất (ghế PENDING cũng bị findBlockingSeatCodes chặn)
+        String pendingSameShowtime =
+                bookingDAO.findActiveOfflinePendingByStaffAndShowtime(staff.getId(), showtimeId);
+        if (pendingSameShowtime != null) {
+            forwardError(req, resp,
+                    "Suất này đã có đơn đang chờ thanh toán. Hãy tiếp tục hoặc hủy đơn đó trước.");
+            return;
+        }
+
         SeatHoldDAO holdDAO = new SeatHoldDAO();
         List<String> blocked = holdDAO.findBlockingSeatCodes(showtimeId, seatIds, staff.getId());
         if (!blocked.isEmpty()) {
-            forwardError(req, resp, "Ghế đã bị người khác chọn: " + String.join(", ", blocked));
+            forwardError(req, resp, "Ghế đã bị giữ/đặt: " + String.join(", ", blocked));
             return;
         }
 
         try {
-            String bookingId = new BookingDAO().createOfflineBooking(
+            String bookingId = bookingDAO.createOfflineBooking(
                     showtimeId, staff.getId(), userId, customerName, customerPhone,
                     seatIds, seatPrices, pointsToRedeem, voucherCode);
             holdDAO.releaseHolds(showtimeId, staff.getId());
@@ -435,6 +506,8 @@ public class CounterBookingServlet extends HttpServlet {
 
         if (isBlank(bookingId)) { forwardError(req, resp, "Thiếu bookingId."); return; }
 
+        new BookingDAO().expireAllStaleOfflinePendingBookings();
+
         // Quầy vé chỉ nhận tiền mặt
         String method = "CASH";
 
@@ -443,6 +516,11 @@ public class CounterBookingServlet extends HttpServlet {
         BookingDetailDTO existing = dao.getDetailById(bookingId);
         if (existing == null) {
             forwardError(req, resp, "Không tìm thấy đơn đặt vé."); return;
+        }
+        if ("EXPIRED".equals(existing.getBookingStatus())
+                || "CANCELLED".equals(existing.getBookingStatus())) {
+            forwardError(req, resp, "Đơn đã hết hạn hoặc đã hủy. Vui lòng đặt lại.");
+            return;
         }
         if (!"PENDING".equals(existing.getBookingStatus()) || !"UNPAID".equals(existing.getPaymentStatus())) {
             req.setAttribute("errorMessage", "Đơn đặt vé này đã được xử lý rồi.");
@@ -453,15 +531,19 @@ public class CounterBookingServlet extends HttpServlet {
         BigDecimal cashReceived = parseBigDecimal(cashReceivedStr);
         BigDecimal changeAmount = parseBigDecimal(changeAmountStr);
 
-        // Số tiền nhận phải >= tổng tiền cần thanh toán
-        {
-            BigDecimal finalAmt = existing.getFinalAmount();
-            if (finalAmt != null && (cashReceived == null || cashReceived.compareTo(finalAmt) < 0)) {
-                req.setAttribute("errorMessage", "Số tiền nhận chưa đủ. Cần ít nhất "
-                        + String.format("%,.0f", finalAmt) + " ₫.");
-                req.setAttribute("detail", existing);
-                req.getRequestDispatcher(VIEW_PAYMENT).forward(req, resp); return;
-            }
+        BigDecimal finalAmt = existing.getFinalAmount() != null
+                ? existing.getFinalAmount() : BigDecimal.ZERO;
+
+        // Đơn 0₫ (voucher/điểm): xác nhận luôn, không cần tiền mặt
+        if (finalAmt.compareTo(BigDecimal.ZERO) <= 0) {
+            cashReceived = cashReceived != null ? cashReceived : BigDecimal.ZERO;
+            changeAmount = BigDecimal.ZERO;
+        } else if (cashReceived == null || cashReceived.compareTo(finalAmt) < 0) {
+            // Số tiền nhận phải >= tổng cần thanh toán
+            req.setAttribute("errorMessage", "Số tiền nhận chưa đủ. Cần ít nhất "
+                    + String.format("%,.0f", finalAmt) + " ₫.");
+            req.setAttribute("detail", existing);
+            req.getRequestDispatcher(VIEW_PAYMENT).forward(req, resp); return;
         }
 
         try {
@@ -587,7 +669,9 @@ public class CounterBookingServlet extends HttpServlet {
 
         BigDecimal finalAmount = existing.getFinalAmount();
         if (finalAmount == null || finalAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            forwardPaymentError(req, resp, bookingId, "Số tiền thanh toán không hợp lệ."); return;
+            forwardPaymentError(req, resp, bookingId,
+                    "Đơn đã về 0 ₫ (voucher/điểm). Dùng «Xác nhận thanh toán» tiền mặt — không cần QR.");
+            return;
         }
         // Đồng bộ số tiền nguyên VND với QR + webhook
         BigDecimal payAmount = BigDecimal.valueOf(VietQRUtil.amountVnd(finalAmount));

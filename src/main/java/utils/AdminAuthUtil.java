@@ -15,9 +15,8 @@ public final class AdminAuthUtil {
 
     private AdminAuthUtil() {}
 
-    public static boolean requireAdminOrManager(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        String role = SessionUtil.getUserRole(req);
-        if ("ADMIN".equals(role) || "MANAGER".equals(role)) {
+    public static boolean requireManager(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        if ("MANAGER".equals(SessionUtil.getUserRole(req))) {
             return true;
         }
         if (SessionUtil.getLoggedUser(req) == null) {
@@ -25,12 +24,18 @@ public final class AdminAuthUtil {
             String query = req.getQueryString();
             if (query != null && !query.isBlank()) redirect += "?" + query;
             resp.sendRedirect(req.getContextPath() + "/login?redirect="
-                    + java.net.URLEncoder.encode(redirect, java.nio.charset.StandardCharsets.UTF_8));
+                    + URLEncoder.encode(redirect, StandardCharsets.UTF_8));
         } else {
-            setFlash(req, FLASH_ERROR, "Bạn không có quyền truy cập trang này.");
+            setFlash(req, FLASH_ERROR, "Bạn không có quyền truy cập trang quản lý.");
             resp.sendRedirect(req.getContextPath() + "/home");
         }
         return false;
+    }
+
+    /** @deprecated Dùng {@link #requireManager} — manager screens không còn cho ADMIN. */
+    @Deprecated
+    public static boolean requireAdminOrManager(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        return requireManager(req, resp);
     }
 
     public static boolean requireAdmin(HttpServletRequest req, HttpServletResponse resp) throws IOException {

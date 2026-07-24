@@ -1,6 +1,7 @@
 ﻿<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c"   uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn"  uri="jakarta.tags.functions" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
 <c:set var="pageTitle" value="Quầy Bán Vé — ÉpCine POS"/>
 <c:set var="extraCss"  value="staff"/>
@@ -14,6 +15,9 @@
   <%-- Thông báo lỗi --%>
   <c:if test="${not empty errorMessage}">
     <div class="pos-alert pos-alert--error"><c:out value="${errorMessage}"/></div>
+  </c:if>
+  <c:if test="${not empty infoMessage}">
+    <div class="pos-alert pos-alert--info"><c:out value="${infoMessage}"/></div>
   </c:if>
 
   <%-- ── 3-Panel Layout ─────────────────────────────────────── --%>
@@ -138,6 +142,72 @@
         <span class="pos-offline-badge">OFFLINE</span>
       </div>
 
+      <%-- Danh sách đơn PENDING (có thể nhiều suất) — vẫn đặt suất khác được --%>
+      <c:if test="${not empty pendingBookings}">
+        <div class="pos-pending-list" id="posPendingList">
+          <div class="pos-pending-list__title">
+            Đơn chờ thanh toán
+            <span class="pos-pending-list__count">${fn:length(pendingBookings)}</span>
+          </div>
+          <c:forEach var="pb" items="${pendingBookings}" varStatus="st">
+            <div class="pos-pending-card pos-pending-card--compact"
+                 data-showtime-id="<c:out value='${pb.showtimeId}'/>"
+                 data-booking-id="<c:out value='${pb.bookingId}'/>">
+              <div class="pos-pending-card__head">
+                <span class="pos-pending-card__badge">Chờ TT</span>
+                <c:if test="${not empty pb.expiredAt}">
+                  <div class="pos-pending-timer">
+                    <span class="pos-pending-timer__label">Còn</span>
+                    <span class="pos-pending-timer__value pos-pending-countdown"
+                          data-expires="<c:out value='${pb.expiredAt.time}'/>">--:--</span>
+                  </div>
+                </c:if>
+              </div>
+              <div class="pos-pending-card__rows">
+                <div class="pos-pending-row">
+                  <span class="pos-pending-row__label">Mã</span>
+                  <span class="pos-pending-row__value pos-pending-row__value--mono">
+                    <c:out value="${pb.bookingCode}"/>
+                  </span>
+                </div>
+                <c:if test="${not empty pb.movieTitle}">
+                  <div class="pos-pending-row">
+                    <span class="pos-pending-row__label">Phim</span>
+                    <span class="pos-pending-row__value"><c:out value="${pb.movieTitle}"/></span>
+                  </div>
+                </c:if>
+                <c:if test="${not empty pb.finalAmount}">
+                  <div class="pos-pending-row pos-pending-row--total">
+                    <span class="pos-pending-row__label">Tiền</span>
+                    <span class="pos-pending-row__value pos-pending-row__value--price">
+                      <fmt:formatNumber value="${pb.finalAmount}" type="number" groupingUsed="true"/> ₫
+                    </span>
+                  </div>
+                </c:if>
+              </div>
+              <div class="pos-pending-card__actions">
+                <a class="pos-pending-btn pos-pending-btn--primary"
+                   href="${pageContext.request.contextPath}/staff/counter?step=payment&amp;bookingId=${pb.bookingId}">
+                  Tiếp tục
+                </a>
+                <form method="post" action="${pageContext.request.contextPath}/staff/counter"
+                      onsubmit="return confirm('Hủy đơn ${pb.bookingCode} và giải phóng ghế?');">
+                  <input type="hidden" name="action" value="cancelPending"/>
+                  <input type="hidden" name="bookingId" value="<c:out value='${pb.bookingId}'/>"/>
+                  <button type="submit" class="pos-pending-btn pos-pending-btn--ghost">Hủy</button>
+                </form>
+              </div>
+            </div>
+          </c:forEach>
+        </div>
+      </c:if>
+
+      <%-- Cảnh báo khi đang chọn suất đã có PENDING --%>
+      <div id="posShowtimePendingWarn" class="pos-showtime-pending-warn" style="display:none">
+        Suất này đang có đơn chờ. Hãy <strong>Tiếp tục</strong> hoặc <strong>Hủy</strong> đơn ở trên —
+        không tạo đơn mới trên cùng suất. Ghế của đơn đó vẫn được giữ.
+      </div>
+
       <%-- Thông tin phim / suất đã chọn --%>
       <div class="pos-summary-movie" id="summaryMovie">
         <div class="pos-summary-placeholder">Chưa chọn phim</div>
@@ -255,6 +325,28 @@
   </div><%-- /pos-layout --%>
 </div><%-- /pos-container --%>
 
-<script charset="UTF-8" src="${pageContext.request.contextPath}/js/seat-type-colors.js?v=4"></script>
-<script src="${pageContext.request.contextPath}/js/counter-booking.js?v=10"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/seat-type-colors.js?v=6"></script>
+<script src="${pageContext.request.contextPath}/js/counter-booking.js?v=13"></script>
+<script>
+(function () {
+  // Countdown từng đơn PENDING
+  document.querySelectorAll('.pos-pending-countdown').forEach(function (el) {
+    var expiresMs = parseInt(el.dataset.expires || '0', 10);
+    if (!expiresMs) return;
+    function tick() {
+      var remaining = Math.max(0, expiresMs - Date.now());
+      var secs = Math.floor(remaining / 1000);
+      el.textContent =
+        String(Math.floor(secs / 60)).padStart(2, '0') + ':' +
+        String(secs % 60).padStart(2, '0');
+      if (remaining <= 0) {
+        window.location.reload();
+        return;
+      }
+      setTimeout(tick, 1000);
+    }
+    tick();
+  });
+})();
+</script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

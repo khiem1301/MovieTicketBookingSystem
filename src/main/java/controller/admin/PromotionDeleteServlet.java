@@ -17,7 +17,7 @@ public class PromotionDeleteServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        if (!AdminAuthUtil.requireAdminOrManager(req, resp)) return;
+        if (!AdminAuthUtil.requireManager(req, resp)) return;
 
         String id = req.getParameter("promotionId");
         if (id == null || id.isBlank()) {

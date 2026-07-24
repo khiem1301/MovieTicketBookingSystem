@@ -29,8 +29,7 @@ public final class AccessControl {
             "/forgot-password",
             "/reset-password",
             "/payment/sepay/webhook",
-            "/index.jsp",
-            "/ticket"
+            "/index.jsp"
     );
 
     private static final List<String> PUBLIC_PREFIXES = List.of(
@@ -47,12 +46,13 @@ public final class AccessControl {
             "/checkout",
             "/payment",
             "/payment/status",
-            "/payment/success"
+            "/payment/success",
+            "/ticket"
     );
 
     private static final Map<String, Set<String>> ROLE_PREFIXES = Map.of(
             "/admin/", Set.of("ADMIN"),
-            "/manager/", Set.of("MANAGER", "ADMIN"),
+            "/manager/", Set.of("MANAGER"),
             "/staff/", Set.of("STAFF")
     );
 

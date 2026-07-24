@@ -23,7 +23,7 @@ public class PromotionListServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        if (!AdminAuthUtil.requireAdminOrManager(req, resp)) return;
+        if (!AdminAuthUtil.requireManager(req, resp)) return;
 
         String statusFilter = trim(req.getParameter("status"));
         String keyword      = trim(req.getParameter("q"));

@@ -269,6 +269,7 @@
 }
 
 /* ── Seat buttons ───────────────────────────────────────────── */
+/* Khớp staff .pos-seat-btn — màu chữ theo nền (textColorFor / preset) */
 .ck-seat {
   width: 40px;
   height: 40px;
@@ -277,11 +278,12 @@
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
   flex-shrink: 0;
-  color: #e9bcb6;
+  border: 1px solid transparent;
+  color: #fff;
 }
 
 .ck-seat--available {
@@ -294,18 +296,9 @@
   filter: brightness(1.08);
 }
 
-.ck-seat--available .ck-seat-num {
-  opacity: 1;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-.ck-seat--available:hover .ck-seat-num {
-  opacity: 1;
-}
-
-/* Match manager seat-type palette (Quản lý loại ghế / layout) */
-.ck-seat--available.ck-seat--regular {
+/* Match staff counter-pos.css seat-type palette */
+.ck-seat--available.ck-seat--regular,
+.ck-seat--available.ck-seat--standard {
   background: #cccccc !important;
   border-color: #b0b0b0 !important;
   color: #222 !important;
@@ -338,29 +331,18 @@
 
 .ck-seat--selected {
   background: #e50914 !important;
-  border-color: #ffb4aa !important;
-  color: #fff7f6 !important;
+  border-color: #ff5252 !important;
+  color: #fff !important;
   transform: scale(1.05);
   box-shadow: 0 0 15px rgba(229, 9, 20, 0.4);
 }
 
-.ck-seat--selected .ck-seat-num {
-  opacity: 1;
-  font-weight: 700;
-}
-
 .ck-seat--sold {
-  background: #2a2a2a !important;
-  border-color: #353534 !important;
+  background: #1a1a1a !important;
+  border-color: #2a2a2a !important;
   opacity: 0.5;
   cursor: not-allowed !important;
-  color: #e9bcb6 !important;
-}
-
-.ck-seat--sold .ck-seat-num {
-  opacity: 1;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  color: #444 !important;
 }
 
 .ck-seat-icon {

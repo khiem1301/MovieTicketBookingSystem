@@ -18,7 +18,18 @@
   var holdTimerId = null;
   var SEAT_REFRESH_MS = 2000;
 
-  document.addEventListener('DOMContentLoaded', init);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  // Back từ /payment: bfcache có thể trả checkout cũ (thiếu nút tiếp tục đơn chờ)
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) {
+      window.location.reload();
+    }
+  });
 
   function applySeatTypeColors() {
     if (window.SeatTypeColors && SeatTypeColors.applyAll) {
@@ -170,8 +181,8 @@
         delete btn.dataset.held;
       }
       btn.disabled = readOnly;
-      if (!btn.querySelector('.ck-seat-num') && btn.dataset.seatCode) {
-        btn.innerHTML = seatCodeHtml(btn.dataset.seatCode);
+      if (btn.dataset.seatCode) {
+        btn.textContent = btn.dataset.seatCode;
       }
       if (!readOnly && !hasPendingBooking) bindSeatClick(btn);
     });
@@ -342,7 +353,7 @@
     btn.classList.add('ck-seat--available');
     btn.disabled = readOnly || hasPendingBooking;
     delete btn.dataset.held;
-    btn.innerHTML = seatCodeHtml((info && info.seatCode) || btn.dataset.seatCode);
+    setSeatCode(btn, (info && info.seatCode) || btn.dataset.seatCode);
     btn.setAttribute('aria-label', 'Gh\u1ebf ' + ((info && info.seatCode) || btn.dataset.seatCode || ''));
     if (!readOnly && !hasPendingBooking) bindSeatClick(btn);
   }
@@ -353,14 +364,15 @@
       btn.classList.add('ck-seat--available', 'ck-seat--held');
       btn.disabled = readOnly || hasPendingBooking;
       btn.dataset.held = 'true';
-      btn.innerHTML = seatCodeHtml((info && info.seatCode) || btn.dataset.seatCode);
+      setSeatCode(btn, (info && info.seatCode) || btn.dataset.seatCode);
       if (!readOnly && !hasPendingBooking) bindSeatClick(btn);
     }
   }
 
-  function seatCodeHtml(code) {
-    if (code == null || code === '') return '';
-    return '<span class="ck-seat-num">' + escHtml(String(code)) + '</span>';
+  /** Giống staff POS: mã ghế là text trên nút (kế thừa color contrast). */
+  function setSeatCode(btn, code) {
+    if (!btn || code == null || code === '') return;
+    btn.textContent = String(code);
   }
 
   function markSold(btn, id) {
@@ -368,7 +380,7 @@
       btn.classList.remove('ck-seat--available', 'ck-seat--selected', 'ck-seat--held');
       btn.classList.add('ck-seat--sold');
       btn.disabled = true;
-      btn.innerHTML = seatCodeHtml(btn.dataset.seatCode);
+      setSeatCode(btn, btn.dataset.seatCode);
     }
 
     var idx = selectedSeats.findIndex(function (s) { return s.id === id; });

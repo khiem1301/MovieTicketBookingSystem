@@ -143,6 +143,11 @@ public class PaymentServlet extends HttpServlet {
             return;
         }
 
+        if ("confirmFree".equals(action)) {
+            handleConfirmFree(req, resp, detail, bookingId, sessionUser.getId());
+            return;
+        }
+
         forwardPayment(req, resp, bookingId, sessionUser.getId(),
                 "Vui lòng chọn phương thức thanh toán.", null, null);
     }
@@ -161,8 +166,13 @@ public class PaymentServlet extends HttpServlet {
         try {
             new LoyaltyDAO().applyPointsToBooking(bookingId, userId, pointsToUse);
             clearVietQRSession(req);
-            forwardPayment(req, resp, bookingId, userId, null,
-                    "Đã áp dụng " + pointsToUse + " điểm. Vui lòng thanh toán.", null);
+            BookingDetailDTO after = new BookingDAO().getDetailById(bookingId);
+            boolean free = after != null && after.getFinalAmount() != null
+                    && after.getFinalAmount().compareTo(BigDecimal.ZERO) <= 0;
+            String info = free
+                    ? "Đã áp dụng " + pointsToUse + " điểm. Đơn về 0 ₫ — bấm «Xác nhận nhận vé»."
+                    : "Đã áp dụng " + pointsToUse + " điểm. Vui lòng thanh toán.";
+            forwardPayment(req, resp, bookingId, userId, null, info, null);
         } catch (IllegalArgumentException | IllegalStateException ex) {
             forwardPayment(req, resp, bookingId, userId, ex.getMessage(), null,
                     loadVietQRSession(req, bookingId));
@@ -196,7 +206,8 @@ public class PaymentServlet extends HttpServlet {
         BigDecimal finalAmount = detail.getFinalAmount();
         if (finalAmount == null || finalAmount.compareTo(BigDecimal.ZERO) <= 0) {
             forwardPayment(req, resp, bookingId, userId,
-                    "Số tiền thanh toán không hợp lệ.", null, null);
+                    "Đơn đã về 0 ₫ (voucher/điểm). Hãy bấm «Xác nhận nhận vé» — không cần chuyển khoản.",
+                    null, null);
             return;
         }
         BigDecimal payAmount = BigDecimal.valueOf(VietQRUtil.amountVnd(finalAmount));
@@ -267,6 +278,31 @@ public class PaymentServlet extends HttpServlet {
         resp.sendRedirect(req.getContextPath() + "/payment/success?bookingId=" + bookingId);
     }
 
+    /** Đơn final_amount = 0 — xác nhận ngay, không VietQR / không Payments. */
+    private void handleConfirmFree(HttpServletRequest req, HttpServletResponse resp,
+                                   BookingDetailDTO detail, String bookingId, String userId)
+            throws IOException, ServletException {
+        BigDecimal amount = detail != null ? detail.getFinalAmount() : null;
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) > 0) {
+            forwardPayment(req, resp, bookingId, userId,
+                    "Đơn vẫn còn số tiền cần thanh toán. Vui lòng dùng VietQR.",
+                    null, loadVietQRSession(req, bookingId));
+            return;
+        }
+
+        boolean ok = new BookingDAO().completeZeroAmountPayment(bookingId);
+        if (!ok) {
+            forwardPayment(req, resp, bookingId, userId,
+                    "Không thể xác nhận đơn miễn phí. Vui lòng thử lại.",
+                    null, null);
+            return;
+        }
+
+        EmailUtil.sendBookingConfirmationEmailAsync(bookingId);
+        clearVietQRSession(req);
+        resp.sendRedirect(req.getContextPath() + "/payment/success?bookingId=" + bookingId);
+    }
+
     private void handleApplyPromo(HttpServletRequest req, HttpServletResponse resp,
                                 BookingDAO bookingDAO, BookingDetailDTO detail,
                                 String bookingId, String userId)
@@ -309,9 +345,11 @@ public class PaymentServlet extends HttpServlet {
             bookingDAO.applyPromotionToBooking(
                     bookingId, userId, promotion.getId(), discount, finalAmount);
             clearVietQRSession(req);
-            forwardPayment(req, resp, bookingId, userId, null,
-                    "Đã áp dụng mã " + promotion.getCode() + ". Vui lòng thanh toán lại.",
-                    null);
+            boolean free = finalAmount.compareTo(BigDecimal.ZERO) <= 0;
+            String info = free
+                    ? "Đã áp dụng mã " + promotion.getCode() + ". Đơn về 0 ₫ — bấm «Xác nhận nhận vé»."
+                    : "Đã áp dụng mã " + promotion.getCode() + ". Vui lòng thanh toán lại.";
+            forwardPayment(req, resp, bookingId, userId, null, info, null);
         } catch (IllegalStateException ex) {
             forwardPayment(req, resp, bookingId, userId, ex.getMessage(), null, loadVietQRSession(req, bookingId));
         }

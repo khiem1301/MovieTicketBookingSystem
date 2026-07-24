@@ -22,7 +22,7 @@ public class AdminReportExportServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        if (!AdminAuthUtil.requireAdminOrManager(req, resp)) {
+        if (!AdminAuthUtil.requireManager(req, resp)) {
             return;
         }
 

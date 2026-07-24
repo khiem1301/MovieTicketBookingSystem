@@ -3,7 +3,7 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
-<%-- Same palette as manager seat types (REGULAR/VIP/COUPLE/SWEETBOX + custom e.g. AA) --%>
+<%-- Palette + contrast giống staff POS (SeatTypeColors.textColorFor) --%>
 <style id="ckSeatTypeColorRules">
 <c:forEach var="legend" items="${seatTypeLegend}">
   .ck-seat.ck-seat--available.ck-seat--${legend.typeKey} {
@@ -49,7 +49,11 @@
                     </c:forEach>
                   </c:if>
                   <c:set var="typeName" value="${seat.seatTypeName != null ? seat.seatTypeName : 'REGULAR'}"/>
-                  <c:set var="typeKey" value="${fn:toLowerCase(typeName)}"/>
+                  <%-- Khớp SeatTypeColorUtil.normalizeType / staff POS --%>
+                  <c:set var="typeKey" value="${fn:toLowerCase(fn:trim(typeName))}"/>
+                  <c:if test="${typeKey == 'standard'}">
+                    <c:set var="typeKey" value="regular"/>
+                  </c:if>
                   <c:set var="seatColor" value="${seatTypeColorByKey[typeKey]}"/>
                   <c:set var="seatTextColor" value="${seatTypeTextByKey[typeKey]}"/>
                   <c:choose>
@@ -59,13 +63,11 @@
                               data-seat-id="<c:out value='${seat.id}'/>"
                               data-seat-code="<c:out value='${seat.seatCode}'/>"
                               data-price="<c:out value='${seat.ticketPrice}'/>"
-                              data-type="<c:out value='${typeName}'/>"
+                              data-type="<c:out value='${typeKey}'/>"
                               data-type-color="<c:out value='${seatColor}'/>"
                               data-type-text="<c:out value='${seatTextColor}'/>"
                               disabled
-                              aria-label="Ghế <c:out value='${seat.seatCode}'/> đã được đặt">
-                        <span class="ck-seat-num"><c:out value="${seat.seatCode}"/></span>
-                      </button>
+                              aria-label="Ghế <c:out value='${seat.seatCode}'/> đã được đặt"><c:out value="${seat.seatCode}"/></button>
                     </c:when>
                     <c:when test="${seat.heldByCurrentUser}">
                       <button type="button"
@@ -73,13 +75,11 @@
                               data-seat-id="<c:out value='${seat.id}'/>"
                               data-seat-code="<c:out value='${seat.seatCode}'/>"
                               data-price="<c:out value='${seat.ticketPrice}'/>"
-                              data-type="<c:out value='${typeName}'/>"
+                              data-type="<c:out value='${typeKey}'/>"
                               data-type-color="<c:out value='${seatColor}'/>"
                               data-type-text="<c:out value='${seatTextColor}'/>"
                               data-held="true"
-                              aria-label="Ghế <c:out value='${seat.seatCode}'/> đang được giữ">
-                        <span class="ck-seat-num"><c:out value="${seat.seatCode}"/></span>
-                      </button>
+                              aria-label="Ghế <c:out value='${seat.seatCode}'/> đang được giữ"><c:out value="${seat.seatCode}"/></button>
                     </c:when>
                     <c:otherwise>
                       <button type="button"
@@ -87,14 +87,11 @@
                               data-seat-id="<c:out value='${seat.id}'/>"
                               data-seat-code="<c:out value='${seat.seatCode}'/>"
                               data-price="<c:out value='${seat.ticketPrice}'/>"
-                              data-type="<c:out value='${typeName}'/>"
+                              data-type="<c:out value='${typeKey}'/>"
                               data-type-color="<c:out value='${seatColor}'/>"
                               data-type-text="<c:out value='${seatTextColor}'/>"
-                              style="background:<c:out value='${seatColor}'/>;border-color:<c:out value='${seatColor}'/>;color:<c:out value='${seatTextColor}'/>"
                               <c:if test="${readOnly}">disabled</c:if>
-                              aria-label="Ghế <c:out value='${seat.seatCode}'/>">
-                        <span class="ck-seat-num"><c:out value="${seat.seatCode}"/></span>
-                      </button>
+                              aria-label="Ghế <c:out value='${seat.seatCode}'/>"><c:out value="${seat.seatCode}"/></button>
                     </c:otherwise>
                   </c:choose>
                   <c:set var="expectedCol" value="${seat.seatColumn + 1}"/>
