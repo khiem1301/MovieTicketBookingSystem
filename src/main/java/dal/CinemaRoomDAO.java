@@ -292,7 +292,7 @@ public class CinemaRoomDAO {
                 SELECT COUNT(1) FROM Showtimes
                 WHERE room_id = ?
                   AND start_time > GETDATE()
-                  AND status IN ('SCHEDULED', 'OPEN', 'SOLD_OUT')
+                  AND status IN ('SCHEDULED', 'SHOWING')
                 """;
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

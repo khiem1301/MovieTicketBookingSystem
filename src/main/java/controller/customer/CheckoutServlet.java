@@ -99,7 +99,8 @@ public class CheckoutServlet extends HttpServlet {
 
         Showtime showtime = new ShowtimeDAO().getShowtimeById(showtimeId);
         if (showtime == null || "CANCELLED".equals(showtime.getStatus())
-                || "SOLD_OUT".equals(showtime.getStatus())) {
+                || "FINISHED".equals(showtime.getStatus())
+                || "SHOWING".equals(showtime.getStatus())) {
             forwardCheckoutPage(req, resp, showtimeId, "Suất chiếu không khả dụng.");
             return;
         }
@@ -200,7 +201,7 @@ public class CheckoutServlet extends HttpServlet {
             seatTypeTextByKey.put(item.getTypeKey(), item.getTextColor());
         }
 
-        boolean soldOut = "SOLD_OUT".equals(showtime.getStatus());
+        boolean soldOut = seats.stream().noneMatch(Seat::isAvailable);
 
         req.setAttribute("showtime", showtime);
         req.setAttribute("seatsByRow", seatsByRow);
@@ -269,7 +270,8 @@ public class CheckoutServlet extends HttpServlet {
 
         Showtime showtime = new ShowtimeDAO().getShowtimeById(showtimeId);
         if (showtime == null || "CANCELLED".equals(showtime.getStatus())
-                || "SOLD_OUT".equals(showtime.getStatus())) {
+                || "FINISHED".equals(showtime.getStatus())
+                || "SHOWING".equals(showtime.getStatus())) {
             resp.setStatus(400);
             resp.getWriter().write("{\"ok\":false,\"error\":\"Suất chiếu không khả dụng\"}");
             return;

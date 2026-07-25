@@ -43,6 +43,15 @@ Kết quả:
 
 > Dữ liệu nằm trong `create_database.sql` — chạy lại toàn bộ file để có seed mới.
 
+### Seed load-test suất chiếu (tuỳ chọn)
+
+File [`seed_showtime_load_test.sql`](seed_showtime_load_test.sql) — thêm ~12 phim + lịch dày quanh **[-7 .. +7] ngày** (≈225 suất) để test `/manager/showtimes`.
+
+- Chạy trên DB đã có (`create_database.sql` trước).
+- Idempotent: chạy lại chỉ thay data `slug LIKE 'seed-load-%'`.
+- Không xoá seed báo cáo `SEED-STATS-*`.
+- Ngày đã qua = `FINISHED`; đang chiếu = `SHOWING`; sắp tới = `SCHEDULED`; hủy tay = `CANCELLED`.
+
 ### Tài khoản seed (mật khẩu `Password@123`)
 
 | Role | Email |
@@ -76,6 +85,7 @@ Kết quả:
 | `Tickets.is_printed` | Vé đã in (quầy) |
 | `Payments.cash_received` / `change_amount` | Tiền mặt quầy |
 | `CK_Payments_Method` gồm `VIETQR` | Thanh toán VietQR |
+| `Bookings.points_redeemed` | Điểm đã đổi trên đơn (FR-43) |
 | Seed `SEED-STATS-*` | Đơn mẫu báo cáo admin |
 
 ---

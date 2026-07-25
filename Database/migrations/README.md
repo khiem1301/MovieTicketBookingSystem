@@ -19,8 +19,9 @@ Mọi thay đổi schema từng có trong các file dưới đây **đã đượ
 | `add_promotion_image.sql` | `Promotions.image_url` |
 | `add_seat_type_span.sql` | `SeatTypes.seat_span` |
 | `add_vietqr_payment_method.sql` | `CK_Payments_Method` gồm `VIETQR` |
-| `sprint2_counter_pos.sql` | Genres / Tickets / Payments (counter POS) |
+| `update_showtime_status_lifecycle.sql` | Status suất: `SCHEDULED`/`SHOWING`/`FINISHED`/`CANCELLED` (bỏ OPEN/SOLD_OUT) |
 | `add_review_deletion_log.sql` | Bảng `ReviewDeletionLog` |
+| `add_loyalty_redemption.sql` | `Bookings.points_redeemed` |
 
 ---
 

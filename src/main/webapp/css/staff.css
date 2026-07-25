@@ -270,9 +270,10 @@
   border-radius: 4px;
   display: inline-block;
 }
-.showtime-status--OPEN       { background: rgba(67,160,71,0.2); color: #a5d6a7; }
-.showtime-status--SCHEDULED  { background: rgba(251,192,45,0.2); color: #fff59d; }
-.showtime-status--SOLD_OUT   { background: rgba(229,57,53,0.2); color: #ef9a9a; }
+.showtime-status--SCHEDULED  { background: rgba(100,149,237,0.2); color: #90caf9; }
+.showtime-status--SHOWING    { background: rgba(67,160,71,0.2); color: #a5d6a7; }
+.showtime-status--CANCELLED  { background: rgba(229,57,53,0.2); color: #ef9a9a; }
+.showtime-status--FINISHED   { background: rgba(255,255,255,0.08); color: #9e9e9e; }
 
 .showtime-card-right {
   padding: 16px 24px;

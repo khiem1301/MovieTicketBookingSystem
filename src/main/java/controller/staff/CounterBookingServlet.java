@@ -255,6 +255,7 @@ public class CounterBookingServlet extends HttpServlet {
                                     String movieId) throws IOException {
         resp.setContentType("application/json; charset=UTF-8");
         try {
+            try { new ShowtimeDAO().autoSyncStatuses(); } catch (RuntimeException ignored) {}
             List<Showtime> list = new ShowtimeDAO().getShowtimesByMovieId(movieId);
             JSONArray arr = new JSONArray();
             SimpleDateFormat dateFmt = new SimpleDateFormat("yyyy-MM-dd");
@@ -492,7 +493,9 @@ public class CounterBookingServlet extends HttpServlet {
                     + "/staff/counter?step=payment&bookingId=" + bookingId);
         } catch (RuntimeException e) {
             log("CounterBookingServlet POST create error", e);
-            forwardError(req, resp, "Tạo đơn thất bại: " + e.getMessage());
+            Throwable cause = e.getCause() != null ? e.getCause() : e;
+            String detail = cause.getMessage() != null ? cause.getMessage() : e.getMessage();
+            forwardError(req, resp, "Tạo đơn thất bại: " + detail);
         }
     }
 
@@ -609,7 +612,8 @@ public class CounterBookingServlet extends HttpServlet {
 
         Showtime showtime = new ShowtimeDAO().getShowtimeById(showtimeId);
         if (showtime == null || "CANCELLED".equals(showtime.getStatus())
-                || "SOLD_OUT".equals(showtime.getStatus())) {
+                || "FINISHED".equals(showtime.getStatus())
+                || "SHOWING".equals(showtime.getStatus())) {
             resp.setStatus(400);
             resp.getWriter().write("{\"ok\":false,\"error\":\"Suất chiếu không khả dụng\"}");
             return;
