@@ -13,8 +13,8 @@
 
     <%-- PHẦN 2: TAB "MOVIE INFO" (SUẤT CHIẾU) / "REVIEWS" (ĐÁNH GIÁ) --%>
     <div class="dt-tabs" id="dtTabs" role="tablist">
-      <button type="button" class="dt-tab dt-tab--active" role="tab" aria-selected="true" data-dt-tab="info">Movie Info</button>
-      <button type="button" class="dt-tab" role="tab" aria-selected="false" data-dt-tab="reviews">Reviews</button>
+      <button type="button" class="dt-tab dt-tab--active" role="tab" aria-selected="true" data-dt-tab="info">Thông tin phim</button>
+      <button type="button" class="dt-tab" role="tab" aria-selected="false" data-dt-tab="reviews">Đánh giá</button>
     </div>
 
     <div class="dt-tab-panel dt-tab-panel--active" data-dt-panel="info">

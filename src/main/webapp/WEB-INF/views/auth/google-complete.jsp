@@ -71,12 +71,8 @@
           </div>
         </div>
 
-        <p class="auth-hint">Ngày sinh và số điện thoại đều bắt buộc để hoàn tất tài khoản (FR-01).</p>
-
         <button type="submit" class="auth-btn-submit">Hoàn tất và vào hệ thống</button>
       </form>
-
-      <a href="${pageContext.request.contextPath}/login" class="auth-back-home">← Quay lại đăng nhập</a>
     </div>
   </div>
 

@@ -58,8 +58,6 @@
         Đến trang đăng nhập
       </a>
 
-      <a href="${pageContext.request.contextPath}/home" class="auth-back-home">← Về trang chủ</a>
-
     </div>
   </div>
 

@@ -1,4 +1,4 @@
-/* Tab "Movie Info" / "Reviews" trên trang chi tiết phim (zero reload) */
+/* Tab "Thông tin phim" / "Đánh giá" trên trang chi tiết phim (zero reload) */
 (function () {
   'use strict';
 
