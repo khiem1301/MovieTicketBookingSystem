@@ -96,10 +96,9 @@ public final class PricingRuleValidator {
             rule.setAdjustmentValue(value);
         }
 
+        // UI không còn nhập thứ tự — mặc định 0 (cột DB giữ để tương thích)
         Integer priority = parsePriority(priorityRaw, result.errors);
-        if (priority != null) {
-            rule.setPriority(priority);
-        }
+        rule.setPriority(priority != null ? priority : 0);
 
         String statusVal = trimOrNull(status);
         if (statusVal == null || !STATUSES.contains(statusVal)) {
@@ -240,8 +239,7 @@ public final class PricingRuleValidator {
 
     private static Integer parsePriority(String raw, List<String> errors) {
         if (raw == null || raw.isBlank()) {
-            errors.add("Độ ưu tiên không được để trống.");
-            return null;
+            return 0;
         }
         try {
             int p = Integer.parseInt(raw.trim());

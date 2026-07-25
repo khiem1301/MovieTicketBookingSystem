@@ -564,6 +564,7 @@
       </div>
 
       <%-- Table --%>
+      <div id="promoListAjax" data-mgr-ajax-list data-mgr-ajax-scroll="start">
       <c:choose>
         <c:when test="${not empty promotions}">
           <table class="promo-table">
@@ -816,6 +817,7 @@
           </div>
         </c:otherwise>
       </c:choose>
+      </div>
     </div><%-- /promo-section --%>
   </div><%-- /container --%>
 
@@ -1063,5 +1065,6 @@ function onTypeChange(type) {
 // Khởi tạo
 onTypeChange('PERCENTAGE');
 </script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/mgr-ajax-pagination.js?v=2"></script>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

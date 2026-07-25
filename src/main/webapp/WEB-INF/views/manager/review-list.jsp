@@ -104,6 +104,7 @@
 
       <p class="admin-stats">Tổng: <strong><c:out value="${totalReviews}"/></strong> đánh giá</p>
 
+      <div id="reviewListAjax" data-mgr-ajax-list>
       <c:choose>
         <c:when test="${not empty reviews}">
           <div class="admin-table-wrap">
@@ -176,6 +177,7 @@
           <div class="admin-empty">Không tìm thấy đánh giá nào.</div>
         </c:otherwise>
       </c:choose>
+      </div>
     </div>
 
   </div>
@@ -245,14 +247,20 @@
   function closeDeleteModal() {
     document.getElementById('mrvDeleteModal').classList.remove('open');
   }
-  document.querySelectorAll('.mrv-delete-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      openDeleteModal(btn.dataset.reviewId, btn.dataset.movieTitle);
-    });
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.mrv-delete-btn');
+    if (!btn) return;
+    openDeleteModal(btn.dataset.reviewId, btn.dataset.movieTitle);
   });
   document.getElementById('mrvDeleteModal').addEventListener('click', function (e) {
     if (e.target === this) closeDeleteModal();
   });
+  document.addEventListener('mgr-ajax-list:loaded', function () {
+    var params = new URLSearchParams(window.location.search);
+    var pageInput = document.querySelector('#mrvDeleteModal input[name="page"]');
+    if (pageInput) pageInput.value = params.get('page') || '1';
+  });
 </script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/mgr-ajax-pagination.js?v=2"></script>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

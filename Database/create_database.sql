@@ -300,7 +300,7 @@ CREATE TABLE SeatTypes (
 
     CONSTRAINT PK_SeatTypes       PRIMARY KEY (id),
     CONSTRAINT UK_SeatTypes_Name  UNIQUE (type_name),
-    CONSTRAINT CK_SeatTypes_Multi CHECK  (price_multiplier > 0),
+    CONSTRAINT CK_SeatTypes_Multi CHECK  (price_multiplier >= 1),
     CONSTRAINT CK_SeatTypes_SeatSpan CHECK (seat_span IN (1, 2))
 );
 GO

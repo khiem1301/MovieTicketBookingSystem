@@ -204,10 +204,10 @@
         <div class="st-form-group">
           <label for="createMultiplier">Hệ số giá <span class="required">*</span></label>
           <input id="createMultiplier" type="number" name="priceMultiplier"
-                 step="0.01" min="0.01" max="9.99" required
+                 step="0.01" min="1" max="9.99" required
                  placeholder="1.00" inputmode="decimal"
                  value="<c:if test='${not isEdit}'><c:out value='${inputMultiplier}'/></c:if>"/>
-          <small class="st-hint">Định dạng X.XX — từ 0.01 đến 9.99. Giá vé = giá suất × hệ số này.</small>
+          <small class="st-hint">Định dạng X.XX — từ 1.00 đến 9.99. Giá vé = giá suất × hệ số này.</small>
         </div>
         <div class="st-form-group">
           <label for="createSeatSpan">Kích thước trên layout <span class="required">*</span></label>
@@ -299,9 +299,9 @@
           <div class="st-form-group">
             <label for="editMultiplier">Hệ số giá <span class="required">*</span></label>
             <input id="editMultiplier" type="number" name="priceMultiplier"
-                   step="0.01" min="0.01" max="9.99" required inputmode="decimal"
+                   step="0.01" min="1" max="9.99" required inputmode="decimal"
                    value="<c:out value='${formMultiplier}'/>"/>
-            <small class="st-hint">Định dạng X.XX — từ 0.01 đến 9.99. Giá vé = giá suất × hệ số này.</small>
+            <small class="st-hint">Định dạng X.XX — từ 1.00 đến 9.99. Giá vé = giá suất × hệ số này.</small>
           </div>
 
           <div class="st-form-group">
@@ -344,5 +344,5 @@
 </div>
 
 <script charset="UTF-8" src="${pageContext.request.contextPath}/js/seat-type-colors.js?v=6"></script>
-<script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-seat-types.js?v=1"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-seat-types.js?v=2"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

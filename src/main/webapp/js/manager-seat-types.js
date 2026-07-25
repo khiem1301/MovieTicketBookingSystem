@@ -144,7 +144,7 @@
         var raw = (multiplier.value || '').trim();
         if (!raw) return;
         var n = Number(raw);
-        if (!isFinite(n) || n < 0.01 || n > 9.99) return;
+        if (!isFinite(n) || n < 1 || n > 9.99) return;
         multiplier.value = n.toFixed(2);
       });
     });
