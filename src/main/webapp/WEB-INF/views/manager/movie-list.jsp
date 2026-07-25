@@ -33,7 +33,7 @@
     <button class="mm-btn-add" onclick="showFormView()">+ Thêm Phim</button>
   </div>
 
-  <div class="mm-card">
+  <div class="mm-card" id="mmMovieListTop">
     <div class="mm-toolbar">
       <div class="mm-search-wrap">
         <svg class="mm-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -600,7 +600,7 @@
     mmPage = 1; renderPage();
   };
 
-  function renderPage() {
+  function renderPage(opts) {
     var total = mmRows.length, pages = Math.max(1, Math.ceil(total / MM_PER));
     if (mmPage > pages) mmPage = pages;
     var s = (mmPage - 1) * MM_PER, e = Math.min(s + MM_PER, total);
@@ -611,6 +611,12 @@
     var pb = document.getElementById('mmPrevBtn'), nb = document.getElementById('mmNextBtn');
     if (pb) pb.disabled = mmPage <= 1;
     if (nb) nb.disabled = mmPage >= pages;
+    if (opts && opts.scrollTop) {
+      var anchor = document.getElementById('mmMovieListTop');
+      if (anchor && anchor.scrollIntoView) {
+        anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
   }
 
   window.exportMovies = function () {
@@ -662,8 +668,8 @@
     document.querySelectorAll('.mm-tab').forEach(function (t) { t.classList.remove('active'); });
     btn.classList.add('active'); mmFilter = btn.dataset.filter; applyFilters();
   };
-  window.prevPage = function () { if (mmPage > 1) { mmPage--; renderPage(); } };
-  window.nextPage = function () { mmPage++; renderPage(); };
+  window.prevPage = function () { if (mmPage > 1) { mmPage--; renderPage({ scrollTop: true }); } };
+  window.nextPage = function () { mmPage++; renderPage({ scrollTop: true }); };
 
   document.addEventListener('DOMContentLoaded', applyFilters);
 })();
