@@ -90,29 +90,44 @@
     </section>
 
     <c:if test="${not empty detail.tickets}">
-      <section class="bh-detail-section">
+      <section class="bh-detail-section bh-detail-section--eticket">
         <h2 class="bh-detail-section-title">Vé điện tử</h2>
-        <div class="bh-ticket-grid">
-          <c:forEach var="ticket" items="${detail.tickets}">
-            <div class="bh-ticket-card">
-              <p class="bh-ticket-seat">Ghế <c:out value="${ticket.seatCode}"/></p>
-              <p class="bh-ticket-code"><c:out value="${ticket.ticketCode}"/></p>
-              <c:if test="${not empty ticket.qrCode}">
-                <c:set var="qr" value="${ticket.qrCode}"/>
-                <c:if test="${not fn:startsWith(qr,'http')}">
-                  <c:set var="qr" value="${ctx}/${qr}"/>
-                </c:if>
-                <img src="<c:out value='${qr}'/>" alt="QR vé ${ticket.seatCode}" class="bh-ticket-qr"/>
-              </c:if>
+        <article class="bh-eticket">
+          <div class="bh-eticket-qr-col">
+            <c:if test="${not empty eticketQrImageUrl}">
+              <div class="bh-eticket-qr-frame">
+                <img src="<c:out value='${eticketQrImageUrl}'/>"
+                     alt="QR đơn vé"
+                     class="bh-eticket-qr"
+                     width="160" height="160"/>
+              </div>
+            </c:if>
+            <p class="bh-eticket-qr-caption">Quét để mở toàn bộ vé</p>
+          </div>
+          <div class="bh-eticket-divider" aria-hidden="true"></div>
+          <div class="bh-eticket-body">
+            <p class="bh-eticket-brand">ÉPCINE PREMIUM</p>
+            <p class="bh-eticket-label">Mã đơn</p>
+            <p class="bh-eticket-code"><c:out value="${detail.bookingCode}"/></p>
+            <p class="bh-eticket-label">Ghế</p>
+            <div class="bh-eticket-seats">
+              <c:forEach var="ticket" items="${detail.tickets}">
+                <span class="bh-eticket-seat-chip" title="<c:out value='${ticket.ticketCode}'/>">
+                  <c:out value="${ticket.seatCode}"/>
+                </span>
+              </c:forEach>
             </div>
-          </c:forEach>
-        </div>
+            <c:if test="${not empty eticketViewUrl}">
+              <a href="<c:out value='${eticketViewUrl}'/>"
+                 class="bh-btn bh-btn--primary bh-eticket-cta"
+                 target="_blank" rel="noopener">
+                Mở vé điện tử
+              </a>
+            </c:if>
+          </div>
+        </article>
       </section>
     </c:if>
-
-    <div class="bh-detail-actions">
-      <a href="${ctx}/booking-history" class="bh-btn bh-btn--ghost">Quay lại lịch sử</a>
-    </div>
   </div>
 </div>
 

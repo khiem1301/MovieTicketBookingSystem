@@ -50,7 +50,22 @@ public final class SeatTypeColorUtil {
     }
 
     public static String textColorFor(String background) {
-        return isLightColor(background) ? "#222222" : "#ffffff";
+        return isLightColor(background) ? "#1a1a1a" : "#ffffff";
+    }
+
+    /**
+     * Text color for a seat type key — light presets always dark text
+     * (matches customer seat-map / staff POS).
+     */
+    public static String textColorForType(String typeName) {
+        String key = normalizeType(typeName);
+        if ("regular".equals(key) || "standard".equals(key) || "vip".equals(key)) {
+            return "#1a1a1a";
+        }
+        if ("couple".equals(key) || "sweetbox".equals(key)) {
+            return "#ffffff";
+        }
+        return textColorFor(colorForType(key));
     }
 
     public static boolean isLightColor(String color) {
@@ -69,6 +84,7 @@ public final class SeatTypeColorUtil {
             return false;
         }
         String hex = c.startsWith("#") ? c.substring(1) : c;
+        hex = hex.replaceAll("[^0-9a-f]", "");
         if (hex.length() == 3) {
             hex = "" + hex.charAt(0) + hex.charAt(0)
                     + hex.charAt(1) + hex.charAt(1)

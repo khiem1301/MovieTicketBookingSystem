@@ -36,6 +36,7 @@ import utils.SeatAvailabilityValidator;
 import utils.SeatHoldException;
 import utils.SeatTypeColorUtil;
 import utils.SessionUtil;
+import utils.ShowtimeBookingWindow;
 
 /**
  * FR-12 / FR-13 / FR-14 — Màn chọn ghế online tại /checkout?showtimeId=
@@ -98,16 +99,9 @@ public class CheckoutServlet extends HttpServlet {
         }
 
         Showtime showtime = new ShowtimeDAO().getShowtimeById(showtimeId);
-        if (showtime == null || "CANCELLED".equals(showtime.getStatus())
-                || "FINISHED".equals(showtime.getStatus())
-                || "SHOWING".equals(showtime.getStatus())) {
-            forwardCheckoutPage(req, resp, showtimeId, "Suất chiếu không khả dụng.");
-            return;
-        }
-
-        Timestamp now = new Timestamp(System.currentTimeMillis());
-        if (showtime.getStartTime() != null && showtime.getStartTime().before(now)) {
-            forwardCheckoutPage(req, resp, showtimeId, "Suất chiếu đã bắt đầu hoặc kết thúc.");
+        String unavailable = ShowtimeBookingWindow.unbookableReason(showtime);
+        if (unavailable != null) {
+            forwardCheckoutPage(req, resp, showtimeId, unavailable);
             return;
         }
 
@@ -170,8 +164,7 @@ public class CheckoutServlet extends HttpServlet {
             return;
         }
 
-        Timestamp now = new Timestamp(System.currentTimeMillis());
-        if (showtime.getStartTime() != null && showtime.getStartTime().before(now)) {
+        if (!ShowtimeBookingWindow.isBookable(showtime)) {
             req.getRequestDispatcher("/WEB-INF/views/error/404.jsp").forward(req, resp);
             return;
         }
@@ -269,18 +262,10 @@ public class CheckoutServlet extends HttpServlet {
         }
 
         Showtime showtime = new ShowtimeDAO().getShowtimeById(showtimeId);
-        if (showtime == null || "CANCELLED".equals(showtime.getStatus())
-                || "FINISHED".equals(showtime.getStatus())
-                || "SHOWING".equals(showtime.getStatus())) {
+        String unavailable = ShowtimeBookingWindow.unbookableReason(showtime);
+        if (unavailable != null) {
             resp.setStatus(400);
-            resp.getWriter().write("{\"ok\":false,\"error\":\"Suất chiếu không khả dụng\"}");
-            return;
-        }
-
-        Timestamp now = new Timestamp(System.currentTimeMillis());
-        if (showtime.getStartTime() != null && showtime.getStartTime().before(now)) {
-            resp.setStatus(400);
-            resp.getWriter().write("{\"ok\":false,\"error\":\"Suất chiếu đã bắt đầu\"}");
+            resp.getWriter().write("{\"ok\":false,\"error\":" + JSONObject.quote(unavailable) + "}");
             return;
         }
 
@@ -417,7 +402,7 @@ public class CheckoutServlet extends HttpServlet {
                         typeName,
                         SeatTypeColorUtil.normalizeType(typeName),
                         color,
-                        SeatTypeColorUtil.textColorFor(color),
+                        SeatTypeColorUtil.textColorForType(typeName),
                         seat.getPriceMultiplier(),
                         seat.getTicketPrice()
                 );

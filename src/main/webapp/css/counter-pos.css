@@ -502,6 +502,7 @@
 .pos-time-btn:hover       { background: #252525; border-color: #444; }
 .pos-time-btn--active     { background: #e53935; border-color: #e53935; color: #fff; }
 .pos-time-btn--dim        { opacity: .5; }
+.pos-time-btn--disabled   { opacity: .35; cursor: not-allowed; text-decoration: line-through; }
 
 .pos-loading { font-size: 12px; color: #666; padding: 6px 0; }
 .pos-loading.hidden { display: none; }
@@ -615,12 +616,12 @@
 .pos-seat--standard {
   background: #cccccc !important;
   border-color: #b0b0b0 !important;
-  color: #222 !important;
+  color: #1a1a1a !important;
 }
 .pos-seat--vip {
   background: #ffd700 !important;
   border-color: #e6c200 !important;
-  color: #222 !important;
+  color: #1a1a1a !important;
   box-shadow: 0 0 8px rgba(255, 215, 0, 0.25);
 }
 .pos-seat--couple {

@@ -120,7 +120,10 @@
                     <span class="pay-vqr-bank-label">Số tài khoản</span>
                     <span class="pay-vqr-bank-value">
                       <code id="payVqrAccountNo"><c:out value="${vietqrAccountNo}"/></code>
-                      <button type="button" class="pay-vqr-copy-btn" data-copy-target="payVqrAccountNo" title="Sao chép">📋</button>
+                      <button type="button" class="pay-vqr-copy-btn" data-copy-target="payVqrAccountNo" title="Sao chép" aria-label="Sao chép số tài khoản">
+                        <svg class="pay-vqr-copy-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        <svg class="pay-vqr-copy-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                      </button>
                     </span>
                   </div>
                   <div class="pay-vqr-bank-row">
@@ -131,7 +134,10 @@
                     <span class="pay-vqr-bank-label">Nội dung CK</span>
                     <span class="pay-vqr-bank-value">
                       <code id="payVqrTransferContent"><c:out value="${vietqrTransferContent}"/></code>
-                      <button type="button" class="pay-vqr-copy-btn" data-copy-target="payVqrTransferContent" title="Sao chép">📋</button>
+                      <button type="button" class="pay-vqr-copy-btn" data-copy-target="payVqrTransferContent" title="Sao chép" aria-label="Sao chép nội dung chuyển khoản">
+                        <svg class="pay-vqr-copy-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        <svg class="pay-vqr-copy-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                      </button>
                     </span>
                   </div>
                 </div>

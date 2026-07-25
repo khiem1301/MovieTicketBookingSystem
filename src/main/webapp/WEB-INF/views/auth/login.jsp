@@ -197,5 +197,6 @@
   </div>
 
   <script charset="UTF-8" src="${pageContext.request.contextPath}/js/auth.js"></script>
+  <script charset="UTF-8" src="${pageContext.request.contextPath}/js/flash-alerts.js?v=2"></script>
 </body>
 </html>

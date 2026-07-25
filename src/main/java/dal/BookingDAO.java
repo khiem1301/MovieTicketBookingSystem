@@ -1899,7 +1899,7 @@ public class BookingDAO {
             conn.setAutoCommit(false);
 
             try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT status FROM Showtimes WHERE id = ?")) {
+                    "SELECT status, start_time FROM Showtimes WHERE id = ?")) {
                 ps.setString(1, showtimeId);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (!rs.next()) {
@@ -1907,13 +1907,16 @@ public class BookingDAO {
                         throw new IllegalStateException("Không tìm thấy suất chiếu.");
                     }
                     String st = rs.getString(1);
+                    Timestamp start = rs.getTimestamp(2);
                     if ("CANCELLED".equals(st)) {
                         conn.rollback();
                         throw new IllegalStateException("Suất chiếu đã bị hủy trước đó.");
                     }
-                    if ("FINISHED".equals(st)) {
+                    if ("SHOWING".equals(st) || "FINISHED".equals(st)
+                            || (start != null && !start.after(new Timestamp(System.currentTimeMillis())))) {
                         conn.rollback();
-                        throw new IllegalStateException("Không thể hủy suất đã kết thúc.");
+                        throw new IllegalStateException(
+                                "Không thể hủy suất đã bắt đầu chiếu hoặc đã kết thúc.");
                     }
                 }
             }

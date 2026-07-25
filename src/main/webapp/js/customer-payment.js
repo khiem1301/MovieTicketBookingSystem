@@ -54,11 +54,10 @@
         var targetId = btn.getAttribute('data-copy-target');
         var el = targetId ? document.getElementById(targetId) : null;
         if (!el) return;
-        var text = el.textContent || '';
+        var text = (el.textContent || '').trim();
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(text).then(function () {
-            btn.textContent = '✓';
-            setTimeout(function () { btn.textContent = '📋'; }, 1500);
+            markCopied(btn);
           }).catch(function () { fallbackCopy(text, btn); });
         } else {
           fallbackCopy(text, btn);
@@ -119,6 +118,16 @@
     }).catch(function () { /* ignore */ }).then(go);
   }
 
+  function markCopied(btn) {
+    if (!btn) return;
+    btn.classList.add('is-copied');
+    if (btn._copyTimer) clearTimeout(btn._copyTimer);
+    btn._copyTimer = setTimeout(function () {
+      btn.classList.remove('is-copied');
+      btn._copyTimer = null;
+    }, 1500);
+  }
+
   function fallbackCopy(text, btn) {
     var ta = document.createElement('textarea');
     ta.value = text;
@@ -128,8 +137,7 @@
     ta.select();
     try {
       document.execCommand('copy');
-      btn.textContent = '✓';
-      setTimeout(function () { btn.textContent = '📋'; }, 1500);
+      markCopied(btn);
     } catch (e) { /* ignore */ }
     document.body.removeChild(ta);
   }

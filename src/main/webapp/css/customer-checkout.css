@@ -269,7 +269,7 @@
 }
 
 /* ── Seat buttons ───────────────────────────────────────────── */
-/* Khớp staff .pos-seat-btn — màu chữ theo nền (textColorFor / preset) */
+/* Khớp staff POS: ghế sáng → chữ tối (#1a1a1a), ghế tối → chữ trắng */
 .ck-seat {
   width: 40px;
   height: 40px;
@@ -283,13 +283,14 @@
   transition: all 0.15s ease;
   flex-shrink: 0;
   border: 1px solid transparent;
-  color: #fff;
+  color: #1a1a1a;
 }
 
 .ck-seat--available {
   background: #cccccc !important;
   border: 1px solid #b0b0b0 !important;
-  color: #222 !important;
+  color: #1a1a1a !important;
+  -webkit-text-fill-color: #1a1a1a !important;
 }
 
 .ck-seat--available:hover {
@@ -301,13 +302,15 @@
 .ck-seat--available.ck-seat--standard {
   background: #cccccc !important;
   border-color: #b0b0b0 !important;
-  color: #222 !important;
+  color: #1a1a1a !important;
+  -webkit-text-fill-color: #1a1a1a !important;
 }
 
 .ck-seat--available.ck-seat--vip {
   background: #ffd700 !important;
   border-color: #e6c200 !important;
-  color: #222 !important;
+  color: #1a1a1a !important;
+  -webkit-text-fill-color: #1a1a1a !important;
   box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
 }
 
@@ -315,12 +318,36 @@
   background: #ff4d94 !important;
   border-color: #e91e63 !important;
   color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
 }
 
 .ck-seat--available.ck-seat--sweetbox {
   background: #0072d7 !important;
   border-color: #005fad !important;
   color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+
+/* Ép specificity cao hơn reset button { color: inherit } từ main.css */
+.ck-seat-area button.ck-seat.ck-seat--available,
+.ck-seat-area button.ck-seat.ck-seat--available .ck-seat-code {
+  color: #1a1a1a !important;
+  -webkit-text-fill-color: #1a1a1a !important;
+}
+.ck-seat-area button.ck-seat.ck-seat--available.ck-seat--couple,
+.ck-seat-area button.ck-seat.ck-seat--available.ck-seat--sweetbox,
+.ck-seat-area button.ck-seat.ck-seat--available.ck-seat--couple .ck-seat-code,
+.ck-seat-area button.ck-seat.ck-seat--available.ck-seat--sweetbox .ck-seat-code {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+
+.ck-seat-code {
+  pointer-events: none;
+  font: inherit;
+  font-weight: 700;
+  color: inherit;
+  -webkit-text-fill-color: inherit;
 }
 
 .ck-seat--couple,
@@ -1083,8 +1110,24 @@
 .pay-vqr-bank-label { flex-shrink: 0; opacity: 0.85; }
 .pay-vqr-bank-value { display: flex; align-items: center; gap: 8px; font-weight: 600; color: #e5e2e1; text-align: right; }
 .pay-vqr-bank-value code { font-family: ui-monospace, monospace; font-size: 13px; color: inherit; }
-.pay-vqr-copy-btn { background: transparent; border: none; cursor: pointer; font-size: 14px; padding: 2px 4px; opacity: 0.75; }
-.pay-vqr-copy-btn:hover { opacity: 1; }
+.pay-vqr-copy-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.75;
+  color: #c8c6c5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  border-radius: 4px;
+}
+.pay-vqr-copy-btn:hover { opacity: 1; color: #e5e2e1; background: rgba(255,255,255,0.06); }
+.pay-vqr-copy-btn .pay-vqr-copy-icon { display: block; }
+.pay-vqr-copy-btn .pay-vqr-copy-check { display: none; color: #66bb6a; }
+.pay-vqr-copy-btn.is-copied .pay-vqr-copy-icon { display: none; }
+.pay-vqr-copy-btn.is-copied .pay-vqr-copy-check { display: block; }
 .pay-vqr-confirm-form { margin-top: 20px; }
 .pay-momo-method-label { font-size: 14px; font-weight: 600; color: #e5e2e1; }
 .pay-momo-method-check { position: absolute; top: 12px; right: 12px; color: #e50914; font-size: 1.25rem; }

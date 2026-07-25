@@ -11,18 +11,18 @@ uri="jakarta.tags.functions" %>
     </title>
     <link
       rel="stylesheet"
-      href="${pageContext.request.contextPath}/css/main.css?v=5"
+      href="${pageContext.request.contextPath}/css/main.css?v=20260726a"
     />
     <c:if test="${not empty extraCss}">
       <link
         rel="stylesheet"
-        href="${pageContext.request.contextPath}/css/${extraCss}.css?v=6"
+        href="${pageContext.request.contextPath}/css/${extraCss}.css?v=${not empty assetV ? assetV : '20260725f'}"
       />
     </c:if>
     <c:if test="${not empty extraCss2}">
       <link
         rel="stylesheet"
-        href="${pageContext.request.contextPath}/css/${extraCss2}.css?v=8"
+        href="${pageContext.request.contextPath}/css/${extraCss2}.css?v=11"
       />
     </c:if>
   </head>
@@ -53,8 +53,8 @@ uri="jakarta.tags.functions" %>
           <span class="logo-text" style="display: none">ÉpCine</span>
         </a>
 
-        <%-- Search + nav phim: ẩn với ADMIN (chỉ dùng khu vực quản trị) --%>
-        <c:if test="${sessionScope.userRole != 'ADMIN'}">
+        <%-- Search + nav phim: ẩn với ADMIN (quản trị) và STAFF (chỉ bán vé) --%>
+        <c:if test="${sessionScope.userRole != 'ADMIN' && sessionScope.userRole != 'STAFF'}">
         <%-- Search --%>
         <form
           class="header-search"

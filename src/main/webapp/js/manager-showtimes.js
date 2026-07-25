@@ -4,7 +4,7 @@
   var ROWS_PER_PAGE = 8;
   var CAL_START_HOUR = 8;
   var CAL_END_HOUR = 23;
-  var MAX_BULK_TIMES = 12;
+  var UI_STATE_KEY = 'epcine.manager.showtimes.ui';
 
   var currentPage = 1;
   var statusFilter = '';
@@ -12,15 +12,93 @@
   var viewMode = 'list';
   var calendarDate = '';
   var filteredRows = [];
+  var restoringUi = false;
 
   var pageRoot = document.querySelector('.st-page');
   var createModal = document.getElementById('stCreateModal');
   var editModal = document.getElementById('stEditModal');
-  var bulkModal = document.getElementById('stBulkModal');
   var copyModal = document.getElementById('stCopyModal');
   var cancelModal = document.getElementById('stCancelModal');
   var today = pageRoot ? (pageRoot.getAttribute('data-today') || isoToday()) : isoToday();
   var ctx = pageRoot ? (pageRoot.getAttribute('data-ctx') || '') : '';
+
+  function saveUiState() {
+    if (restoringUi) return;
+    try {
+      var searchEl = document.getElementById('stSearch');
+      var movieEl = document.getElementById('stFilterMovie');
+      var roomEl = document.getElementById('stFilterRoom');
+      var dateEl = document.getElementById('stFilterDate');
+      sessionStorage.setItem(UI_STATE_KEY, JSON.stringify({
+        statusFilter: statusFilter,
+        dateRange: dateRange,
+        viewMode: viewMode,
+        calendarDate: calendarDate,
+        currentPage: currentPage,
+        search: searchEl ? searchEl.value : '',
+        movieId: movieEl ? movieEl.value : '',
+        roomId: roomEl ? roomEl.value : '',
+        filterDate: dateEl ? dateEl.value : ''
+      }));
+    } catch (e) { /* ignore quota / private mode */ }
+  }
+
+  function readUiState() {
+    try {
+      var raw = sessionStorage.getItem(UI_STATE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function setActiveByAttr(selector, attr, value) {
+    document.querySelectorAll(selector).forEach(function (el) {
+      var match = (el.getAttribute(attr) || '') === (value || '');
+      el.classList.toggle('active', match);
+    });
+  }
+
+  function restoreUiState() {
+    var state = readUiState();
+    if (!state) return null;
+
+    restoringUi = true;
+    try {
+      var searchEl = document.getElementById('stSearch');
+      var movieEl = document.getElementById('stFilterMovie');
+      var roomEl = document.getElementById('stFilterRoom');
+      var dateEl = document.getElementById('stFilterDate');
+
+      if (searchEl && typeof state.search === 'string') searchEl.value = state.search;
+      if (movieEl && typeof state.movieId === 'string') movieEl.value = state.movieId;
+      if (roomEl && typeof state.roomId === 'string') roomEl.value = state.roomId;
+      if (dateEl && typeof state.filterDate === 'string') dateEl.value = state.filterDate;
+
+      statusFilter = typeof state.statusFilter === 'string' ? state.statusFilter : '';
+      dateRange = state.dateRange || '7';
+      viewMode = state.viewMode === 'calendar' ? 'calendar' : 'list';
+      calendarDate = state.calendarDate || today;
+      currentPage = Math.max(1, parseInt(state.currentPage, 10) || 1);
+
+      setActiveByAttr('.mm-tabs .mm-tab', 'data-filter', statusFilter);
+      setActiveByAttr('.st-range-chips .st-chip', 'data-range', dateRange === 'custom' ? '' : dateRange);
+      if (dateRange === 'custom') {
+        document.querySelectorAll('.st-range-chips .st-chip').forEach(function (c) {
+          c.classList.remove('active');
+        });
+      }
+      setActiveByAttr('.st-view-btn', 'data-view', viewMode);
+
+      var listView = document.getElementById('stListView');
+      var calView = document.getElementById('stCalendarView');
+      if (listView) listView.hidden = viewMode !== 'list';
+      if (calView) calView.hidden = viewMode !== 'calendar';
+    } finally {
+      restoringUi = false;
+    }
+    return state;
+  }
 
   var rooms = [];
   try {
@@ -64,7 +142,7 @@
   }
 
   function anyModalOpen() {
-    return [createModal, editModal, bulkModal, copyModal, cancelModal].some(function (m) {
+    return [createModal, editModal, copyModal, cancelModal].some(function (m) {
       return m && m.classList.contains('open');
     });
   }
@@ -102,7 +180,6 @@
 
   window.openCreateModal = function () {
     closeModal(editModal);
-    closeModal(bulkModal);
     closeModal(copyModal);
     openModal(createModal);
   };
@@ -113,33 +190,137 @@
 
   window.closeEditModal = function () {
     closeModal(editModal);
-    if (window.location.search.indexOf('action=edit') >= 0) {
-      window.location.href = window.location.pathname;
+  };
+
+  function setEditLocked(locked, bookingCount) {
+    var movieSel = document.getElementById('editMovieId');
+    var roomSel = document.getElementById('editRoomId');
+    var startEl = document.getElementById('editStartTime');
+    var movieHid = document.getElementById('editMovieIdHidden');
+    var roomHid = document.getElementById('editRoomIdHidden');
+    var startHid = document.getElementById('editStartTimeHidden');
+    var lockNote = document.getElementById('editLockNote');
+    var lockCount = document.getElementById('editLockCount');
+
+    if (movieSel) movieSel.disabled = !!locked;
+    if (roomSel) roomSel.disabled = !!locked;
+    if (startEl) startEl.disabled = !!locked;
+
+    if (movieHid) {
+      movieHid.disabled = !locked;
+      if (movieSel) movieHid.value = movieSel.value;
     }
-  };
+    if (roomHid) {
+      roomHid.disabled = !locked;
+      if (roomSel) roomHid.value = roomSel.value;
+    }
+    if (startHid) {
+      startHid.disabled = !locked;
+      if (startEl) startHid.value = startEl.value;
+    }
 
-  window.openBulkModal = function () {
+    if (lockNote) {
+      if (locked) lockNote.removeAttribute('hidden');
+      else lockNote.setAttribute('hidden', '');
+    }
+    if (lockCount) lockCount.textContent = String(bookingCount || 0);
+  }
+
+  function setEditStatusBadge(status) {
+    var badge = document.getElementById('editStatusBadge');
+    if (!badge) return;
+    var map = {
+      SCHEDULED: { cls: 'st-badge st-badge--scheduled', text: 'Đã lên lịch' },
+      SHOWING: { cls: 'st-badge st-badge--showing', text: 'Đang chiếu' },
+      CANCELLED: { cls: 'st-badge st-badge--cancelled', text: 'Huỷ' },
+      FINISHED: { cls: 'st-badge st-badge--finished', text: 'Đã kết thúc' }
+    };
+    var info = map[status] || map.FINISHED;
+    badge.className = info.cls;
+    badge.textContent = info.text;
+
+    var cancelBtn = document.getElementById('editCancelBtn');
+    if (cancelBtn) {
+      // Chỉ suất chưa chiếu (SCHEDULED) mới được hủy
+      var canCancel = status === 'SCHEDULED';
+      if (canCancel) cancelBtn.removeAttribute('hidden');
+      else cancelBtn.setAttribute('hidden', '');
+    }
+  }
+
+  function syncEditDurationHint() {
+    var select = document.getElementById('editMovieId');
+    var hint = document.getElementById('editDurationHint');
+    if (!select || !hint) return;
+    var opt = select.options[select.selectedIndex];
+    var dur = opt && opt.dataset.duration ? parseInt(opt.dataset.duration, 10) : 0;
+    hint.textContent = dur > 0
+      ? ('Thời lượng phim: ' + dur + ' phút — giờ kết thúc tự tính.')
+      : '';
+  }
+
+  window.openEditShowtime = function (row) {
+    if (!row) return;
+    var id = row.dataset.id || '';
+    var movieId = row.dataset.movieId || '';
+    var roomId = row.dataset.roomId || '';
+    var startLocal = row.dataset.startLocal || '';
+    var basePrice = row.dataset.basePrice || '';
+    var status = row.dataset.status || 'SCHEDULED';
+    var bookingCount = parseInt(row.dataset.bookingCount || '0', 10) || 0;
+    var locked = bookingCount > 0;
+
+    var idEl = document.getElementById('editShowtimeId');
+    var movieSel = document.getElementById('editMovieId');
+    var roomSel = document.getElementById('editRoomId');
+    var startEl = document.getElementById('editStartTime');
+    var priceEl = document.getElementById('editBasePrice');
+    var cancelId = document.getElementById('stCancelShowtimeId');
+
+    if (idEl) idEl.value = id;
+    if (movieSel) movieSel.value = movieId;
+    if (roomSel) roomSel.value = roomId;
+    if (startEl) startEl.value = startLocal;
+    if (priceEl) priceEl.value = basePrice;
+    if (cancelId) cancelId.value = id;
+
+    setEditStatusBadge(status);
+    setEditLocked(locked, bookingCount);
+    syncEditDurationHint();
+
     closeModal(createModal);
-    closeModal(editModal);
     closeModal(copyModal);
-    ensureBulkTimeRows();
-    openModal(bulkModal);
+    openModal(editModal);
   };
 
-  window.closeBulkModal = function () {
-    closeModal(bulkModal);
+  window.openEditShowtimeById = function (id) {
+    if (!id) return;
+    var row = document.querySelector('#stTableBody .st-row[data-id="' + id.replace(/"/g, '') + '"]');
+    openEditShowtime(row);
   };
 
   window.openCopyModal = function () {
     closeModal(createModal);
     closeModal(editModal);
-    closeModal(bulkModal);
     var to = document.getElementById('copyToDate');
     if (to && !to.value) to.value = addDays(today, 1);
     openModal(copyModal);
   };
 
+  window.closeCopyModal = function () {
+    closeModal(copyModal);
+  };
+
   window.openCancelReasonModal = function () {
+    var idEl = document.getElementById('editShowtimeId');
+    var row = idEl && idEl.value
+      ? document.querySelector('#stTableBody .st-row[data-id="' + idEl.value + '"]')
+      : null;
+    var status = row ? resolveLiveStatus(row) : 'SCHEDULED';
+    if (status !== 'SCHEDULED') {
+      alert('Không thể hủy suất đã bắt đầu chiếu hoặc đã kết thúc.');
+      return;
+    }
     if (!cancelModal) return;
     openModal(cancelModal);
     var reason = document.getElementById('stCancelReason');
@@ -160,33 +341,6 @@
       return false;
     }
     return confirm('Xác nhận hủy suất chiếu?\n\nKhách đã đặt sẽ nhận email lý do và được cộng điểm thưởng tương đương giá trị vé.');
-  };
-
-  function ensureBulkTimeRows() {
-    var list = document.getElementById('bulkTimeList');
-    if (!list) return;
-    if (list.children.length === 0) {
-      addBulkTimeRow('09:00');
-      addBulkTimeRow('14:00');
-      addBulkTimeRow('19:00');
-    }
-  }
-
-  window.addBulkTimeRow = function (preset) {
-    var list = document.getElementById('bulkTimeList');
-    if (!list) return;
-    if (list.children.length >= MAX_BULK_TIMES) return;
-
-    var row = document.createElement('div');
-    row.className = 'st-bulk-time-row';
-    row.innerHTML =
-      '<input type="time" name="startTimes" required value="' + (preset || '') + '"/>' +
-      '<button type="button" class="st-bulk-time-remove" title="Xóa giờ" aria-label="Xóa giờ">✕</button>';
-    row.querySelector('.st-bulk-time-remove').addEventListener('click', function () {
-      if (list.children.length <= 1) return;
-      row.remove();
-    });
-    list.appendChild(row);
   };
 
   window.setStatusTab = function (btn) {
@@ -253,6 +407,7 @@
     } else {
       renderPage();
     }
+    saveUiState();
   };
 
   window.shiftCalendarDay = function (delta) {
@@ -301,9 +456,10 @@
       return true;
     });
 
-    currentPage = 1;
+    if (!restoringUi) currentPage = 1;
     if (viewMode === 'calendar') renderCalendar();
     else renderPage();
+    saveUiState();
   };
 
   function renderPage() {
@@ -343,6 +499,7 @@
     if (currentPage > 1) {
       currentPage--;
       renderPage();
+      saveUiState();
     }
   };
 
@@ -351,6 +508,7 @@
     if (currentPage < totalPages) {
       currentPage++;
       renderPage();
+      saveUiState();
     }
   };
 
@@ -399,15 +557,16 @@
         html += '<div class="' + cellClass + '">';
         blocks.forEach(function (row) {
           var st = (row.dataset.status || '').toLowerCase();
-          var href = ctx + '/manager/showtimes?action=edit&id=' + encodeURIComponent(row.dataset.id || '');
+          var sid = row.dataset.id || '';
           html +=
-            '<a class="st-cal-block st-cal-block--' + st + '" href="' + href + '">' +
+            '<button type="button" class="st-cal-block st-cal-block--' + st + '" data-id="' + escapeHtml(sid) + '"' +
+              ' onclick="openEditShowtimeById(this.getAttribute(\'data-id\'))">' +
               '<span class="st-cal-block-title">' + escapeHtml(row.dataset.titleRaw || '') + '</span>' +
               '<span class="st-cal-block-meta">' +
                 escapeHtml(row.dataset.startHm || '') + '–' + escapeHtml(row.dataset.endHm || '') +
                 ' · ' + escapeHtml(row.dataset.sold || '0') + '/' + escapeHtml(row.dataset.capacity || '0') +
               '</span>' +
-            '</a>';
+            '</button>';
         });
         html += '</div>';
       });
@@ -424,13 +583,62 @@
       .replace(/"/g, '&quot;');
   }
 
-  [createModal, editModal, bulkModal, copyModal, cancelModal].forEach(function (modal) {
+  function parseLocalDateTime(value) {
+    if (!value) return null;
+    var m = String(value).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+    if (!m) return null;
+    return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], 0, 0);
+  }
+
+  function resolveLiveStatus(row) {
+    var current = (row.dataset.status || '').toUpperCase();
+    if (current === 'CANCELLED') return 'CANCELLED';
+    var start = parseLocalDateTime(row.dataset.startLocal);
+    var end = parseLocalDateTime(row.dataset.endLocal);
+    if (!start || !end) return current || 'SCHEDULED';
+    var now = Date.now();
+    if (now >= end.getTime()) return 'FINISHED';
+    if (now >= start.getTime()) return 'SHOWING';
+    return 'SCHEDULED';
+  }
+
+  function statusBadgeHtml(status) {
+    var map = {
+      SCHEDULED: { cls: 'st-badge st-badge--scheduled', text: 'Đã lên lịch' },
+      SHOWING: { cls: 'st-badge st-badge--showing', text: 'Đang chiếu' },
+      CANCELLED: { cls: 'st-badge st-badge--cancelled', text: 'Huỷ' },
+      FINISHED: { cls: 'st-badge st-badge--finished', text: 'Đã kết thúc' }
+    };
+    var info = map[status] || map.FINISHED;
+    return '<span class="' + info.cls + '">' + info.text + '</span>';
+  }
+
+  /** Cập nhật data-status + badge theo đồng hồ máy khách (CANCELLED giữ nguyên). */
+  function syncLiveStatuses() {
+    var changed = false;
+    document.querySelectorAll('#stTableBody .st-row').forEach(function (row) {
+      var next = resolveLiveStatus(row);
+      var prev = (row.dataset.status || '').toUpperCase();
+      if (next === prev) return;
+      row.dataset.status = next;
+      var cell = row.querySelector('.st-status-cell');
+      if (cell) cell.innerHTML = statusBadgeHtml(next);
+      changed = true;
+    });
+    if (!changed) return;
+    if (viewMode === 'calendar') {
+      applyFilters();
+    } else if (statusFilter) {
+      applyFilters();
+    }
+  }
+
+  [createModal, editModal, copyModal, cancelModal].forEach(function (modal) {
     if (!modal) return;
     modal.addEventListener('click', function (e) {
       if (e.target !== modal) return;
       if (modal === createModal) closeCreateModal();
       else if (modal === editModal) closeEditModal();
-      else if (modal === bulkModal) closeBulkModal();
       else if (modal === copyModal) closeCopyModal();
       else if (modal === cancelModal) closeCancelReasonModal();
     });
@@ -441,7 +649,6 @@
     if (cancelModal && cancelModal.classList.contains('open')) closeCancelReasonModal();
     else if (createModal && createModal.classList.contains('open')) closeCreateModal();
     else if (editModal && editModal.classList.contains('open')) closeEditModal();
-    else if (bulkModal && bulkModal.classList.contains('open')) closeBulkModal();
     else if (copyModal && copyModal.classList.contains('open')) closeCopyModal();
   });
 
@@ -454,18 +661,39 @@
 
   bindDurationHint('createMovieId', 'createDurationHint');
   bindDurationHint('editMovieId', 'editDurationHint');
-  bindDurationHint('bulkMovieId', 'createDurationHint');
 
   calendarDate = today;
 
+  var restored = restoreUiState();
+
   if (pageRoot) {
-    if (pageRoot.getAttribute('data-open-edit') === 'true') openModal(editModal);
-    else if (pageRoot.getAttribute('data-open-create') === 'true') openModal(createModal);
-    else if (pageRoot.getAttribute('data-open-bulk') === 'true') {
-      ensureBulkTimeRows();
-      openModal(bulkModal);
-    }
+    if (pageRoot.getAttribute('data-open-edit') === 'true') {
+      // Lỗi validate sau POST — form đã prefill từ server
+      var idEl = document.getElementById('editShowtimeId');
+      var cancelId = document.getElementById('stCancelShowtimeId');
+      if (cancelId && idEl) cancelId.value = idEl.value || '';
+      var row = idEl && idEl.value
+        ? document.querySelector('#stTableBody .st-row[data-id="' + idEl.value + '"]')
+        : null;
+      setEditStatusBadge(row ? (row.dataset.status || 'SCHEDULED') : 'SCHEDULED');
+      var lockNote = document.getElementById('editLockNote');
+      var isLocked = !!(lockNote && !lockNote.hasAttribute('hidden'));
+      var lockCountEl = document.getElementById('editLockCount');
+      setEditLocked(isLocked, parseInt((lockCountEl && lockCountEl.textContent) || '0', 10) || 0);
+      syncEditDurationHint();
+      openModal(editModal);
+    } else if (pageRoot.getAttribute('data-open-create') === 'true') openModal(createModal);
   }
 
+  restoringUi = !!restored;
+  // Đồng bộ màu theo giờ máy khách ngay khi load/F5 (không poll liên tục)
+  syncLiveStatuses();
   applyFilters();
+  if (restored) {
+    currentPage = Math.max(1, parseInt(restored.currentPage, 10) || 1);
+    if (viewMode === 'calendar') renderCalendar();
+    else renderPage();
+    restoringUi = false;
+    saveUiState();
+  }
 })();

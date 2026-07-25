@@ -1,6 +1,8 @@
 package controller.customer;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import dal.BookingDAO;
 import jakarta.servlet.ServletException;
@@ -11,6 +13,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import model.dto.BookingDetailDTO;
 import model.dto.SessionUser;
 import utils.BookingAccessUtil;
+import utils.EmailUtil;
 import utils.SessionUtil;
 
 /**
@@ -44,8 +47,36 @@ public class BookingHistoryDetailServlet extends HttpServlet {
             return;
         }
 
+        // 1 QR / 1 đơn — cùng URL vé điện tử như email xác nhận
+        if (detail.getTickets() != null && !detail.getTickets().isEmpty()) {
+            String ticketUrl = resolveTicketViewUrl(req, detail.getBookingCode());
+            req.setAttribute("eticketViewUrl", ticketUrl);
+            req.setAttribute("eticketQrImageUrl", EmailUtil.buildQrImageUrl(ticketUrl));
+        }
+
         req.setAttribute("detail", detail);
         req.getRequestDispatcher(VIEW).forward(req, resp);
+    }
+
+    /**
+     * Ưu tiên app.base.url (giống email); fallback URL tuyệt đối từ request hiện tại.
+     */
+    private static String resolveTicketViewUrl(HttpServletRequest req, String bookingCode) {
+        String fromConfig = EmailUtil.buildTicketViewUrl(bookingCode);
+        if (fromConfig != null && fromConfig.startsWith("http")) {
+            return fromConfig;
+        }
+        StringBuilder base = new StringBuilder();
+        base.append(req.getScheme()).append("://").append(req.getServerName());
+        int port = req.getServerPort();
+        if (("http".equals(req.getScheme()) && port != 80)
+                || ("https".equals(req.getScheme()) && port != 443)) {
+            base.append(':').append(port);
+        }
+        base.append(req.getContextPath());
+        String encoded = URLEncoder.encode(
+                bookingCode != null ? bookingCode : "", StandardCharsets.UTF_8);
+        return base + "/ticket?booking=" + encoded;
     }
 
     private static boolean isCompletedPaid(BookingDetailDTO detail) {

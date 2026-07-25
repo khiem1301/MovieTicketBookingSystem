@@ -3,13 +3,18 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 
-<%-- Palette + contrast giống staff POS (SeatTypeColors.textColorFor) --%>
+<%-- Palette + contrast: luôn !important (kể cả -webkit-text-fill) để thắng button{color:inherit} --%>
 <style id="ckSeatTypeColorRules">
 <c:forEach var="legend" items="${seatTypeLegend}">
-  .ck-seat.ck-seat--available.ck-seat--${legend.typeKey} {
+  .ck-seat-area button.ck-seat.ck-seat--available.ck-seat--${legend.typeKey} {
     background: ${legend.color} !important;
     border: 1px solid ${legend.color} !important;
     color: ${legend.textColor} !important;
+    -webkit-text-fill-color: ${legend.textColor} !important;
+  }
+  .ck-seat-area button.ck-seat.ck-seat--available.ck-seat--${legend.typeKey} .ck-seat-code {
+    color: ${legend.textColor} !important;
+    -webkit-text-fill-color: ${legend.textColor} !important;
   }
   .ck-legend-swatch.ck-legend-swatch--type[data-type-key="${legend.typeKey}"] {
     background: ${legend.color} !important;
@@ -20,6 +25,16 @@
   }
   .ck-legend-swatch.ck-legend-swatch--type[data-type-key="vip"] {
     box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
+  }
+  /* Fallback cứng: ghế sáng (regular/vip) luôn chữ tối */
+  .ck-seat-area button.ck-seat.ck-seat--available.ck-seat--regular,
+  .ck-seat-area button.ck-seat.ck-seat--available.ck-seat--standard,
+  .ck-seat-area button.ck-seat.ck-seat--available.ck-seat--vip,
+  .ck-seat-area button.ck-seat.ck-seat--available.ck-seat--regular .ck-seat-code,
+  .ck-seat-area button.ck-seat.ck-seat--available.ck-seat--standard .ck-seat-code,
+  .ck-seat-area button.ck-seat.ck-seat--available.ck-seat--vip .ck-seat-code {
+    color: #1a1a1a !important;
+    -webkit-text-fill-color: #1a1a1a !important;
   }
 </style>
 
@@ -56,6 +71,23 @@
                   </c:if>
                   <c:set var="seatColor" value="${seatTypeColorByKey[typeKey]}"/>
                   <c:set var="seatTextColor" value="${seatTypeTextByKey[typeKey]}"/>
+                  <c:if test="${empty seatColor}">
+                    <c:choose>
+                      <c:when test="${typeKey == 'vip'}"><c:set var="seatColor" value="#ffd700"/></c:when>
+                      <c:when test="${typeKey == 'couple'}"><c:set var="seatColor" value="#ff4d94"/></c:when>
+                      <c:when test="${typeKey == 'sweetbox'}"><c:set var="seatColor" value="#0072d7"/></c:when>
+                      <c:otherwise><c:set var="seatColor" value="#cccccc"/></c:otherwise>
+                    </c:choose>
+                  </c:if>
+                  <%-- Ghế sáng (regular/vip) luôn chữ tối — không phụ thuộc map/JS --%>
+                  <c:choose>
+                    <c:when test="${typeKey == 'couple' || typeKey == 'sweetbox'}">
+                      <c:set var="seatTextColor" value="#ffffff"/>
+                    </c:when>
+                    <c:when test="${typeKey == 'regular' || typeKey == 'standard' || typeKey == 'vip' || empty seatTextColor}">
+                      <c:set var="seatTextColor" value="#1a1a1a"/>
+                    </c:when>
+                  </c:choose>
                   <c:choose>
                     <c:when test="${!seat.available}">
                       <button type="button"
@@ -67,7 +99,7 @@
                               data-type-color="<c:out value='${seatColor}'/>"
                               data-type-text="<c:out value='${seatTextColor}'/>"
                               disabled
-                              aria-label="Ghế <c:out value='${seat.seatCode}'/> đã được đặt"><c:out value="${seat.seatCode}"/></button>
+                              aria-label="Ghế <c:out value='${seat.seatCode}'/> đã được đặt"><span class="ck-seat-code"><c:out value="${seat.seatCode}"/></span></button>
                     </c:when>
                     <c:when test="${seat.heldByCurrentUser}">
                       <button type="button"
@@ -79,7 +111,7 @@
                               data-type-color="<c:out value='${seatColor}'/>"
                               data-type-text="<c:out value='${seatTextColor}'/>"
                               data-held="true"
-                              aria-label="Ghế <c:out value='${seat.seatCode}'/> đang được giữ"><c:out value="${seat.seatCode}"/></button>
+                              aria-label="Ghế <c:out value='${seat.seatCode}'/> đang được giữ"><span class="ck-seat-code"><c:out value="${seat.seatCode}"/></span></button>
                     </c:when>
                     <c:otherwise>
                       <button type="button"
@@ -90,8 +122,9 @@
                               data-type="<c:out value='${typeKey}'/>"
                               data-type-color="<c:out value='${seatColor}'/>"
                               data-type-text="<c:out value='${seatTextColor}'/>"
+                              style="background:<c:out value='${seatColor}'/> !important;border-color:<c:out value='${seatColor}'/> !important;color:<c:out value='${seatTextColor}'/> !important;-webkit-text-fill-color:<c:out value='${seatTextColor}'/> !important"
                               <c:if test="${readOnly}">disabled</c:if>
-                              aria-label="Ghế <c:out value='${seat.seatCode}'/>"><c:out value="${seat.seatCode}"/></button>
+                              aria-label="Ghế <c:out value='${seat.seatCode}'/>"><span class="ck-seat-code" style="color:<c:out value='${seatTextColor}'/> !important;-webkit-text-fill-color:<c:out value='${seatTextColor}'/> !important"><c:out value="${seat.seatCode}"/></span></button>
                     </c:otherwise>
                   </c:choose>
                   <c:set var="expectedCol" value="${seat.seatColumn + 1}"/>
@@ -106,10 +139,6 @@
   </div>
 
   <div class="ck-legend">
-    <div class="ck-legend-item">
-      <span class="ck-legend-swatch ck-legend-swatch--available"></span>
-      <span>Còn trống</span>
-    </div>
     <div class="ck-legend-item">
       <span class="ck-legend-swatch ck-legend-swatch--selected"></span>
       <span>Đang chọn</span>
@@ -133,3 +162,43 @@
     </c:forEach>
   </div>
 </section>
+
+<%-- Inline: không phụ thuộc CSS/JS cache của trình duyệt --%>
+<script>
+(function () {
+  function forceSeatLabelContrast(root) {
+    var scope = root || document;
+    scope.querySelectorAll('.ck-seat.ck-seat--available[data-type]').forEach(function (btn) {
+      var key = String(btn.getAttribute('data-type') || 'regular').toLowerCase().trim();
+      var bg = (btn.getAttribute('data-type-color') || '').trim();
+      var text = '#1a1a1a';
+      if (key === 'couple' || key === 'sweetbox') text = '#ffffff';
+      if (!bg) {
+        if (key === 'vip') bg = '#ffd700';
+        else if (key === 'couple') bg = '#ff4d94';
+        else if (key === 'sweetbox') bg = '#0072d7';
+        else bg = '#cccccc';
+      }
+      btn.style.setProperty('background', bg, 'important');
+      btn.style.setProperty('background-color', bg, 'important');
+      btn.style.setProperty('border-color', bg, 'important');
+      btn.style.setProperty('color', text, 'important');
+      btn.style.setProperty('-webkit-text-fill-color', text, 'important');
+      var code = btn.querySelector('.ck-seat-code');
+      if (code) {
+        code.style.setProperty('color', text, 'important');
+        code.style.setProperty('-webkit-text-fill-color', text, 'important');
+      }
+    });
+  }
+  forceSeatLabelContrast(document);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { forceSeatLabelContrast(document); });
+  }
+  window.addEventListener('load', function () { forceSeatLabelContrast(document); });
+  // Chạy lại sau script checkout (có thể bị cache cũ) để ghi đè màu sai
+  setTimeout(function () { forceSeatLabelContrast(document); }, 0);
+  setTimeout(function () { forceSeatLabelContrast(document); }, 300);
+  window.ckForceSeatLabelContrast = forceSeatLabelContrast;
+})();
+</script>

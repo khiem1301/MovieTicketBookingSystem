@@ -4,6 +4,8 @@
 
 <c:set var="pageTitle" value="Chọn ghế — ${showtime.movieTitle} | ÉPCINE"/>
 <c:set var="extraCss" value="customer-checkout"/>
+<%-- Cache-bust theo request: tránh 1 trình duyệt giữ CSS/JS cũ dù Ctrl+F5 --%>
+<c:set var="assetV" value="<%= Long.toString(System.currentTimeMillis()) %>"/>
 <c:set var="ctx" value="${pageContext.request.contextPath}"/>
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 
@@ -28,7 +30,7 @@
   </c:if>
 
   <c:if test="${soldOut}">
-    <div class="ck-alert ck-alert--warn container">
+    <div class="ck-alert ck-alert--warn container" data-flash-persist="true">
       Suất chiếu này đã hết vé. Bạn không thể chọn ghế.
     </div>
   </c:if>
@@ -39,6 +41,12 @@
   </div>
 </div>
 
-<script charset="UTF-8" src="${ctx}/js/seat-type-colors.js?v=6"></script>
-<script charset="UTF-8" src="${ctx}/js/customer-checkout.js?v=6"></script>
+<script charset="UTF-8" src="${ctx}/js/seat-type-colors.js?v=${assetV}"></script>
+<script charset="UTF-8" src="${ctx}/js/customer-checkout.js?v=${assetV}"></script>
+<script>
+  // Sau khi load checkout.js: ép lại contrast (phòng JS cache lệch trình duyệt)
+  if (typeof window.ckForceSeatLabelContrast === 'function') {
+    window.ckForceSeatLabelContrast(document);
+  }
+</script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

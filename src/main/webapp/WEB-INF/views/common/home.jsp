@@ -211,7 +211,7 @@
 <!-- ══════════════════════════════════════════════════
      MOVIES SECTION
      ══════════════════════════════════════════════════ -->
-<section class="movies-section">
+<section class="movies-section" id="home-movies">
   <div class="container">
 
     <%-- Tab bar --%>
@@ -289,14 +289,14 @@
       <c:if test="${totalPagesComing > 1}">
         <div class="movies-pagination">
           <c:if test="${pageComing > 1}">
-            <a class="movies-page-btn" href="${ctx}/home?tab=coming&pageComing=${pageComing - 1}">‹</a>
+            <a class="movies-page-btn" href="${ctx}/home?tab=coming&pageComing=${pageComing - 1}#home-movies">‹</a>
           </c:if>
           <c:forEach begin="1" end="${totalPagesComing}" var="pg">
             <a class="movies-page-btn ${pg == pageComing ? 'is-active' : ''}"
-               href="${ctx}/home?tab=coming&pageComing=${pg}">${pg}</a>
+               href="${ctx}/home?tab=coming&pageComing=${pg}#home-movies">${pg}</a>
           </c:forEach>
           <c:if test="${pageComing < totalPagesComing}">
-            <a class="movies-page-btn" href="${ctx}/home?tab=coming&pageComing=${pageComing + 1}">›</a>
+            <a class="movies-page-btn" href="${ctx}/home?tab=coming&pageComing=${pageComing + 1}#home-movies">›</a>
           </c:if>
         </div>
       </c:if>
@@ -370,14 +370,14 @@
       <c:if test="${totalPagesShowing > 1}">
         <div class="movies-pagination">
           <c:if test="${pageShowing > 1}">
-            <a class="movies-page-btn" href="${ctx}/home?tab=showing&pageShowing=${pageShowing - 1}">‹</a>
+            <a class="movies-page-btn" href="${ctx}/home?tab=showing&pageShowing=${pageShowing - 1}#home-movies">‹</a>
           </c:if>
           <c:forEach begin="1" end="${totalPagesShowing}" var="pg">
             <a class="movies-page-btn ${pg == pageShowing ? 'is-active' : ''}"
-               href="${ctx}/home?tab=showing&pageShowing=${pg}">${pg}</a>
+               href="${ctx}/home?tab=showing&pageShowing=${pg}#home-movies">${pg}</a>
           </c:forEach>
           <c:if test="${pageShowing < totalPagesShowing}">
-            <a class="movies-page-btn" href="${ctx}/home?tab=showing&pageShowing=${pageShowing + 1}">›</a>
+            <a class="movies-page-btn" href="${ctx}/home?tab=showing&pageShowing=${pageShowing + 1}#home-movies">›</a>
           </c:if>
         </div>
       </c:if>
@@ -447,14 +447,14 @@
       <c:if test="${totalPagesEarly > 1}">
         <div class="movies-pagination">
           <c:if test="${pageEarly > 1}">
-            <a class="movies-page-btn" href="${ctx}/home?tab=early&pageEarly=${pageEarly - 1}">‹</a>
+            <a class="movies-page-btn" href="${ctx}/home?tab=early&pageEarly=${pageEarly - 1}#home-movies">‹</a>
           </c:if>
           <c:forEach begin="1" end="${totalPagesEarly}" var="pg">
             <a class="movies-page-btn ${pg == pageEarly ? 'is-active' : ''}"
-               href="${ctx}/home?tab=early&pageEarly=${pg}">${pg}</a>
+               href="${ctx}/home?tab=early&pageEarly=${pg}#home-movies">${pg}</a>
           </c:forEach>
           <c:if test="${pageEarly < totalPagesEarly}">
-            <a class="movies-page-btn" href="${ctx}/home?tab=early&pageEarly=${pageEarly + 1}">›</a>
+            <a class="movies-page-btn" href="${ctx}/home?tab=early&pageEarly=${pageEarly + 1}#home-movies">›</a>
           </c:if>
         </div>
       </c:if>

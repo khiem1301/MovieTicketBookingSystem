@@ -40,6 +40,9 @@
         SeatTypeColors.applyAvailableSeatColors(document);
       }
     }
+    if (typeof window.ckForceSeatLabelContrast === 'function') {
+      window.ckForceSeatLabelContrast(document);
+    }
   }
 
   function init() {
@@ -182,7 +185,7 @@
       }
       btn.disabled = readOnly;
       if (btn.dataset.seatCode) {
-        btn.textContent = btn.dataset.seatCode;
+        setSeatCode(btn, btn.dataset.seatCode);
       }
       if (!readOnly && !hasPendingBooking) bindSeatClick(btn);
     });
@@ -202,7 +205,14 @@
     }
     alertEl.textContent = message;
     alertEl.hidden = false;
-    setTimeout(function () { alertEl.hidden = true; }, 5000);
+    alertEl.style.opacity = '';
+    delete alertEl.dataset.flashScheduled;
+    delete alertEl.dataset.flashDismissing;
+    if (window.FlashAlerts && typeof window.FlashAlerts.schedule === 'function') {
+      window.FlashAlerts.schedule(alertEl);
+    } else {
+      setTimeout(function () { alertEl.hidden = true; }, 5000);
+    }
   }
 
   function updateSummary() {
@@ -369,10 +379,16 @@
     }
   }
 
-  /** Giống staff POS: mã ghế là text trên nút (kế thừa color contrast). */
+  /** Giống staff POS: mã ghế là text trên nút (giữ span.ck-seat-code nếu có). */
   function setSeatCode(btn, code) {
     if (!btn || code == null || code === '') return;
-    btn.textContent = String(code);
+    var label = String(code);
+    var span = btn.querySelector('.ck-seat-code');
+    if (span) {
+      span.textContent = label;
+    } else {
+      btn.textContent = label;
+    }
   }
 
   function markSold(btn, id) {
