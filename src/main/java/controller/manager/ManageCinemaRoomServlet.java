@@ -5,6 +5,7 @@ import dal.SeatDAO;
 import dal.SeatTypeDAO;
 import model.entity.CinemaRoom;
 import model.entity.Seat;
+import utils.AdminPaginationUtil;
 import utils.SeatLayoutJsonUtil;
 
 import jakarta.servlet.ServletException;
@@ -29,6 +30,7 @@ import java.util.Set;
 public class ManageCinemaRoomServlet extends HttpServlet {
 
     private static final Set<String> VALID_ROOM_STATUS = Set.of("ACTIVE", "INACTIVE");
+    private static final int PAGE_SIZE = 8;
 
     private final CinemaRoomDAO roomDAO = new CinemaRoomDAO();
     private final SeatTypeDAO seatTypeDAO = new SeatTypeDAO();
@@ -195,7 +197,7 @@ public class ManageCinemaRoomServlet extends HttpServlet {
         if ("toggle".equals(action)) {
             String status = req.getParameter("status");
             if (status == null || !VALID_ROOM_STATUS.contains(status)) {
-                resp.sendRedirect(listUrl(ctx, roomId, "error=" + enc("Trạng thái phòng không hợp lệ.")));
+                resp.sendRedirect(listUrl(req, ctx, roomId, "error=" + enc("Trạng thái phòng không hợp lệ.")));
                 return;
             }
             if ("INACTIVE".equals(status)) {
@@ -206,7 +208,7 @@ public class ManageCinemaRoomServlet extends HttpServlet {
                     if ("detail".equals(back)) {
                         resp.sendRedirect(detailUrl(ctx, roomId, "error=" + enc(msg)));
                     } else {
-                        resp.sendRedirect(listUrl(ctx, roomId, "error=" + enc(msg)));
+                        resp.sendRedirect(listUrl(req, ctx, roomId, "error=" + enc(msg)));
                     }
                     return;
                 }
@@ -216,7 +218,7 @@ public class ManageCinemaRoomServlet extends HttpServlet {
             if ("detail".equals(back)) {
                 resp.sendRedirect(detailUrl(ctx, roomId, "success=status_updated"));
             } else {
-                resp.sendRedirect(listUrl(ctx, roomId, "success=status_updated"));
+                resp.sendRedirect(listUrl(req, ctx, roomId, "success=status_updated"));
             }
             return;
         }
@@ -241,28 +243,28 @@ public class ManageCinemaRoomServlet extends HttpServlet {
             if ("detail".equals(from)) {
                 resp.sendRedirect(detailUrl(ctx, roomId, "error=" + enc(msg)));
             } else {
-                resp.sendRedirect(listUrl(ctx, roomId, "error=" + enc(msg)));
+                resp.sendRedirect(listUrl(req, ctx, roomId, "error=" + enc(msg)));
             }
             return;
         }
 
         try {
             roomDAO.deleteMistakenRoom(roomId);
-            resp.sendRedirect(ctx + "/manager/rooms?success=deleted");
+            resp.sendRedirect(listUrl(req, ctx, null, "success=deleted"));
         } catch (IllegalStateException ex) {
             String msg = ex.getMessage() != null ? ex.getMessage()
                     : "Không thể xóa phòng này.";
             if ("detail".equals(from)) {
                 resp.sendRedirect(detailUrl(ctx, roomId, "error=" + enc(msg)));
             } else {
-                resp.sendRedirect(listUrl(ctx, roomId, "error=" + enc(msg)));
+                resp.sendRedirect(listUrl(req, ctx, roomId, "error=" + enc(msg)));
             }
         } catch (RuntimeException ex) {
             String msg = "Không thể xóa phòng. Vui lòng thử lại.";
             if ("detail".equals(from)) {
                 resp.sendRedirect(detailUrl(ctx, roomId, "error=" + enc(msg)));
             } else {
-                resp.sendRedirect(listUrl(ctx, roomId, "error=" + enc(msg)));
+                resp.sendRedirect(listUrl(req, ctx, roomId, "error=" + enc(msg)));
             }
         }
     }
@@ -301,9 +303,25 @@ public class ManageCinemaRoomServlet extends HttpServlet {
 
     private void handleList(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
-        List<CinemaRoom> rooms = roomDAO.getAll();
+        String statusFilter = normalizeListStatus(req.getParameter("status"));
+        int page = AdminPaginationUtil.parsePage(req.getParameter("page"));
+
+        int totalItems = roomDAO.countByStatus(statusFilter);
+        int totalPages = AdminPaginationUtil.totalPages(totalItems, PAGE_SIZE);
+        page = AdminPaginationUtil.clampPage(page, totalPages);
+        int offset = AdminPaginationUtil.offset(page, PAGE_SIZE);
+
+        List<CinemaRoom> rooms = roomDAO.findPaged(statusFilter, offset, PAGE_SIZE);
         req.setAttribute("roomList", rooms);
         req.setAttribute("deletableRoomIds", roomDAO.findMistakenDeletableIds());
+        req.setAttribute("statusFilter", statusFilter);
+        req.setAttribute("pgCurrent", page);
+        req.setAttribute("pgTotal", totalPages);
+        req.setAttribute("pgTotalItems", totalItems);
+        req.setAttribute("pgRankStart", AdminPaginationUtil.rankStart(page, PAGE_SIZE));
+        req.setAttribute("pgQueryExtra",
+                AdminPaginationUtil.queryParam("status",
+                        "ALL".equals(statusFilter) ? null : statusFilter));
         if (req.getParameter("error") != null) {
             req.setAttribute("error", req.getParameter("error"));
         }
@@ -345,8 +363,39 @@ public class ManageCinemaRoomServlet extends HttpServlet {
         return ctx + "/manager/rooms/detail?id=" + roomId + "&" + query;
     }
 
-    private static String listUrl(String ctx, String roomId, String query) {
-        return ctx + "/manager/rooms?room=" + roomId + "&" + query;
+    /** Giữ page/status khi quay lại danh sách sau toggle/xóa. */
+    private static String listUrl(HttpServletRequest req, String ctx, String roomId, String query) {
+        StringBuilder url = new StringBuilder(ctx).append("/manager/rooms?");
+        String page = trim(req.getParameter("returnPage"));
+        if (page == null || page.isBlank()) {
+            page = trim(req.getParameter("page"));
+        }
+        String status = trim(req.getParameter("returnStatus"));
+        if (status == null || status.isBlank()) {
+            status = trim(req.getParameter("status"));
+        }
+        if (page != null && !page.isBlank()) {
+            url.append("page=").append(enc(page)).append('&');
+        }
+        if (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) {
+            url.append("status=").append(enc(status)).append('&');
+        }
+        if (roomId != null && !roomId.isBlank()) {
+            url.append("room=").append(enc(roomId)).append('&');
+        }
+        url.append(query);
+        return url.toString();
+    }
+
+    private static String normalizeListStatus(String raw) {
+        if (raw == null || raw.isBlank()) return "ALL";
+        String s = raw.trim().toUpperCase();
+        if ("ACTIVE".equals(s) || "INACTIVE".equals(s)) return s;
+        return "ALL";
+    }
+
+    private static String trim(String value) {
+        return value == null ? null : value.trim();
     }
 
     private static String enc(String msg) {

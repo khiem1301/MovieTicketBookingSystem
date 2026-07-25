@@ -559,6 +559,12 @@ ul { list-style: none; }
    MOVIES SECTION
    ════════════════════════════════════════════════════════════ */
 .movies-section { padding: 60px 0 80px; }
+.movies-section.is-paging,
+.movies-page.is-paging {
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
 
 /* Trang danh sách phim (/movies) */
 .movies-page { padding: 40px 0 80px; }

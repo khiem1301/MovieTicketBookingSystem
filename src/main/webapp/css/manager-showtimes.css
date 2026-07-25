@@ -282,14 +282,19 @@
 
 .st-cal-block {
   display: block;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
   border-radius: 8px;
   padding: 6px 8px;
   margin-bottom: 4px;
   text-decoration: none;
   border: 1px solid transparent;
+  font: inherit;
   font-size: 11px;
   line-height: 1.35;
   color: #fff;
+  background: transparent;
 }
 
 .st-cal-block:hover { filter: brightness(1.08); }
@@ -323,6 +328,34 @@
 }
 
 .st-cal-block-meta { color: rgba(255, 255, 255, 0.7); }
+
+.st-cal-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 20px;
+  padding: 14px 4px 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 12px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.st-cal-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.st-cal-legend-swatch {
+  display: inline-block;
+  width: 18px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  flex-shrink: 0;
+  opacity: 1;
+}
 
 /* ── Modal ─────────────────────────────────────────────────── */
 .st-modal-backdrop {

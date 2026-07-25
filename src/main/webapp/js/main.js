@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initHeroSlider();
   initMovieTabs();
   initHeaderScroll();
+  initMoviesAjaxPagination();
+  scrollToMoviesIfNeeded();
 });
 
 /* ── Header scroll effect ───────────────────────────────────── */
@@ -100,8 +102,11 @@ function initHeroSlider() {
 }
 
 /* ── Movie Tabs ──────────────────────────────────────────────── */
-function initMovieTabs() {
-  document.querySelectorAll('.movies-section, .movies-page').forEach(section => {
+function initMovieTabs(root = document) {
+  root.querySelectorAll('.movies-section, .movies-page').forEach(section => {
+    if (section.dataset.tabsBound === '1') return;
+    section.dataset.tabsBound = '1';
+
     const tabBtns = section.querySelectorAll('.tab-btn');
     const panels  = section.querySelectorAll('.tab-panel');
     if (!tabBtns.length) return;
@@ -117,5 +122,90 @@ function initMovieTabs() {
         section.querySelector('#' + target)?.classList.add('active');
       });
     });
+  });
+}
+
+/**
+ * Phân trang danh sách phim (home / movies) qua fetch —
+ * chỉ thay khối phim, giữ vị trí cuộn (không nhảy lên đầu trang).
+ */
+function initMoviesAjaxPagination() {
+  if (document.documentElement.dataset.moviesAjaxBound === '1') return;
+  document.documentElement.dataset.moviesAjaxBound = '1';
+
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a.movies-page-btn');
+    if (!link) return;
+    const section = link.closest('.movies-section, .movies-page');
+    if (!section) return;
+    e.preventDefault();
+    loadMoviesPage(section, link.href, true);
+  });
+
+  window.addEventListener('popstate', () => {
+    const section = document.querySelector('.movies-section, .movies-page');
+    if (!section) return;
+    loadMoviesPage(section, location.href, false);
+  });
+}
+
+let moviesPageLoading = false;
+
+async function loadMoviesPage(section, url, pushHistory) {
+  if (!section || !url || moviesPageLoading) return;
+  moviesPageLoading = true;
+
+  const scrollY = window.scrollY;
+  const selector = section.classList.contains('movies-section')
+    ? '.movies-section'
+    : '.movies-page';
+
+  section.classList.add('is-paging');
+
+  try {
+    const fetchUrl = String(url).split('#')[0];
+    const res = await fetch(fetchUrl, {
+      credentials: 'same-origin',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'text/html'
+      },
+      cache: 'no-store'
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const next = doc.querySelector(selector);
+    if (!next) throw new Error('missing section');
+
+    section.replaceWith(next);
+    initMovieTabs(document);
+    if (pushHistory && window.history && window.history.pushState) {
+      window.history.pushState({ moviesAjax: true }, '', url);
+    }
+    window.scrollTo(0, scrollY);
+  } catch (err) {
+    window.location.href = url;
+  } finally {
+    moviesPageLoading = false;
+  }
+}
+
+/** Fallback: full reload với #home-movies / query page* thì cuộn tới danh sách phim. */
+function scrollToMoviesIfNeeded() {
+  const hash = (location.hash || '').replace('#', '');
+  const params = new URLSearchParams(location.search);
+  const paged = ['pageShowing', 'pageComing', 'pageEarly'].some((k) => {
+    const v = parseInt(params.get(k) || '1', 10);
+    return v > 1;
+  });
+  if (!hash && !paged && !params.get('tab')) return;
+
+  const el = document.getElementById(hash)
+    || document.querySelector('.movies-section, .movies-page');
+  if (!el) return;
+  requestAnimationFrame(() => {
+    el.scrollIntoView({ behavior: 'auto', block: 'start' });
   });
 }

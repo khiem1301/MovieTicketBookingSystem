@@ -100,7 +100,7 @@ public class ManageShowtimeServlet extends HttpServlet {
         String roomId = trim(req.getParameter("roomId"));
         String startTimeStr = trim(req.getParameter("startTime"));
         String basePriceStr = trim(req.getParameter("basePrice"));
-        // Trạng thái luôn tự tính theo giờ chiếu; tạo mới = SCHEDULED
+        // Trạng thái tự tính theo giờ chiếu (SCHEDULED / SHOWING / FINISHED)
         String status = "SCHEDULED";
 
         ParsedForm parsed = parseAndValidate(null, movieId, roomId, startTimeStr, basePriceStr, status, false);
@@ -115,6 +115,8 @@ public class ManageShowtimeServlet extends HttpServlet {
             return;
         }
 
+        parsed.showtime.setStatus(resolveAutoStatus(
+                parsed.showtime.getStartTime(), parsed.showtime.getEndTime()));
         showtimeDAO.create(parsed.showtime, user.getId());
         resp.sendRedirect(req.getContextPath() + "/manager/showtimes?success=created");
     }
@@ -243,7 +245,7 @@ public class ManageShowtimeServlet extends HttpServlet {
             copy.setStartTime(startTs);
             copy.setEndTime(endTs);
             copy.setBasePrice(src.getBasePrice());
-            copy.setStatus(status);
+            copy.setStatus(resolveAutoStatus(startTs, endTs));
             toCreate.add(copy);
         }
 
@@ -270,6 +272,21 @@ public class ManageShowtimeServlet extends HttpServlet {
             resp.sendRedirect(req.getContextPath() + "/manager/showtimes");
             return;
         }
+
+        // Chỉ hủy suất chưa chiếu (SCHEDULED). Đã bắt đầu / kết thúc thì ổn định — không hủy.
+        String status = existing.getStatus();
+        if ("CANCELLED".equals(status)) {
+            redirectWithMessage(req, resp, "Suất chiếu này đã bị hủy trước đó.");
+            return;
+        }
+        if ("SHOWING".equals(status) || "FINISHED".equals(status)
+                || (existing.getStartTime() != null
+                    && !existing.getStartTime().after(new Timestamp(System.currentTimeMillis())))) {
+            redirectWithMessage(req, resp,
+                    "Không thể hủy suất đã bắt đầu chiếu hoặc đã kết thúc.");
+            return;
+        }
+
         if (reason == null || reason.length() < 10) {
             redirectWithMessage(req, resp, "Lý do hủy phải có ít nhất 10 ký tự.");
             return;
@@ -532,8 +549,9 @@ public class ManageShowtimeServlet extends HttpServlet {
             throws ServletException, IOException {
         try {
             showtimeDAO.autoSyncStatuses();
-        } catch (RuntimeException ignored) {
-            // Không chặn trang nếu auto-status lỗi (DB chưa migration)
+        } catch (RuntimeException ex) {
+            // Không chặn trang nếu auto-status lỗi (DB chưa migration / CHECK cũ)
+            System.err.println("[ManageShowtimeServlet] autoSyncStatuses failed: " + ex.getMessage());
         }
 
         List<Showtime> showtimeList = showtimeDAO.getAllForManager();

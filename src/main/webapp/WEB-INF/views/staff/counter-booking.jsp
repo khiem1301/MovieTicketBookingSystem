@@ -299,7 +299,7 @@
       </div>
 
       <%-- Cảnh báo tài khoản bị khóa --%>
-      <div id="memberLockedWarn" class="pos-alert pos-alert--error" style="display:none;margin-bottom:8px;font-size:13px;">
+      <div id="memberLockedWarn" class="pos-alert pos-alert--error" data-flash-persist="true" style="display:none;margin-bottom:8px;font-size:13px;">
         &#9888; Tài khoản thành viên này đang bị tạm khóa. Không thể đặt vé.
       </div>
 
@@ -326,7 +326,7 @@
 </div><%-- /pos-container --%>
 
 <script charset="UTF-8" src="${pageContext.request.contextPath}/js/seat-type-colors.js?v=7"></script>
-<script charset="UTF-8" src="${pageContext.request.contextPath}/js/counter-booking.js?v=16"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/counter-booking.js?v=17"></script>
 <script>
 (function () {
   // Countdown từng đơn PENDING

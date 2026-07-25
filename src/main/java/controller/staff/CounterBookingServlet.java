@@ -25,6 +25,7 @@ import utils.EmailUtil;
 import utils.SePayConfig;
 import utils.SeatHoldException;
 import utils.SessionUtil;
+import utils.ShowtimeBookingWindow;
 import utils.VietQRConfig;
 import utils.VietQRUtil;
 
@@ -455,13 +456,11 @@ public class CounterBookingServlet extends HttpServlet {
             forwardError(req, resp, "Dữ liệu giá ghế không hợp lệ."); return;
         }
 
-        // Validate suất chiếu tồn tại và chưa bị hủy
+        // Validate suất chiếu còn trong cửa sổ đặt vé (cho phép muộn 30 phút)
         model.entity.Showtime showtime = new ShowtimeDAO().getShowtimeById(showtimeId);
-        if (showtime == null) {
-            forwardError(req, resp, "Suất chiếu không tồn tại."); return;
-        }
-        if ("CANCELLED".equals(showtime.getStatus())) {
-            forwardError(req, resp, "Suất chiếu đã bị hủy, không thể đặt vé."); return;
+        String unavailable = ShowtimeBookingWindow.unbookableReason(showtime);
+        if (unavailable != null) {
+            forwardError(req, resp, unavailable); return;
         }
 
         SessionUser staff = SessionUtil.getLoggedUser(req);
@@ -611,18 +610,10 @@ public class CounterBookingServlet extends HttpServlet {
         }
 
         Showtime showtime = new ShowtimeDAO().getShowtimeById(showtimeId);
-        if (showtime == null || "CANCELLED".equals(showtime.getStatus())
-                || "FINISHED".equals(showtime.getStatus())
-                || "SHOWING".equals(showtime.getStatus())) {
+        String unavailable = ShowtimeBookingWindow.unbookableReason(showtime);
+        if (unavailable != null) {
             resp.setStatus(400);
-            resp.getWriter().write("{\"ok\":false,\"error\":\"Suất chiếu không khả dụng\"}");
-            return;
-        }
-
-        java.sql.Timestamp now = new java.sql.Timestamp(System.currentTimeMillis());
-        if (showtime.getStartTime() != null && showtime.getStartTime().before(now)) {
-            resp.setStatus(400);
-            resp.getWriter().write("{\"ok\":false,\"error\":\"Suất chiếu đã bắt đầu\"}");
+            resp.getWriter().write("{\"ok\":false,\"error\":" + JSONObject.quote(unavailable) + "}");
             return;
         }
 

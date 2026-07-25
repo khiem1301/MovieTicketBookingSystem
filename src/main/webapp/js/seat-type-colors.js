@@ -42,11 +42,12 @@
 
   function isLightColor(color) {
     if (!color) return false;
-    if (color.indexOf('hsl') === 0) {
-      var parts = color.match(/[\d.]+/g);
+    var c = String(color).trim().toLowerCase();
+    if (c.indexOf('hsl') === 0) {
+      var parts = c.match(/[\d.]+/g);
       return !!(parts && parts.length >= 3 && parseFloat(parts[2]) > 55);
     }
-    var hex = String(color).replace('#', '');
+    var hex = c.replace('#', '').replace(/[^0-9a-f]/g, '');
     if (hex.length === 3) {
       hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
     }
@@ -58,7 +59,15 @@
   }
 
   function textColorFor(bg) {
-    return isLightColor(bg) ? '#222222' : '#ffffff';
+    return isLightColor(bg) ? '#1a1a1a' : '#ffffff';
+  }
+
+  /** Preset ghế sáng → luôn chữ tối (tránh lệch contrast / cache CSS cũ). */
+  function forcedTextForType(key, bg) {
+    var k = normalizeType(key);
+    if (k === 'regular' || k === 'standard' || k === 'vip') return '#1a1a1a';
+    if (k === 'couple' || k === 'sweetbox') return '#ffffff';
+    return textColorFor(bg || colorForType(k));
   }
 
   function applySwatchColors(root) {
@@ -82,15 +91,18 @@
     var key = normalizeType(
       el.dataset.type || el.dataset.seatType || el.dataset.typeKey || 'regular'
     );
-    var color = el.dataset.typeColor || colorForType(key);
-    // Luôn tính contrast theo nền (giống staff POS) — không tin data-type-text có thể lệch
-    var text = textColorFor(color);
+    var rawColor = (el.dataset.typeColor || '').trim();
+    var color = rawColor || colorForType(key);
+    var text = forcedTextForType(key, color);
     el.style.setProperty('background', color, 'important');
+    el.style.setProperty('background-color', color, 'important');
     el.style.setProperty('border-color', color, 'important');
     el.style.setProperty('color', text, 'important');
-    var num = el.querySelector('.ck-seat-num, .pos-seat-code');
+    el.style.setProperty('-webkit-text-fill-color', text, 'important');
+    var num = el.querySelector('.ck-seat-code, .ck-seat-num, .pos-seat-code');
     if (num) {
       num.style.setProperty('color', text, 'important');
+      num.style.setProperty('-webkit-text-fill-color', text, 'important');
     }
     if (key === 'vip') {
       el.style.boxShadow = '0 0 10px rgba(255, 215, 0, 0.25)';
@@ -102,12 +114,15 @@
   function clearSeatInlineStyle(el) {
     if (!el || !el.style) return;
     el.style.removeProperty('background');
+    el.style.removeProperty('background-color');
     el.style.removeProperty('border-color');
     el.style.removeProperty('color');
+    el.style.removeProperty('-webkit-text-fill-color');
     el.style.boxShadow = '';
-    var num = el.querySelector('.ck-seat-num, .pos-seat-code');
+    var num = el.querySelector('.ck-seat-code, .ck-seat-num, .pos-seat-code');
     if (num && num.style) {
       num.style.removeProperty('color');
+      num.style.removeProperty('-webkit-text-fill-color');
     }
   }
 
@@ -149,6 +164,7 @@
     isWideType: isWideType,
     isLightColor: isLightColor,
     textColorFor: textColorFor,
+    forcedTextForType: forcedTextForType,
     applySwatchColors: applySwatchColors,
     applyAvailableSeatColors: applyAvailableSeatColors,
     applyPosSeatColors: applyPosSeatColors,

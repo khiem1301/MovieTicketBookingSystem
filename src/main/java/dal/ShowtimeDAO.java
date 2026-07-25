@@ -13,6 +13,9 @@ public class ShowtimeDAO {
     /** Thời gian dọn phòng giữa hai suất (phút) — tính vào kiểm tra trùng lịch. */
     public static final int CLEANUP_BUFFER_MINUTES = 15;
 
+    /** Cho phép đặt vé muộn tối đa N phút sau start_time (đồng bộ {@link utils.ShowtimeBookingWindow}). */
+    public static final int LATE_BOOKING_GRACE_MINUTES = utils.ShowtimeBookingWindow.LATE_BOOKING_GRACE_MINUTES;
+
     private static final String ACTIVE_BOOKING_PRED = """
             (
                 b.booking_status = 'CONFIRMED'
@@ -83,14 +86,16 @@ public class ShowtimeDAO {
                 JOIN Movies m       ON m.id = s.movie_id
                 JOIN CinemaRooms cr ON cr.id = s.room_id
                 WHERE s.movie_id = ?
-                  AND s.start_time >= GETDATE()
-                  AND s.status <> 'CANCELLED'
+                  AND s.status IN ('SCHEDULED', 'SHOWING')
+                  AND s.end_time > SYSDATETIME()
+                  AND s.start_time >= DATEADD(MINUTE, -?, SYSDATETIME())
                 ORDER BY s.start_time
                 """;
         List<Showtime> result = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, movieId);
+            ps.setInt(2, LATE_BOOKING_GRACE_MINUTES);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) result.add(mapShowtime(rs));
             }
@@ -101,7 +106,7 @@ public class ShowtimeDAO {
     }
 
     /**
-     * FR-35 — Lấy danh sách suất chiếu còn lại trong ngày + tương lai theo phim.
+     * FR-35 — Lấy danh sách suất chiếu còn đặt được (kể cả muộn trong grace) theo phim.
      */
     public List<Showtime> getShowtimesByMovieId(String movieId) {
         String sql = """
@@ -114,13 +119,15 @@ public class ShowtimeDAO {
                 JOIN CinemaRooms cr ON cr.id = s.room_id
                 WHERE s.movie_id = ?
                   AND s.status IN ('SCHEDULED', 'SHOWING')
-                  AND s.start_time > SYSDATETIME()
+                  AND s.end_time > SYSDATETIME()
+                  AND s.start_time >= DATEADD(MINUTE, -?, SYSDATETIME())
                 ORDER BY s.start_time
                 """;
         List<Showtime> result = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, movieId);
+            ps.setInt(2, LATE_BOOKING_GRACE_MINUTES);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) result.add(mapShowtime(rs));
             }

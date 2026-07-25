@@ -85,9 +85,7 @@
   </div>
 </footer>
 
-<script charset="UTF-8" src="${pageContext.request.contextPath}/js/main.js"></script>
-<c:if test="${extraCss == 'admin' || extraCss2 == 'admin'}">
-  <script charset="UTF-8" src="${pageContext.request.contextPath}/js/admin.js?v=1"></script>
-</c:if>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/main.js?v=20260726a"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/flash-alerts.js?v=2"></script>
 </body>
 </html>

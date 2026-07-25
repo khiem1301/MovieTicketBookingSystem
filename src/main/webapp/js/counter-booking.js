@@ -164,10 +164,16 @@
 
     filtered.forEach(st => {
       const btn = document.createElement('button');
-      btn.className = 'pos-time-btn' + (st.status === 'SCHEDULED' ? '' : ' pos-time-btn--dim');
+      const bookable = isShowtimeBookable(st);
+      btn.className = 'pos-time-btn'
+        + (st.status === 'SCHEDULED' ? '' : ' pos-time-btn--dim')
+        + (bookable ? '' : ' pos-time-btn--disabled');
       btn.dataset.showtimeId = st.id;
+      btn.disabled = !bookable;
       btn.textContent = st.time;
-      btn.addEventListener('click', () => selectShowtime(st));
+      if (bookable) {
+        btn.addEventListener('click', () => selectShowtime(st));
+      }
       grid.appendChild(btn);
     });
 
@@ -176,9 +182,21 @@
     }
   }
 
+  const LATE_BOOKING_GRACE_MS = 30 * 60 * 1000;
+
+  function isShowtimeBookable(st) {
+    if (!st) return false;
+    if (st.status === 'CANCELLED' || st.status === 'FINISHED') return false;
+    if (st.startTs) {
+      const deadline = Number(st.startTs) + LATE_BOOKING_GRACE_MS;
+      if (Date.now() >= deadline) return false;
+    }
+    return true;
+  }
+
   function selectShowtime(st) {
-    if (st.status === 'CANCELLED' || st.status === 'FINISHED' || st.status === 'SHOWING') {
-      alert(`Su\u1ea5t chi\u1ebfu ${st.time} kh\u00f4ng th\u1ec3 \u0111\u1eb7t v\u00e9.`);
+    if (!isShowtimeBookable(st)) {
+      alert(`Su\u1ea5t chi\u1ebfu ${st.time} kh\u00f4ng th\u1ec3 \u0111\u1eb7t v\u00e9 (qu\u00e1 30 ph\u00fat sau gi\u1edd b\u1eaft \u0111\u1ea7u).`);
       return;
     }
     if (selectedShowtimeId && selectedShowtimeId !== st.id) {

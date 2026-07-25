@@ -11,13 +11,11 @@
 <c:set var="isEdit" value="${not empty editShowtime}"/>
 <c:set var="openCreateModal" value="${not empty error and empty editShowtime}"/>
 <c:set var="openEditModal" value="${isEdit}"/>
-<c:set var="openBulkModal" value="${openBulkModal == true}"/>
 <c:set var="locked" value="${isEdit and editBookingCount != null and editBookingCount > 0}"/>
 
 <div class="mm-page st-page"
      data-open-create="${openCreateModal}"
      data-open-edit="${openEditModal}"
-     data-open-bulk="${openBulkModal}"
      data-today="<c:out value='${today}'/>"
      data-buffer="${cleanupBufferMinutes}"
      data-ctx="${pageContext.request.contextPath}">
@@ -39,9 +37,6 @@
   <c:if test="${param.success == 'deleted'}">
     <div class="mm-alert mm-alert--success">Xóa suất chiếu thành công.</div>
   </c:if>
-  <c:if test="${param.success == 'bulk'}">
-    <div class="mm-alert mm-alert--success">Đã tạo hàng loạt <strong><c:out value="${param.count}"/></strong> suất chiếu.</div>
-  </c:if>
   <c:if test="${param.success == 'copied'}">
     <div class="mm-alert mm-alert--success"><c:out value="${empty param.msg ? 'Đã copy lịch chiếu.' : param.msg}"/></div>
   </c:if>
@@ -55,12 +50,11 @@
   <div class="mm-header">
     <div>
       <h1 class="mm-title">Quản Lý Suất Chiếu</h1>
-      <p class="mm-subtitle">Lập lịch theo ngày/phòng, tạo hàng loạt và theo dõi ghế đã bán.
+      <p class="mm-subtitle">Lập lịch theo ngày/phòng và theo dõi ghế đã bán.
         Buffer dọn phòng: <strong>${cleanupBufferMinutes} phút</strong>.</p>
     </div>
     <div class="st-header-actions">
       <button type="button" class="st-btn-secondary" onclick="openCopyModal()">Copy ngày</button>
-      <button type="button" class="st-btn-secondary" onclick="openBulkModal()">+ Hàng loạt</button>
       <button type="button" class="mm-btn-add" id="stBtnAdd" onclick="openCreateModal()">+ Thêm Suất</button>
     </div>
   </div>
@@ -110,7 +104,7 @@
 
     <c:choose>
       <c:when test="${empty showtimeList}">
-        <div class="mm-empty">Chưa có suất chiếu nào. Bấm <strong>+ Thêm Suất</strong> hoặc <strong>+ Hàng loạt</strong> để bắt đầu.</div>
+        <div class="mm-empty">Chưa có suất chiếu nào. Bấm <strong>+ Thêm Suất</strong> để bắt đầu.</div>
       </c:when>
       <c:otherwise>
         <div id="stListView" class="st-list-view">
@@ -130,6 +124,8 @@
               <tbody id="stTableBody">
                 <c:forEach var="st" items="${showtimeList}">
                   <c:set var="bc" value="${st.bookingCount}"/>
+                  <fmt:formatDate value="${st.startTime}" pattern="yyyy-MM-dd'T'HH:mm" var="stStartLocal"/>
+                  <fmt:formatDate value="${st.endTime}" pattern="yyyy-MM-dd'T'HH:mm" var="stEndLocal"/>
                   <c:set var="posterSrc" value=""/>
                   <c:if test="${not empty st.moviePosterUrl}">
                     <c:choose>
@@ -155,7 +151,11 @@
                       data-title-raw="<c:out value='${st.movieTitle}'/>"
                       data-sold="${st.soldSeats}"
                       data-capacity="${st.roomCapacity}"
-                      data-remaining="${st.remainingSeats}">
+                      data-remaining="${st.remainingSeats}"
+                      data-base-price="${st.basePrice}"
+                      data-booking-count="${bc != null ? bc : 0}"
+                      data-start-local="<c:out value='${stStartLocal}'/>"
+                      data-end-local="<c:out value='${stEndLocal}'/>">
                     <td class="mm-td-movie">
                       <c:choose>
                         <c:when test="${not empty posterSrc}">
@@ -191,7 +191,7 @@
                       </div>
                     </td>
                     <td><fmt:formatNumber value="${st.basePrice}" type="number" groupingUsed="true"/> ₫</td>
-                    <td>
+                    <td class="st-status-cell">
                       <c:choose>
                         <c:when test="${st.status == 'SCHEDULED'}">
                           <span class="st-badge st-badge--scheduled">Đã lên lịch</span>
@@ -208,12 +208,12 @@
                       </c:choose>
                     </td>
                     <td class="mm-td-actions">
-                      <a href="${pageContext.request.contextPath}/manager/showtimes?action=edit&amp;id=<c:out value='${st.id}'/>"
-                         class="mm-action-btn mm-action-btn--edit" title="Sửa">
+                      <button type="button" class="mm-action-btn mm-action-btn--edit" title="Sửa"
+                              onclick="openEditShowtime(this.closest('tr'))">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                           <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
                         </svg>
-                      </a>
+                      </button>
                       <c:choose>
                         <c:when test="${bc != null && bc > 0}">
                           <button type="button" class="mm-action-btn mm-action-btn--delete" disabled
@@ -271,6 +271,24 @@
           </div>
           <div class="st-cal-scroll">
             <div id="stCalGrid" class="st-cal-grid"></div>
+          </div>
+          <div class="st-cal-legend" aria-label="Chú thích trạng thái suất chiếu">
+            <span class="st-cal-legend-item">
+              <span class="st-cal-legend-swatch st-cal-block--scheduled" aria-hidden="true"></span>
+              Đã lên lịch
+            </span>
+            <span class="st-cal-legend-item">
+              <span class="st-cal-legend-swatch st-cal-block--showing" aria-hidden="true"></span>
+              Đang chiếu
+            </span>
+            <span class="st-cal-legend-item">
+              <span class="st-cal-legend-swatch st-cal-block--finished" aria-hidden="true"></span>
+              Đã kết thúc
+            </span>
+            <span class="st-cal-legend-item">
+              <span class="st-cal-legend-swatch st-cal-block--cancelled" aria-hidden="true"></span>
+              Huỷ
+            </span>
           </div>
         </div>
       </c:otherwise>
@@ -344,72 +362,6 @@
   </div>
 </div>
 
-<%-- ── Bulk Create Modal ────────────────────────────────────── --%>
-<div class="st-modal-backdrop" id="stBulkModal" aria-hidden="true">
-  <div class="st-modal st-modal--wide" role="dialog" aria-modal="true" aria-labelledby="stBulkTitle">
-    <div class="st-modal-header">
-      <h2 id="stBulkTitle">Tạo Hàng Loạt</h2>
-      <button type="button" class="st-modal-close" onclick="closeBulkModal()" aria-label="Đóng">✕</button>
-    </div>
-    <div class="st-modal-body">
-      <c:if test="${not empty bulkError}">
-        <div class="mm-alert mm-alert--error" style="margin-bottom:16px"><c:out value="${bulkError}"/></div>
-      </c:if>
-      <form method="post" action="${pageContext.request.contextPath}/manager/showtimes" class="st-modal-form" id="stBulkForm">
-        <input type="hidden" name="action" value="bulkCreate"/>
-        <div class="st-form-row">
-          <div class="st-form-group">
-            <label for="bulkMovieId">Phim <span class="required">*</span></label>
-            <select id="bulkMovieId" name="movieId" required>
-              <option value="">— Chọn phim —</option>
-              <c:forEach var="m" items="${movieList}">
-                <option value="<c:out value='${m.id}'/>"
-                        data-duration="${m.durationMinutes}"
-                        ${inputMovieId == m.id ? 'selected' : ''}>
-                  <c:out value="${m.title}"/> (${m.durationMinutes} phút)
-                </option>
-              </c:forEach>
-            </select>
-          </div>
-          <div class="st-form-group">
-            <label for="bulkRoomId">Phòng <span class="required">*</span></label>
-            <select id="bulkRoomId" name="roomId" required>
-              <option value="">— Chọn phòng —</option>
-              <c:forEach var="r" items="${roomList}">
-                <option value="<c:out value='${r.id}'/>" ${inputRoomId == r.id ? 'selected' : ''}>
-                  <c:out value="${r.roomName}"/>
-                </option>
-              </c:forEach>
-            </select>
-          </div>
-        </div>
-        <div class="st-form-row">
-          <div class="st-form-group">
-            <label for="bulkShowDate">Ngày chiếu <span class="required">*</span></label>
-            <input id="bulkShowDate" type="date" name="showDate" required
-                   value="<c:out value='${not empty inputShowDate ? inputShowDate : today}'/>"/>
-          </div>
-          <div class="st-form-group">
-            <label for="bulkBasePrice">Giá vé (VNĐ) <span class="required">*</span></label>
-            <input id="bulkBasePrice" type="number" name="basePrice" min="1000" max="999999999" step="1000" required
-                   value="<c:out value='${inputBasePrice}'/>" placeholder="80000"/>
-          </div>
-        </div>
-        <div class="st-form-group">
-          <label>Các giờ bắt đầu <span class="required">*</span></label>
-          <div id="bulkTimeList" class="st-bulk-times"></div>
-          <button type="button" class="st-btn-secondary st-btn-add-time" onclick="addBulkTimeRow()">+ Thêm giờ</button>
-          <small class="st-hint">Tối đa 12 suất. Trạng thái tự cập nhật theo thời gian (không chọn tay).</small>
-        </div>
-        <div class="st-modal-actions">
-          <button type="button" class="st-btn-cancel" onclick="closeBulkModal()">Hủy</button>
-          <button type="submit" class="st-btn-primary">Tạo tất cả</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
 <%-- ── Copy Day Modal ───────────────────────────────────────── --%>
 <div class="st-modal-backdrop" id="stCopyModal" aria-hidden="true">
   <div class="st-modal" role="dialog" aria-modal="true" aria-labelledby="stCopyTitle">
@@ -447,7 +399,7 @@
   </div>
 </div>
 
-<%-- ── Edit Modal ───────────────────────────────────────────── --%>
+<%-- ── Edit Modal (luôn có trong DOM — mở bằng JS, không reload) ── --%>
 <div class="st-modal-backdrop" id="stEditModal" aria-hidden="true">
   <div class="st-modal" role="dialog" aria-modal="true" aria-labelledby="stEditTitle">
     <div class="st-modal-header">
@@ -455,101 +407,101 @@
       <button type="button" class="st-modal-close" onclick="closeEditModal()" aria-label="Đóng">✕</button>
     </div>
     <div class="st-modal-body">
-      <c:if test="${isEdit}">
-        <c:set var="editMovieSelected" value="${not empty inputMovieId ? inputMovieId : editShowtime.movieId}"/>
-        <c:set var="editRoomSelected" value="${not empty inputRoomId ? inputRoomId : editShowtime.roomId}"/>
+      <c:set var="editMovieSelected" value=""/>
+      <c:choose>
+        <c:when test="${not empty inputMovieId}"><c:set var="editMovieSelected" value="${inputMovieId}"/></c:when>
+        <c:when test="${not empty editShowtime}"><c:set var="editMovieSelected" value="${editShowtime.movieId}"/></c:when>
+      </c:choose>
+      <c:set var="editRoomSelected" value=""/>
+      <c:choose>
+        <c:when test="${not empty inputRoomId}"><c:set var="editRoomSelected" value="${inputRoomId}"/></c:when>
+        <c:when test="${not empty editShowtime}"><c:set var="editRoomSelected" value="${editShowtime.roomId}"/></c:when>
+      </c:choose>
+      <c:if test="${not empty editShowtime}">
         <fmt:formatDate value="${editShowtime.startTime}" pattern="yyyy-MM-dd'T'HH:mm" var="editStartLocal"/>
-        <c:set var="editStartValue" value="${not empty inputStartTime ? inputStartTime : editStartLocal}"/>
-        <c:if test="${locked}">
-          <div class="st-lock-note">
-            Suất đã có <strong>${editBookingCount}</strong> đơn đặt vé — chỉ sửa giá vé hoặc trạng thái.
-          </div>
-        </c:if>
-        <c:if test="${not empty error}">
-          <div class="mm-alert mm-alert--error" style="margin-bottom:16px"><c:out value="${error}"/></div>
-        </c:if>
-        <form method="post" action="${pageContext.request.contextPath}/manager/showtimes" class="st-modal-form" id="stEditForm">
-          <input type="hidden" name="action" value="update"/>
-          <input type="hidden" name="id" value="<c:out value='${editShowtime.id}'/>"/>
-          <div class="st-form-group">
-            <label for="editMovieId">Phim <span class="required">*</span></label>
-            <select id="editMovieId" name="movieId" required ${locked ? 'disabled' : ''}>
-              <c:forEach var="m" items="${movieList}">
-                <option value="<c:out value='${m.id}'/>"
-                        data-duration="${m.durationMinutes}"
-                        ${editMovieSelected == m.id ? 'selected' : ''}>
-                  <c:out value="${m.title}"/> (${m.durationMinutes} phút)
-                </option>
-              </c:forEach>
-            </select>
-            <c:if test="${locked}">
-              <input type="hidden" name="movieId" value="<c:out value='${editShowtime.movieId}'/>"/>
-            </c:if>
-          </div>
-          <div class="st-form-group">
-            <label for="editRoomId">Phòng chiếu <span class="required">*</span></label>
-            <select id="editRoomId" name="roomId" required ${locked ? 'disabled' : ''}>
-              <c:forEach var="r" items="${roomList}">
-                <option value="<c:out value='${r.id}'/>"
-                        ${editRoomSelected == r.id ? 'selected' : ''}>
-                  <c:out value="${r.roomName}"/> (<c:out value="${r.capacity}"/> ghế)
-                </option>
-              </c:forEach>
-            </select>
-            <c:if test="${locked}">
-              <input type="hidden" name="roomId" value="<c:out value='${editShowtime.roomId}'/>"/>
-            </c:if>
-          </div>
-          <div class="st-form-group">
-            <label for="editStartTime">Giờ bắt đầu <span class="required">*</span></label>
-            <input id="editStartTime" type="datetime-local" name="startTime" required
-                   ${locked ? 'disabled' : ''}
-                   value="<c:out value='${editStartValue}'/>"/>
-            <c:if test="${locked}">
-              <input type="hidden" name="startTime" value="<c:out value='${editStartLocal}'/>"/>
-            </c:if>
-            <p class="st-duration-hint" id="editDurationHint"></p>
-          </div>
-          <div class="st-form-group">
-            <label for="editBasePrice">Giá vé cơ bản (VNĐ) <span class="required">*</span></label>
-            <input id="editBasePrice" type="number" name="basePrice" min="1000" max="999999999" step="1000" required
-                   value="<c:out value='${not empty inputBasePrice ? inputBasePrice : editShowtime.basePrice}'/>"/>
-          </div>
-          <div class="st-form-group">
-            <label>Trạng thái</label>
-            <div class="st-status-readonly">
-              <c:choose>
-                <c:when test="${editShowtime.status == 'SCHEDULED'}">
-                  <span class="st-badge st-badge--scheduled">Đã lên lịch</span>
-                </c:when>
-                <c:when test="${editShowtime.status == 'SHOWING'}">
-                  <span class="st-badge st-badge--showing">Đang chiếu</span>
-                </c:when>
-                <c:when test="${editShowtime.status == 'CANCELLED'}">
-                  <span class="st-badge st-badge--cancelled">Huỷ</span>
-                </c:when>
-                <c:otherwise>
-                  <span class="st-badge st-badge--finished">Đã kết thúc</span>
-                </c:otherwise>
-              </c:choose>
-              <small class="st-hint" style="margin-top:8px">Tự cập nhật theo giờ chiếu (trừ khi đã hủy).</small>
-            </div>
-          </div>
-          <div class="st-modal-actions st-modal-actions--split">
-            <div class="st-modal-actions-left">
-              <c:if test="${editShowtime.status != 'CANCELLED' && editShowtime.status != 'FINISHED'}">
-                <button type="button" class="st-btn-danger" onclick="openCancelReasonModal()">
-                  Hủy suất chiếu
-                </button>
-              </c:if>
-            </div>
-            <div class="st-modal-actions-right">
-              <button type="button" class="st-btn-cancel" onclick="closeEditModal()">Đóng</button>
-              <button type="submit" class="st-btn-primary">Lưu Thay Đổi</button>
-            </div>
-          </div>
-        </form>
       </c:if>
+      <c:choose>
+        <c:when test="${not empty inputStartTime}"><c:set var="editStartValue" value="${inputStartTime}"/></c:when>
+        <c:otherwise><c:set var="editStartValue" value="${editStartLocal}"/></c:otherwise>
+      </c:choose>
+
+      <div class="st-lock-note" id="editLockNote" ${locked ? '' : 'hidden'}>
+        Suất đã có <strong id="editLockCount">${editBookingCount != null ? editBookingCount : 0}</strong> đơn đặt vé — chỉ sửa giá vé hoặc trạng thái.
+      </div>
+      <c:if test="${not empty error and not empty editShowtime}">
+        <div class="mm-alert mm-alert--error" style="margin-bottom:16px"><c:out value="${error}"/></div>
+      </c:if>
+      <form method="post" action="${pageContext.request.contextPath}/manager/showtimes" class="st-modal-form" id="stEditForm">
+        <input type="hidden" name="action" value="update"/>
+        <input type="hidden" name="id" id="editShowtimeId"
+               value="<c:if test='${isEdit}'><c:out value='${editShowtime.id}'/></c:if>"/>
+        <div class="st-form-group">
+          <label for="editMovieId">Phim <span class="required">*</span></label>
+          <select id="editMovieId" name="movieId" required ${locked ? 'disabled' : ''}>
+            <option value="">— Chọn phim —</option>
+            <c:forEach var="m" items="${movieList}">
+              <option value="<c:out value='${m.id}'/>"
+                      data-duration="${m.durationMinutes}"
+                      ${editMovieSelected == m.id ? 'selected' : ''}>
+                <c:out value="${m.title}"/> (${m.durationMinutes} phút)
+              </option>
+            </c:forEach>
+          </select>
+          <input type="hidden" name="movieId" id="editMovieIdHidden" ${locked ? '' : 'disabled'}
+                 value="<c:out value='${editMovieSelected}'/>"/>
+        </div>
+        <div class="st-form-group">
+          <label for="editRoomId">Phòng chiếu <span class="required">*</span></label>
+          <select id="editRoomId" name="roomId" required ${locked ? 'disabled' : ''}>
+            <option value="">— Chọn phòng —</option>
+            <c:forEach var="r" items="${roomList}">
+              <option value="<c:out value='${r.id}'/>"
+                      ${editRoomSelected == r.id ? 'selected' : ''}>
+                <c:out value="${r.roomName}"/> (<c:out value="${r.capacity}"/> ghế)
+              </option>
+            </c:forEach>
+          </select>
+          <input type="hidden" name="roomId" id="editRoomIdHidden" ${locked ? '' : 'disabled'}
+                 value="<c:out value='${editRoomSelected}'/>"/>
+        </div>
+        <div class="st-form-group">
+          <label for="editStartTime">Giờ bắt đầu <span class="required">*</span></label>
+          <input id="editStartTime" type="datetime-local" name="startTime" required
+                 ${locked ? 'disabled' : ''}
+                 value="<c:out value='${editStartValue}'/>"/>
+          <input type="hidden" name="startTime" id="editStartTimeHidden" ${locked ? '' : 'disabled'}
+                 value="<c:out value='${editStartValue}'/>"/>
+          <p class="st-duration-hint" id="editDurationHint"></p>
+        </div>
+        <div class="st-form-group">
+          <label for="editBasePrice">Giá vé cơ bản (VNĐ) <span class="required">*</span></label>
+          <c:set var="editBasePriceValue" value=""/>
+          <c:choose>
+            <c:when test="${not empty inputBasePrice}"><c:set var="editBasePriceValue" value="${inputBasePrice}"/></c:when>
+            <c:when test="${not empty editShowtime}"><c:set var="editBasePriceValue" value="${editShowtime.basePrice}"/></c:when>
+          </c:choose>
+          <input id="editBasePrice" type="number" name="basePrice" min="1000" max="999999999" step="1000" required
+                 value="<c:out value='${editBasePriceValue}'/>"/>
+        </div>
+        <div class="st-form-group">
+          <label>Trạng thái</label>
+          <div class="st-status-readonly">
+            <span id="editStatusBadge" class="st-badge st-badge--scheduled">Đã lên lịch</span>
+            <small class="st-hint" style="margin-top:8px">Tự cập nhật theo giờ chiếu (trừ khi đã hủy).</small>
+          </div>
+        </div>
+        <div class="st-modal-actions st-modal-actions--split">
+          <div class="st-modal-actions-left">
+            <button type="button" class="st-btn-danger" id="editCancelBtn" onclick="openCancelReasonModal()" hidden>
+              Hủy suất chiếu
+            </button>
+          </div>
+          <div class="st-modal-actions-right">
+            <button type="button" class="st-btn-cancel" onclick="closeEditModal()">Đóng</button>
+            <button type="submit" class="st-btn-primary">Lưu Thay Đổi</button>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -570,8 +522,7 @@
             class="st-modal-form" id="stCancelForm"
             onsubmit="return validateCancelReason();">
         <input type="hidden" name="action" value="cancel"/>
-        <input type="hidden" name="id" id="stCancelShowtimeId"
-               value="<c:if test='${isEdit}'><c:out value='${editShowtime.id}'/></c:if>"/>
+        <input type="hidden" name="id" id="stCancelShowtimeId" value=""/>
         <div class="st-form-group">
           <label for="stCancelReason">Lý do hủy <span class="required">*</span></label>
           <textarea id="stCancelReason" name="reason" rows="5" required minlength="10" maxlength="1000"
@@ -587,5 +538,5 @@
   </div>
 </div>
 
-<script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-showtimes.js?v=5"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-showtimes.js?v=11"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
