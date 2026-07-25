@@ -16,7 +16,7 @@ uri="jakarta.tags.functions" %>
     <c:if test="${not empty extraCss}">
       <link
         rel="stylesheet"
-        href="${pageContext.request.contextPath}/css/${extraCss}.css?v=${not empty assetV ? assetV : '20260725f'}"
+        href="${pageContext.request.contextPath}/css/${extraCss}.css?v=${not empty assetV ? assetV : '20260726b'}"
       />
     </c:if>
     <c:if test="${not empty extraCss2}">

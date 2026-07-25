@@ -37,6 +37,68 @@ public class CinemaRoomDAO {
         return list;
     }
 
+    /** Đếm phòng theo trạng thái (null/blank/ALL = tất cả). */
+    public int countByStatus(String status) {
+        String normalized = normalizeStatusFilter(status);
+        StringBuilder sql = new StringBuilder(
+                "SELECT COUNT(1) FROM CinemaRooms");
+        if (normalized != null) {
+            sql.append(" WHERE status = ?");
+        }
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            if (normalized != null) {
+                ps.setString(1, normalized);
+            }
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("CinemaRoomDAO.countByStatus failed", e);
+        }
+    }
+
+    /** Danh sách phòng phân trang, sắp xếp theo tên. */
+    public List<CinemaRoom> findPaged(String status, int offset, int limit) {
+        String normalized = normalizeStatusFilter(status);
+        StringBuilder sql = new StringBuilder("""
+                SELECT id, room_name, capacity, status, created_at
+                FROM CinemaRooms
+                """);
+        if (normalized != null) {
+            sql.append(" WHERE status = ?");
+        }
+        sql.append(" ORDER BY room_name OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+
+        List<CinemaRoom> list = new ArrayList<>();
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            int i = 1;
+            if (normalized != null) {
+                ps.setString(i++, normalized);
+            }
+            ps.setInt(i++, Math.max(0, offset));
+            ps.setInt(i, Math.max(1, limit));
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("CinemaRoomDAO.findPaged failed", e);
+        }
+        return list;
+    }
+
+    private static String normalizeStatusFilter(String status) {
+        if (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status.trim())) {
+            return null;
+        }
+        String s = status.trim().toUpperCase();
+        if ("ACTIVE".equals(s) || "INACTIVE".equals(s)) {
+            return s;
+        }
+        return null;
+    }
+
     /** FR-25 — Phòng đang hoạt động, có ghế, có thể xếp suất chiếu. */
     public List<CinemaRoom> getActiveRooms() {
         String sql = """
