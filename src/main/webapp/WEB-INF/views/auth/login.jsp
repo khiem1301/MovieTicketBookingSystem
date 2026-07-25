@@ -67,6 +67,13 @@
       <c:if test="${param.verify == 'invalid'}">
         <div class="auth-alert auth-alert--error" role="alert">
           Liên kết xác thực không hợp lệ hoặc đã hết hạn.
+          Bạn có thể <a href="${pageContext.request.contextPath}/register" class="auth-link">đăng ký lại</a>.
+        </div>
+      </c:if>
+
+      <c:if test="${param.verify == 'already'}">
+        <div class="auth-alert auth-alert--error" role="alert">
+          Email này đã có tài khoản. Vui lòng đăng nhập.
         </div>
       </c:if>
 

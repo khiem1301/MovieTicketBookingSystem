@@ -27,7 +27,7 @@
     <div class="admin-page-header">
       <div>
         <h1 class="admin-page-title">Quy tắc giá động</h1>
-        <p class="admin-page-subtitle">Tạo và quản lý quy tắc điều chỉnh giá suất chiếu (FR-49)</p>
+        <p class="admin-page-subtitle">Tạo và quản lý quy tắc điều chỉnh giá suất chiếu</p>
       </div>
     </div>
 

@@ -17,6 +17,9 @@ import java.util.HashSet;
  */
 public final class SeatLayoutJsonUtil {
 
+    /** Tối đa số ô mỗi hàng (ghế + lối đi). */
+    public static final int MAX_CELLS_PER_ROW = 17;
+
     private SeatLayoutJsonUtil() {}
 
     public static String buildLayoutJson(List<Seat> seats) {
@@ -92,6 +95,12 @@ public final class SeatLayoutJsonUtil {
 
             JSONArray cells = rowObj.optJSONArray("cells");
             if (cells == null) continue;
+
+            if (cells.length() > MAX_CELLS_PER_ROW) {
+                throw new IllegalArgumentException(
+                        "Hàng " + label + " vượt quá tối đa " + MAX_CELLS_PER_ROW
+                                + " ô (tính cả lối đi).");
+            }
 
             int col = 0;
             for (int j = 0; j < cells.length(); j++) {
