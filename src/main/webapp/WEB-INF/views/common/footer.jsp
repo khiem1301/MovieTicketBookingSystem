@@ -3,7 +3,7 @@
 <footer class="site-footer">
   <div class="footer-inner">
 
-    <%-- Left: branding + social --%>
+    <%-- Left: branding --%>
     <div class="footer-brand">
       <div class="footer-logo-wrap">
         <img src="${pageContext.request.contextPath}/images/logo.png"
@@ -11,52 +11,11 @@
              onerror="this.style.display='none'; this.nextElementSibling.style.display='block'"/>
         <span class="footer-logo" style="display:none;">ÉpCine</span>
       </div>
-      <div class="footer-tagline">Your Premium Cinema Experience</div>
+      <div class="footer-tagline">Trải nghiệm rạp chiếu cao cấp của bạn</div>
       <p class="footer-desc">
-        Book tickets online, choose your seat, and enjoy the best movies
-        in a world-class cinema environment.
+        Đặt vé trực tuyến, chọn ghế yêu thích và tận hưởng những bộ phim hay nhất
+        trong không gian rạp chiếu chuyên nghiệp.
       </p>
-      <div class="footer-socials">
-        <%-- Facebook --%>
-        <a class="social-link" href="#" aria-label="Facebook">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
-          </svg>
-        </a>
-        <%-- Instagram --%>
-        <a class="social-link" href="#" aria-label="Instagram">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
-          </svg>
-        </a>
-        <%-- YouTube --%>
-        <a class="social-link" href="#" aria-label="YouTube">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/>
-            <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#111"/>
-          </svg>
-        </a>
-        <%-- TikTok --%>
-        <a class="social-link" href="#" aria-label="TikTok">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.98a8.18 8.18 0 0 0 4.78 1.53V7.07a4.85 4.85 0 0 1-1.01-.38z"/>
-          </svg>
-        </a>
-        <%-- Cinema/Film icon --%>
-        <a class="social-link" href="#" aria-label="Website">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
-            <line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/>
-            <line x1="2" y1="12" x2="22" y2="12"/>
-            <line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/>
-            <line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/>
-          </svg>
-        </a>
-      </div>
     </div>
 
     <%-- Right: contact info --%>
@@ -82,7 +41,7 @@
         </svg>
         <div>
           <strong>0987 654 321</strong>
-          <div class="contact-note">Mon – Sun &nbsp;08:00 – 23:00</div>
+          <div class="contact-note">Thứ 2 – Chủ nhật &nbsp;08:00 – 23:00</div>
         </div>
       </div>
 
@@ -103,7 +62,7 @@
           <circle cx="12" cy="12" r="10"/>
           <polyline points="12 6 12 12 16 14"/>
         </svg>
-        <span>08:00 – 23:00 (All days)</span>
+        <span>08:00 – 23:00 (Tất cả các ngày)</span>
       </div>
 
       <%-- Directions button --%>
@@ -114,15 +73,15 @@
              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="3 11 22 2 13 21 11 13 3 11"/>
         </svg>
-        Get Directions
+        Chỉ đường
       </a>
     </div>
 
   </div>
 
   <div class="footer-bottom">
-    <span>&copy; 2026 ÉPCINE. All rights reserved.</span>
-    <span>SWP391 &mdash; FPT University</span>
+    <span>&copy; 2026 ÉPCINE. Bản quyền thuộc về ÉPCINE.</span>
+    <span>SWP391 &mdash; Đại học FPT</span>
   </div>
 </footer>
 

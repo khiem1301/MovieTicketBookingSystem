@@ -65,8 +65,6 @@
         <a href="${pageContext.request.contextPath}/login" class="auth-link">← Quay lại đăng nhập</a>
       </p>
 
-      <a href="${pageContext.request.contextPath}/home" class="auth-back-home">← Về trang chủ</a>
-
     </div>
   </div>
 
