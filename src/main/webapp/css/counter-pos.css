@@ -1355,6 +1355,65 @@
 .hist-btn--print { background: #1a3a5c; color: #6ab0ff; margin-left: 4px; }
 .hist-btn--print:hover { background: #1e4a77; }
 
+.hist-col-actions {
+  min-width: 110px;
+  width: 118px;
+}
+
+.hist-actions {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 96px;
+}
+
+.hist-btn--view {
+  background: rgba(255, 255, 255, 0.06);
+  color: #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  text-align: center;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.hist-btn--view:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+.hist-print-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.hist-print-badge--pending {
+  color: #ffcc80;
+  background: rgba(255, 152, 0, 0.14);
+  border: 1px solid rgba(255, 183, 77, 0.45);
+}
+
+.hist-print-badge--done {
+  color: #a5d6a7;
+  background: rgba(76, 175, 80, 0.14);
+  border: 1px solid rgba(129, 199, 132, 0.4);
+}
+
+.hist-no-action {
+  color: #555;
+  font-size: 13px;
+}
+
 /* ── Stats bar ───────────────────────────────────────────── */
 .hist-stats-bar {
   display: flex; align-items: center; gap: 12px;

@@ -22,7 +22,7 @@ uri="jakarta.tags.functions" %>
     <c:if test="${not empty extraCss2}">
       <link
         rel="stylesheet"
-        href="${pageContext.request.contextPath}/css/${extraCss2}.css?v=11"
+        href="${pageContext.request.contextPath}/css/${extraCss2}.css?v=20260726c"
       />
     </c:if>
   </head>

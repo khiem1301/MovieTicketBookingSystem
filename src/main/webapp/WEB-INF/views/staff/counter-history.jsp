@@ -97,7 +97,7 @@
               <th class="text-right">Tổng tiền</th>
               <th class="text-center">Trạng thái</th>
               <th>Nhân viên</th>
-              <th class="text-center">Thao tác</th>
+              <th class="text-center hist-col-actions">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -152,15 +152,22 @@
                       <a href="${ctx}/staff/counter?step=payment&bookingId=${b.bookingId}"
                          class="hist-btn hist-btn--sm" style="background:#e65100;color:#fff">Thanh toán</a>
                     </c:when>
-                    <c:when test="${b.bookingStatus == 'CONFIRMED'}">
-                      <a href="${ctx}/staff/history?bookingId=${b.bookingId}"
-                         class="hist-btn hist-btn--sm">Xem</a>
-                      <a href="${ctx}/staff/counter?step=print&bookingId=${b.bookingId}"
-                         class="hist-btn hist-btn--sm hist-btn--print">In vé</a>
+                    <c:when test="${b.bookingStatus == 'CONFIRMED' and b.paymentStatus == 'PAID'}">
+                      <div class="hist-actions">
+                        <a href="${ctx}/staff/history?bookingId=${b.bookingId}"
+                           class="hist-btn hist-btn--sm hist-btn--view">Xem</a>
+                        <c:choose>
+                          <c:when test="${b.ticketsPrinted}">
+                            <span class="hist-print-badge hist-print-badge--done">Đã in vé</span>
+                          </c:when>
+                          <c:otherwise>
+                            <span class="hist-print-badge hist-print-badge--pending">Chưa in vé</span>
+                          </c:otherwise>
+                        </c:choose>
+                      </div>
                     </c:when>
                     <c:otherwise>
-                      <a href="${ctx}/staff/history?bookingId=${b.bookingId}"
-                         class="hist-btn hist-btn--sm">Xem</a>
+                      <span class="hist-print-note hist-no-action">—</span>
                     </c:otherwise>
                   </c:choose>
                 </td>
