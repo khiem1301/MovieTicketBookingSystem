@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -17,11 +18,13 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import model.dto.BookingDetailDTO;
 import model.dto.BookingHistoryItemDTO;
+import model.dto.ShowtimeCancelBookingInfo;
 import model.entity.Booking;
 import model.entity.Movie;
 import model.entity.PricingRule;
 import model.entity.Seat;
 import model.entity.Showtime;
+import model.entity.ShowtimeIncident;
 import utils.ConfigKeys;
 import utils.ConfigUtil;
 import utils.PricingCalculator;
@@ -1872,5 +1875,165 @@ public class BookingDAO {
             throw new RuntimeException("countOfflineBookings failed", e);
         }
         return 0;
+    }
+
+    /**
+     * FR-46/47 — Hủy suất chiếu: cập nhật booking, hoàn điểm thành viên theo giá trị vé.
+     * Trả về danh sách booking đã xử lý (để gửi email ngoài transaction).
+     */
+    public List<ShowtimeCancelBookingInfo> cancelShowtimeAndCompensate(
+            String showtimeId, String reason, String managerId, BigDecimal refundPointsRate) {
+
+        if (showtimeId == null || showtimeId.isBlank()) {
+            throw new IllegalArgumentException("Thiếu showtimeId");
+        }
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("Vui lòng nhập lý do hủy suất chiếu.");
+        }
+
+        BigDecimal rate = refundPointsRate != null ? refundPointsRate : BigDecimal.ONE;
+        List<ShowtimeCancelBookingInfo> affected = new ArrayList<>();
+        Connection conn = null;
+        try {
+            conn = DBContext.getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT status FROM Showtimes WHERE id = ?")) {
+                ps.setString(1, showtimeId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next()) {
+                        conn.rollback();
+                        throw new IllegalStateException("Không tìm thấy suất chiếu.");
+                    }
+                    String st = rs.getString(1);
+                    if ("CANCELLED".equals(st)) {
+                        conn.rollback();
+                        throw new IllegalStateException("Suất chiếu đã bị hủy trước đó.");
+                    }
+                    if ("FINISHED".equals(st)) {
+                        conn.rollback();
+                        throw new IllegalStateException("Không thể hủy suất đã kết thúc.");
+                    }
+                }
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT COUNT(1) FROM ShowtimeIncidents WHERE showtime_id = ?")) {
+                ps.setString(1, showtimeId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        conn.rollback();
+                        throw new IllegalStateException("Suất chiếu đã có hồ sơ sự cố/hủy.");
+                    }
+                }
+            }
+
+            ShowtimeIncident incident = new ShowtimeIncident();
+            incident.setShowtimeId(showtimeId);
+            incident.setDescription(reason.trim());
+            incident.setRefundPointsRate(rate);
+            incident.setCompensationDiscountType("FIXED_AMOUNT");
+            incident.setCompensationDiscountValue(new BigDecimal("10000"));
+            incident.setCompensationValidDays(30);
+            incident.setProcessedAt(new Timestamp(System.currentTimeMillis()));
+            incident.setCreatedBy(managerId);
+            new ShowtimeIncidentDAO().insert(conn, incident);
+
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "UPDATE Showtimes SET status = 'CANCELLED' WHERE id = ?")) {
+                ps.setString(1, showtimeId);
+                ps.executeUpdate();
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement("""
+                    UPDATE Bookings
+                    SET booking_status = 'CANCELLED'
+                    WHERE showtime_id = ?
+                      AND booking_status = 'PENDING'
+                    """)) {
+                ps.setString(1, showtimeId);
+                ps.executeUpdate();
+            }
+
+            String selectSql = """
+                    SELECT b.id, b.booking_code, b.user_id, b.customer_name, b.customer_phone,
+                           b.final_amount, b.booking_status, b.payment_status, u.email, u.full_name
+                    FROM Bookings b
+                    LEFT JOIN Users u ON u.id = b.user_id
+                    WHERE b.showtime_id = ?
+                      AND b.booking_status = 'CONFIRMED'
+                    """;
+            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+                ps.setString(1, showtimeId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        ShowtimeCancelBookingInfo info = new ShowtimeCancelBookingInfo();
+                        info.setBookingId(rs.getString("id"));
+                        info.setBookingCode(rs.getString("booking_code"));
+                        info.setUserId(rs.getString("user_id"));
+                        String name = rs.getString("full_name");
+                        if (name == null || name.isBlank()) name = rs.getString("customer_name");
+                        info.setCustomerName(name);
+                        info.setCustomerPhone(rs.getString("customer_phone"));
+                        info.setEmail(rs.getString("email"));
+                        info.setFinalAmount(rs.getBigDecimal("final_amount"));
+                        info.setBookingStatus(rs.getString("booking_status"));
+                        info.setPaymentStatus(rs.getString("payment_status"));
+                        affected.add(info);
+                    }
+                }
+            }
+
+            for (ShowtimeCancelBookingInfo info : affected) {
+                int pts = 0;
+                if (info.getUserId() != null && !info.getUserId().isBlank()) {
+                    pts = LoyaltyDAO.creditRefundPoints(
+                            conn,
+                            info.getUserId(),
+                            info.getBookingId(),
+                            info.getFinalAmount(),
+                            rate,
+                            "Hoàn điểm do hủy suất chiếu — mã " + info.getBookingCode());
+                }
+                info.setPointsAwarded(pts);
+            }
+
+            if (!affected.isEmpty()) {
+                StringBuilder inClause = new StringBuilder();
+                for (int i = 0; i < affected.size(); i++) {
+                    if (i > 0) inClause.append(',');
+                    inClause.append('?');
+                }
+                try (PreparedStatement ps = conn.prepareStatement(
+                        "UPDATE Bookings SET booking_status = 'REFUNDED' WHERE id IN (" + inClause + ")")) {
+                    for (int i = 0; i < affected.size(); i++) {
+                        ps.setString(i + 1, affected.get(i).getBookingId());
+                    }
+                    ps.executeUpdate();
+                }
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "DELETE FROM SeatHolds WHERE showtime_id = ?")) {
+                ps.setString(1, showtimeId);
+                ps.executeUpdate();
+            }
+
+            conn.commit();
+            return affected;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ignored) {}
+            }
+            throw new RuntimeException("cancelShowtimeAndCompensate failed: " + e.getMessage(), e);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException ignored) {}
+            }
+        }
     }
 }

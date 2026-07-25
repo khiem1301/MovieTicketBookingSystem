@@ -58,6 +58,7 @@ public class ShowtimesServlet extends HttpServlet {
         }
 
         ShowtimeDAO showtimeDAO = new ShowtimeDAO();
+        try { showtimeDAO.autoSyncStatuses(); } catch (RuntimeException ignored) {}
         PricingRuleDAO pricingRuleDAO = new PricingRuleDAO();
 
         List<Showtime> showtimes = showtimeDAO.getUpcomingShowtimesByMovieId(movie.getId());

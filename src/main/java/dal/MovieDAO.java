@@ -14,12 +14,12 @@ import java.util.UUID;
 
 public class MovieDAO {
 
-    /** Phim COMING_SOON có suất chiếu OPEN/SCHEDULED trước ngày công chiếu. */
+    /** Phim COMING_SOON có suất chiếu SCHEDULED trước ngày công chiếu. */
     private static final String HAS_EARLY_SHOWTIME = """
             EXISTS (
                 SELECT 1 FROM Showtimes st
                 WHERE st.movie_id = m.id
-                  AND st.status IN ('SCHEDULED', 'OPEN')
+                  AND st.status = 'SCHEDULED'
                   AND st.start_time > SYSDATETIME()
                   AND m.release_date IS NOT NULL
                   AND CAST(st.start_time AS DATE) < m.release_date
@@ -210,7 +210,7 @@ public class MovieDAO {
                        STRING_AGG(g.genre_name, ',') AS genre_names
                 FROM Movies m
                 INNER JOIN Showtimes st ON st.movie_id = m.id
-                    AND st.status IN ('SCHEDULED', 'OPEN')
+                    AND st.status = 'SCHEDULED'
                     AND st.start_time > SYSDATETIME()
                     AND m.release_date IS NOT NULL
                     AND CAST(st.start_time AS DATE) < m.release_date
@@ -244,7 +244,7 @@ public class MovieDAO {
                        STRING_AGG(g.genre_name, ',') AS genre_names
                 FROM Movies m
                 INNER JOIN Showtimes st ON st.movie_id = m.id
-                    AND st.status IN ('SCHEDULED', 'OPEN')
+                    AND st.status = 'SCHEDULED'
                     AND st.start_time > SYSDATETIME()
                     AND m.release_date IS NOT NULL
                     AND CAST(st.start_time AS DATE) < m.release_date
@@ -302,7 +302,7 @@ public class MovieDAO {
         StringBuilder sql = new StringBuilder("""
                 SELECT COUNT(DISTINCT m.id) FROM Movies m
                 INNER JOIN Showtimes st ON st.movie_id = m.id
-                    AND st.status IN ('SCHEDULED', 'OPEN')
+                    AND st.status = 'SCHEDULED'
                     AND st.start_time > SYSDATETIME()
                     AND m.release_date IS NOT NULL
                     AND CAST(st.start_time AS DATE) < m.release_date

@@ -164,7 +164,7 @@
 
     filtered.forEach(st => {
       const btn = document.createElement('button');
-      btn.className = 'pos-time-btn' + (st.status === 'OPEN' ? '' : ' pos-time-btn--dim');
+      btn.className = 'pos-time-btn' + (st.status === 'SCHEDULED' ? '' : ' pos-time-btn--dim');
       btn.dataset.showtimeId = st.id;
       btn.textContent = st.time;
       btn.addEventListener('click', () => selectShowtime(st));
@@ -177,8 +177,8 @@
   }
 
   function selectShowtime(st) {
-    if (st.status === 'CANCELLED') {
-      alert(`Su\u1ea5t chi\u1ebfu ${st.time} \u0111\u00e3 b\u1ecb h\u1ee7y, kh\u00f4ng th\u1ec3 \u0111\u1eb7t v\u00e9.`);
+    if (st.status === 'CANCELLED' || st.status === 'FINISHED' || st.status === 'SHOWING') {
+      alert(`Su\u1ea5t chi\u1ebfu ${st.time} kh\u00f4ng th\u1ec3 \u0111\u1eb7t v\u00e9.`);
       return;
     }
     if (selectedShowtimeId && selectedShowtimeId !== st.id) {

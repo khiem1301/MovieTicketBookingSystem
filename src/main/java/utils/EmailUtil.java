@@ -401,6 +401,98 @@ public final class EmailUtil {
         return base;
     }
 
+    public static void sendShowtimeCancelledEmail(String toEmail, String customerName,
+                                                   String movieTitle, String showtimeLabel,
+                                                   String bookingCode, String reason,
+                                                   int pointsAwarded, java.math.BigDecimal ticketAmount)
+            throws MessagingException {
+        requireConfigured();
+        String greet = customerName != null && !customerName.isBlank() ? customerName : "bạn";
+        double amount = ticketAmount != null ? ticketAmount.doubleValue() : 0;
+        String pointsLine = pointsAwarded > 0
+                ? ("<p style=\"background:#e8f5e9;padding:12px 16px;border-radius:8px\">"
+                + "Bạn được <strong>cộng " + String.format("%,d", pointsAwarded)
+                + " điểm thưởng</strong> tương đương giá trị vé đã mua.</p>")
+                : "<p>Nếu đơn không gắn tài khoản thành viên, điểm thưởng sẽ được xử lý tại quầy.</p>";
+
+        String htmlBody = """
+                <div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:0 auto;color:#222;line-height:1.5">
+                  <p>Xin chào <strong>%s</strong>,</p>
+                  <p>ÉPCINE rất tiếc phải thông báo: <strong>suất chiếu bạn đã đặt đã bị hủy</strong>.</p>
+                  <p style="background:#f5f5f5;padding:12px 16px;border-radius:8px;font-size:14px">
+                    <strong>Mã đặt vé:</strong> %s<br/>
+                    <strong>Phim:</strong> %s<br/>
+                    <strong>Suất chiếu:</strong> %s<br/>
+                    <strong>Giá trị vé:</strong> %,.0f ₫
+                  </p>
+                  <p><strong>Lý do hủy:</strong></p>
+                  <p style="background:#fff3e0;padding:12px 16px;border-radius:8px;border-left:4px solid #e53935">%s</p>
+                  %s
+                  <p>Chúng tôi xin lỗi vì sự bất tiện này.</p>
+                  <p>Trân trọng,<br/><strong>ÉPCINE</strong></p>
+                </div>
+                """.formatted(
+                esc(greet),
+                esc(bookingCode),
+                esc(movieTitle),
+                esc(showtimeLabel),
+                amount,
+                esc(reason),
+                pointsLine);
+
+        Properties props = requireProperties();
+        String fromEmail = props.getProperty("mail.smtp.username", "").trim();
+        String fromName = props.getProperty("mail.from.name", "ÉPCINE").trim();
+        Session session = Session.getInstance(buildMailSessionProperties(props), new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(
+                        props.getProperty("mail.smtp.username", "").trim(),
+                        props.getProperty("mail.smtp.password", "").trim());
+            }
+        });
+
+        MimeMessage message = new MimeMessage(session);
+        try {
+            message.setFrom(new InternetAddress(fromEmail, fromName, "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            throw new MessagingException("from name encoding", e);
+        }
+        message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail, false));
+        message.setSubject("ÉPCINE — Thông báo hủy suất chiếu (" + bookingCode + ")", "UTF-8");
+        message.setContent(htmlBody, "text/html; charset=UTF-8");
+        message.saveChanges();
+        Transport.send(message);
+    }
+
+    public static void sendShowtimeCancelledEmailsAsync(
+            String movieTitle, String showtimeLabel, String reason,
+            java.util.List<model.dto.ShowtimeCancelBookingInfo> bookings) {
+        if (bookings == null || bookings.isEmpty() || !isConfigured()) {
+            return;
+        }
+        Thread t = new Thread(() -> {
+            for (model.dto.ShowtimeCancelBookingInfo b : bookings) {
+                if (b.getEmail() == null || b.getEmail().isBlank()) continue;
+                try {
+                    sendShowtimeCancelledEmail(
+                            b.getEmail(),
+                            b.getCustomerName(),
+                            movieTitle,
+                            showtimeLabel,
+                            b.getBookingCode(),
+                            reason,
+                            b.getPointsAwarded(),
+                            b.getFinalAmount());
+                } catch (Exception ex) {
+                    LOG.log(Level.WARNING, "sendShowtimeCancelledEmail failed to " + b.getEmail(), ex);
+                }
+            }
+        }, "showtime-cancel-mail");
+        t.setDaemon(true);
+        t.start();
+    }
+
     private static String esc(String value) {
         if (value == null) {
             return "";

@@ -54,7 +54,7 @@
                   </h3>
                   <div class="st-time-chips">
                     <c:forEach var="st" items="${roomEntry.value}">
-                      <c:set var="soldOut" value="${st.status == 'SOLD_OUT'}"/>
+                      <c:set var="soldOut" value="${false}"/>
                       <c:set var="basePrice" value="${st.basePrice}"/>
                       <c:set var="effPrice" value="${st.effectivePrice != null ? st.effectivePrice : st.basePrice}"/>
                       <c:set var="hasDynamicPrice" value="${st.effectivePrice != null and st.basePrice != null and st.effectivePrice ne st.basePrice}"/>

@@ -306,4 +306,42 @@ public class LoyaltyDAO {
             ps.executeUpdate();
         }
     }
+
+    /**
+     * FR-47 — Hoàn điểm khi hủy suất chiếu.
+     * points = ceil(finalAmount / 1000 × refundRate) — tương đương giá trị vé quy ra điểm.
+     * @return số điểm đã cộng
+     */
+    public static int creditRefundPoints(Connection conn, String userId, String bookingId,
+                                         BigDecimal finalAmount, BigDecimal refundRate, String note)
+            throws SQLException {
+        if (userId == null || userId.isBlank() || finalAmount == null) return 0;
+        BigDecimal rate = refundRate != null ? refundRate : BigDecimal.ONE;
+        if (rate.compareTo(BigDecimal.ZERO) <= 0) return 0;
+
+        int pts = finalAmount
+                .divide(new BigDecimal("1000"), 4, RoundingMode.HALF_UP)
+                .multiply(rate)
+                .setScale(0, RoundingMode.CEILING)
+                .intValue();
+        if (pts <= 0) return 0;
+
+        try (PreparedStatement ps = conn.prepareStatement(
+                "UPDATE Users SET loyalty_points = loyalty_points + ? WHERE id = ?")) {
+            ps.setInt(1, pts);
+            ps.setString(2, userId);
+            ps.executeUpdate();
+        }
+        try (PreparedStatement ps = conn.prepareStatement("""
+                INSERT INTO LoyaltyPointsLog (user_id, booking_id, points_delta, transaction_type, note)
+                VALUES (?, ?, ?, 'REFUND_POINTS', ?)
+                """)) {
+            ps.setString(1, userId);
+            ps.setString(2, bookingId);
+            ps.setInt(3, pts);
+            ps.setString(4, note != null ? note : "Hoàn điểm do hủy suất chiếu");
+            ps.executeUpdate();
+        }
+        return pts;
+    }
 }

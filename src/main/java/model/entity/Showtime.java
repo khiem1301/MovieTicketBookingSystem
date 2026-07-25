@@ -12,6 +12,9 @@ public class Showtime {
     private String movieAgeRating;
     private String roomId;
     private String roomName;
+    private int roomCapacity;
+    private int soldSeats;
+    private int bookingCount;
     private Timestamp startTime;
     private Timestamp endTime;
     private BigDecimal basePrice;
@@ -44,6 +47,19 @@ public class Showtime {
 
     public String getRoomName() { return roomName; }
     public void setRoomName(String roomName) { this.roomName = roomName; }
+
+    public int getRoomCapacity() { return roomCapacity; }
+    public void setRoomCapacity(int roomCapacity) { this.roomCapacity = roomCapacity; }
+
+    public int getSoldSeats() { return soldSeats; }
+    public void setSoldSeats(int soldSeats) { this.soldSeats = soldSeats; }
+
+    public int getBookingCount() { return bookingCount; }
+    public void setBookingCount(int bookingCount) { this.bookingCount = bookingCount; }
+
+    public int getRemainingSeats() {
+        return Math.max(0, roomCapacity - soldSeats);
+    }
 
     public Timestamp getStartTime() { return startTime; }
     public void setStartTime(Timestamp startTime) { this.startTime = startTime; }

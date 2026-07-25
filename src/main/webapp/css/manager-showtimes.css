@@ -1,5 +1,5 @@
 /* ============================================================
-   ÉPCINE — Showtime Management (movie-list style + modal)
+   ÉPCINE — Showtime Management (list + calendar + bulk)
    ============================================================ */
 
 .st-page .mm-td-movie {
@@ -19,8 +19,22 @@
   margin: 0 4px;
 }
 
+.st-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.st-toolbar {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
 .st-filter-wrap {
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .st-filter-select,
@@ -46,6 +60,72 @@
   border-color: rgba(229, 57, 53, 0.5);
 }
 
+.st-range-chips,
+.st-view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.st-chip,
+.st-view-btn {
+  border: none;
+  background: transparent;
+  color: #999;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.st-chip.active,
+.st-view-btn.active {
+  background: rgba(229, 57, 53, 0.2);
+  color: #ffcdd2;
+}
+
+.st-seat-cell {
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.st-seat-sold { color: #ffcc80; font-weight: 700; }
+.st-seat-sep { color: #666; margin: 0 2px; }
+.st-seat-cap { color: #bbb; }
+.st-seat-remain {
+  font-size: 11px;
+  color: #81c784;
+  margin-top: 2px;
+}
+.st-seat-remain.is-full { color: #ffb74d; }
+
+.st-status-form { margin: 0; }
+
+.st-status-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: #e0e0e0;
+  font-size: 11px;
+  font-weight: 700;
+  outline: none;
+  max-width: 140px;
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+.st-status-select--scheduled { color: #90caf9; border-color: rgba(100, 149, 237, 0.35); }
+.st-status-select--open { color: #81c784; border-color: rgba(76, 175, 80, 0.35); }
+.st-status-select--sold_out { color: #ffb74d; border-color: rgba(255, 152, 0, 0.35); }
+.st-status-select--cancelled { color: #ef9a9a; border-color: rgba(229, 57, 53, 0.4); }
+.st-status-select--finished { color: #888; }
+
 .st-badge {
   display: inline-flex;
   align-items: center;
@@ -64,16 +144,10 @@
   border-color: rgba(100, 149, 237, 0.25);
 }
 
-.st-badge--open {
-  background: rgba(76, 175, 80, 0.12);
+.st-badge--showing {
+  background: rgba(76, 175, 80, 0.14);
   color: #81c784;
-  border-color: rgba(76, 175, 80, 0.3);
-}
-
-.st-badge--sold_out {
-  background: rgba(255, 152, 0, 0.12);
-  color: #ffb74d;
-  border-color: rgba(255, 152, 0, 0.3);
+  border-color: rgba(76, 175, 80, 0.35);
 }
 
 .st-badge--cancelled {
@@ -94,6 +168,161 @@
 }
 
 .st-row--hidden { display: none !important; }
+
+/* ── Calendar ──────────────────────────────────────────────── */
+.st-calendar-view { margin-top: 4px; }
+
+.st-cal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.st-cal-toolbar strong {
+  color: #fff;
+  font-size: 15px;
+  min-width: 140px;
+  text-align: center;
+}
+
+.st-cal-nav {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #eee;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.st-cal-nav:hover { background: rgba(255, 255, 255, 0.1); }
+
+.st-cal-hint {
+  font-size: 12px;
+  color: #777;
+  margin-left: auto;
+}
+
+.st-cal-scroll {
+  overflow: auto;
+  max-height: min(70vh, 720px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.st-cal-grid {
+  display: grid;
+  min-width: max-content;
+  background: #121212;
+}
+
+.st-cal-corner,
+.st-cal-room-head,
+.st-cal-hour,
+.st-cal-cell {
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.st-cal-corner,
+.st-cal-room-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #1a1a1a;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ccc;
+  text-align: center;
+}
+
+.st-cal-corner {
+  left: 0;
+  z-index: 4;
+  min-width: 64px;
+}
+
+.st-cal-room-head { min-width: 160px; }
+
+.st-cal-hour {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: #161616;
+  color: #888;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px;
+  text-align: center;
+  min-height: 56px;
+}
+
+.st-cal-cell {
+  position: relative;
+  min-height: 56px;
+  min-width: 160px;
+  background: rgba(255, 255, 255, 0.015);
+  padding: 4px;
+}
+
+.st-cal-cell.is-empty {
+  background:
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 6px,
+      rgba(255, 255, 255, 0.02) 6px,
+      rgba(255, 255, 255, 0.02) 12px
+    );
+}
+
+.st-cal-block {
+  display: block;
+  border-radius: 8px;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #fff;
+}
+
+.st-cal-block:hover { filter: brightness(1.08); }
+
+.st-cal-block--scheduled {
+  background: rgba(100, 149, 237, 0.22);
+  border-color: rgba(100, 149, 237, 0.4);
+}
+.st-cal-block--showing {
+  background: rgba(76, 175, 80, 0.22);
+  border-color: rgba(76, 175, 80, 0.4);
+}
+.st-cal-block--cancelled {
+  background: rgba(229, 57, 53, 0.18);
+  border-color: rgba(229, 57, 53, 0.35);
+  opacity: 0.7;
+}
+.st-cal-block--finished {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #999;
+}
+
+.st-cal-block-title {
+  font-weight: 700;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.st-cal-block-meta { color: rgba(255, 255, 255, 0.7); }
 
 /* ── Modal ─────────────────────────────────────────────────── */
 .st-modal-backdrop {
@@ -124,6 +353,8 @@
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
   overflow: hidden;
 }
+
+.st-modal--wide { max-width: 640px; }
 
 .st-modal-header {
   display: flex;
@@ -170,6 +401,12 @@
   gap: 16px;
 }
 
+.st-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
 .st-form-group label {
   display: block;
   font-size: 13px;
@@ -184,6 +421,8 @@
 
 .st-form-group select,
 .st-form-group input[type="datetime-local"],
+.st-form-group input[type="date"],
+.st-form-group input[type="time"],
 .st-form-group input[type="number"] {
   width: 100%;
   box-sizing: border-box;
@@ -202,8 +441,23 @@
   color: #eee;
 }
 
-.st-form-group select:focus,
-.st-form-group input:focus {
+.st-form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: #eee;
+  font-size: 14px;
+  outline: none;
+  resize: vertical;
+  min-height: 110px;
+  font-family: inherit;
+  color-scheme: dark;
+}
+
+.st-form-group textarea:focus {
   border-color: rgba(229, 57, 53, 0.55);
 }
 
@@ -239,12 +493,72 @@
   line-height: 1.5;
 }
 
+.st-bulk-times {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.st-bulk-time-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.st-bulk-time-row input {
+  flex: 1;
+}
+
+.st-bulk-time-remove {
+  width: 36px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(229, 57, 53, 0.12);
+  color: #ef9a9a;
+  cursor: pointer;
+}
+
 .st-modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 6px;
   padding-top: 4px;
+}
+
+.st-modal-actions--split {
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.st-modal-actions-left,
+.st-modal-actions-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.st-btn-danger {
+  background: transparent;
+  color: #ef9a9a;
+  border: 1px solid rgba(229, 57, 53, 0.45);
+  border-radius: 10px;
+  padding: 11px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.st-btn-danger:hover {
+  background: rgba(229, 57, 53, 0.15);
+  color: #ffcdd2;
+}
+
+.st-status-readonly {
+  padding: 4px 0;
 }
 
 .st-btn-primary {
@@ -263,7 +577,8 @@
   background: linear-gradient(135deg, #ef5350 0%, #c62828 100%);
 }
 
-.st-btn-cancel {
+.st-btn-cancel,
+.st-btn-secondary {
   background: rgba(255, 255, 255, 0.06);
   color: #bbb;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -274,9 +589,16 @@
   cursor: pointer;
 }
 
+.st-btn-secondary:hover,
 .st-btn-cancel:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
+}
+
+.st-btn-add-time {
+  align-self: flex-start;
+  padding: 8px 12px;
+  font-size: 13px;
 }
 
 body.st-modal-open {
@@ -293,5 +615,14 @@ body.st-modal-open {
   .st-filter-date {
     min-width: 0;
     flex: 1 1 140px;
+  }
+
+  .st-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .st-cal-hint {
+    margin-left: 0;
+    width: 100%;
   }
 }
