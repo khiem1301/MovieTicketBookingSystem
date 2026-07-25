@@ -56,7 +56,7 @@ Browser
 | JSP view | **46** (+ 5 `.gitkeep`, 2 `.jspf`) |
 | CSS | **15** |
 | JS | **11** |
-| Script SQL | `create_database.sql` |
+| Script SQL | `create_database.sql` + `seed_data.sql` |
 | Screen Design (mockup HTML) | **7 màn** (Movie-detail, Seat selection, Ticket booking, Online payment, Cinema Auditoriums, Seat Layout, Showtime Management) |
 
 ---
@@ -80,7 +80,9 @@ MovieTicketBookingSystem/
 ├── implementation_plan_fr-22_fr-50.md     # Kế hoạch FR-22 + FR-50 (customer)
 ├── SEAT_LAYOUT_DESIGN.md            # Thiết kế layout ghế
 ├── Database/
-│   ├── create_database.sql          # Schema + seed DUY NHẤT (đã gộp mọi migration)
+│   ├── create_database.sql          # Schema only (30 bảng + index, đã gộp migration)
+│   ├── seed_data.sql                # Seed mặc định
+│   └── migrations/                  # Legacy DB cũ
 │   ├── README.md
 │   └── migrations/                  # Legacy — chỉ DB cũ không reset được
 │       └── README.md
@@ -753,7 +755,7 @@ MovieTicketBookingSystem/
 
 ## 11. Database
 
-**Script duy nhất:** `Database/create_database.sql` — schema **28 bảng** + seed (đã gộp mọi migration). Chạy một lần trên SSMS (Ctrl+A → F5).  
+**Schema + seed:** `Database/create_database.sql` (30 bảng + index) rồi `Database/seed_data.sql`. Đã gộp mọi migration. Không cần chạy `migrations/` trên máy mới.
 **Legacy:** `Database/migrations/` chỉ khi DB cũ không reset được — xem `Database/migrations/README.md`.
 
 ### 11.1 28 bảng
