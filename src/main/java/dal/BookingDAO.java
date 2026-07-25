@@ -1795,7 +1795,19 @@ public class BookingDAO {
                        (SELECT COUNT(*) FROM BookingSeats bs WHERE bs.booking_id = b.id) AS seat_count,
                        b.total_amount, b.final_amount,
                        b.booking_status, b.payment_status,
-                       u.full_name AS staff_name, b.user_id
+                       u.full_name AS staff_name, b.user_id,
+                       CASE
+                         WHEN EXISTS (
+                           SELECT 1 FROM Tickets t
+                           JOIN BookingSeats bs ON bs.id = t.booking_seat_id
+                           WHERE bs.booking_id = b.id
+                         ) AND NOT EXISTS (
+                           SELECT 1 FROM Tickets t
+                           JOIN BookingSeats bs ON bs.id = t.booking_seat_id
+                           WHERE bs.booking_id = b.id
+                             AND ISNULL(t.is_printed, 0) = 0
+                         ) THEN 1 ELSE 0
+                       END AS tickets_printed
                 FROM Bookings b
                 JOIN Showtimes s  ON s.id  = b.showtime_id
                 JOIN Movies m     ON m.id  = s.movie_id
@@ -1831,6 +1843,7 @@ public class BookingDAO {
                     dto.setPaymentStatus(rs.getString("payment_status"));
                     dto.setStaffName(rs.getString("staff_name"));
                     dto.setUserId(rs.getString("user_id"));
+                    dto.setTicketsPrinted(rs.getInt("tickets_printed") == 1);
                     list.add(dto);
                 }
             }

@@ -49,16 +49,6 @@
       <button class="genre-tab"        data-filter="active"   onclick="setTab(this)">Hoạt Động</button>
       <button class="genre-tab"        data-filter="inactive" onclick="setTab(this)">Ngừng Hoạt Động</button>
     </div>
-    <div class="genre-filter-icons">
-      <div class="genre-filter-icon" title="Xuất CSV" onclick="exportCSV()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-      </div>
-    </div>
   </div>
 
   <%-- Table --%>
@@ -262,20 +252,6 @@
                   style="resize:vertical"><c:out value='${descriptionValue}'/></textarea>
         <p class="genre-hint">Tối đa 500 ký tự. Hiển thị khi chọn thể loại cho phim.</p>
 
-        <label style="margin-top:12px;display:block">Trạng Thái <span class="required">*</span></label>
-        <div class="genre-status-toggle" role="radiogroup" aria-label="Trạng Thái">
-          <label class="genre-status-option genre-status-option--active">
-            <input type="radio" name="isActive" value="true" checked/>
-            <span class="genre-status-dot"></span>
-            <span>Hoạt Động</span>
-          </label>
-          <label class="genre-status-option genre-status-option--inactive">
-            <input type="radio" name="isActive" value="false"/>
-            <span class="genre-status-dot"></span>
-            <span>Ngừng Hoạt Động</span>
-          </label>
-        </div>
-
         <div class="genre-modal-actions">
           <button type="submit" class="btn-modal-primary">Thêm Thể Loại</button>
           <button type="button" class="btn-modal-cancel" onclick="closeAddModal()">Hủy</button>
@@ -323,6 +299,7 @@
 
 <script>
   const ROWS_PER_PAGE = 5;
+  const STATE_KEY = 'mgr-genres-list-state';
   let currentPage  = 1;
   let currentFilter = 'all';
   let filteredRows  = [];
@@ -331,7 +308,25 @@
     return Array.from(document.querySelectorAll('#genreTableBody tr'));
   }
 
-  function applyFilters() {
+  function saveListState() {
+    try {
+      sessionStorage.setItem(STATE_KEY, JSON.stringify({
+        page: currentPage,
+        filter: currentFilter,
+        search: (document.getElementById('genreSearch') || {}).value || ''
+      }));
+    } catch (e) { /* ignore */ }
+  }
+
+  function loadListState() {
+    try {
+      return JSON.parse(sessionStorage.getItem(STATE_KEY) || '{}') || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function rebuildFilteredRows() {
     const search = (document.getElementById('genreSearch').value || '').toLowerCase().trim();
     filteredRows = getAllRows().filter(row => {
       const name   = row.dataset.name   || '';
@@ -340,7 +335,12 @@
       const matchFilter = currentFilter === 'all' || status === currentFilter;
       return matchSearch && matchFilter;
     });
-    currentPage = 1;
+  }
+
+  /** resetPage=true khi user đổi tab/search; false khi khôi phục sau reload. */
+  function applyFilters(resetPage) {
+    rebuildFilteredRows();
+    if (resetPage !== false) currentPage = 1;
     renderPage();
   }
 
@@ -365,6 +365,7 @@
     }
 
     renderPagination(totalPages);
+    saveListState();
   }
 
   function renderPagination(totalPages) {
@@ -403,7 +404,7 @@
     document.querySelectorAll('.genre-tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
     currentFilter = btn.dataset.filter;
-    applyFilters();
+    applyFilters(true);
   }
 
   /* ── Modals ────────────────────────────────────────────── */
@@ -432,27 +433,20 @@
     });
   });
 
-  /* ── Export CSV ────────────────────────────────────────── */
-  function exportCSV() {
-    let csv = 'Ten The Loai,Slug,So Phim,Trang Thai\n';
-    filteredRows.forEach(row => {
-      const cells = row.querySelectorAll('td');
-      const name  = cells[0].textContent.trim().replace(/"/g, '""');
-      const slug  = cells[1].textContent.trim().replace(/"/g, '""');
-      const count = cells[2].textContent.trim();
-      const status = cells[3].textContent.trim();
-      csv += '"' + name + '","' + slug + '","' + count + '","' + status + '"\n';
-    });
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = 'genres.csv'; a.click();
-    URL.revokeObjectURL(url);
-  }
-
   /* ── Init ──────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', () => {
-    applyFilters();
+    const state = loadListState();
+    const searchEl = document.getElementById('genreSearch');
+    if (searchEl && state.search) searchEl.value = state.search;
+    if (state.filter) {
+      currentFilter = state.filter;
+      document.querySelectorAll('.genre-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.filter === currentFilter);
+      });
+    }
+    rebuildFilteredRows();
+    currentPage = Math.max(1, parseInt(state.page, 10) || 1);
+    renderPage();
 
     <c:if test="${not empty editGenre}">
     (function() {

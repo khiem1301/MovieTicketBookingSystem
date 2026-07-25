@@ -55,6 +55,20 @@ public class CounterHistoryServlet extends HttpServlet {
                             + "/staff/counter?step=payment&bookingId=" + bookingId);
                     return;
                 }
+                // Chỉ đơn đã xác nhận (+ đã thanh toán) mới xem / in vé
+                if (!"CONFIRMED".equalsIgnoreCase(detail.getBookingStatus())
+                        || !"PAID".equalsIgnoreCase(detail.getPaymentStatus())) {
+                    req.setAttribute("errorMessage",
+                            "Chỉ xem được đơn đã xác nhận và thanh toán. "
+                                    + "Đơn hủy / hết hạn / chưa thanh toán không có vé để xem hoặc in.");
+                    forwardList(req, resp,
+                            trim(req.getParameter("dateFrom")),
+                            trim(req.getParameter("dateTo")),
+                            trim(req.getParameter("status")),
+                            trim(req.getParameter("search")),
+                            parsePage(req.getParameter("page")));
+                    return;
+                }
                 req.setAttribute("detail", detail);
                 req.setAttribute("fromHistory", true);
                 req.getRequestDispatcher(VIEW_DETAIL).forward(req, resp);
