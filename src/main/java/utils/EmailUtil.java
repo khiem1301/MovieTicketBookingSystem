@@ -26,7 +26,8 @@ public final class EmailUtil {
 
     private static final Logger LOG = Logger.getLogger(EmailUtil.class.getName());
     private static final String PROPS_FILE = "email.properties";
-    private static final int VERIFY_TOKEN_MINUTES = 24 * 60;
+    // TODO(test): tạm 1 phút để test hết hạn — nhớ đổi lại 24 * 60 trước khi nộp/demo
+    private static final int VERIFY_TOKEN_MINUTES = 1;
 
     private EmailUtil() {}
 
@@ -100,7 +101,7 @@ public final class EmailUtil {
 
                 Cảm ơn bạn đã đăng ký tài khoản ÉPCINE.
 
-                Vui lòng bấm vào liên kết sau để xác thực email (hiệu lực 24 giờ):
+                Vui lòng bấm vào liên kết sau để xác thực email (hiệu lực 1 phút — đang test):
                 %s
 
                 Nếu bạn không đăng ký tài khoản, hãy bỏ qua email này.

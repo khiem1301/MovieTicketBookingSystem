@@ -253,6 +253,7 @@
       <p class="slt-backend-note">
         <span class="material-symbols-outlined">info</span>
         Lối đi được lưu theo vị trí cột trong layout. Dùng <strong>Thêm hàng</strong> để thêm hàng D, E, … (tối đa A–Z).
+        Mỗi hàng tối đa <strong>17 ô</strong> (tính cả lối đi).
       </p>
     </div>
   </div>
@@ -277,6 +278,7 @@
       emptyDelete: 'H\u00e0ng tr\u1ed1ng',
       removeRow: 'X\u00f3a h\u00e0ng {label}',
       maxRows: '\u0110\u00e3 \u0111\u1ea1t t\u1ed1i \u0111a 26 h\u00e0ng (A\u2013Z).',
+      maxCellsPerRow: 'H\u00e0ng {label} \u0111\u00e3 \u0111\u1ea1t t\u1ed1i \u0111a {max} \u00f4 (t\u00ednh c\u1ea3 l\u1ed1i \u0111i).',
       minRows: 'Ph\u1ea3i gi\u1eef \u00edt nh\u1ea5t m\u1ed9t h\u00e0ng gh\u1ebf.',
       confirmRemoveRow: 'H\u00e0ng {label} c\u00f2n gh\u1ebf. X\u00f3a h\u00e0ng s\u1ebd x\u00f3a to\u00e0n b\u1ed9 n\u1ed9i dung h\u00e0ng n\u00e0y. Ti\u1ebfp t\u1ee5c?',
       confirmSaveEmpty: 'Layout kh\u00f4ng c\u00f3 gh\u1ebf n\u00e0o. L\u01b0u s\u1ebd x\u00f3a to\u00e0n b\u1ed9 gh\u1ebf hi\u1ec7n t\u1ea1i trong ph\u00f2ng. Ti\u1ebfp t\u1ee5c?',
@@ -289,5 +291,5 @@
   };
 </script>
 <script charset="UTF-8" src="${pageContext.request.contextPath}/js/seat-type-colors.js"></script>
-<script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-seat-layout.js?v=5"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-seat-layout.js?v=6"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

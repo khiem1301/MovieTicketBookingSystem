@@ -2,7 +2,7 @@
   'use strict';
 
   var ROWS_PER_PAGE = 8;
-  var CAL_START_HOUR = 8;
+  var CAL_START_HOUR = 0;
   var CAL_END_HOUR = 23;
   var UI_STATE_KEY = 'epcine.manager.showtimes.ui';
 
@@ -181,6 +181,10 @@
   window.openCreateModal = function () {
     closeModal(editModal);
     closeModal(copyModal);
+    var createStart = document.getElementById('createStartTime');
+    applyStartTimeMin(createStart);
+    var createForm = document.getElementById('stCreateForm');
+    if (createForm && createForm._setOriginalStartTime) createForm._setOriginalStartTime('');
     openModal(createModal);
   };
 
@@ -280,9 +284,17 @@
     if (idEl) idEl.value = id;
     if (movieSel) movieSel.value = movieId;
     if (roomSel) roomSel.value = roomId;
-    if (startEl) startEl.value = startLocal;
+    if (startEl) {
+      startEl.value = startLocal;
+      applyStartTimeMin(startEl);
+    }
     if (priceEl) priceEl.value = basePrice;
     if (cancelId) cancelId.value = id;
+
+    var editForm = document.getElementById('stEditForm');
+    if (editForm && editForm._setOriginalStartTime) {
+      editForm._setOriginalStartTime(startLocal);
+    }
 
     setEditStatusBadge(status);
     setEditLocked(locked, bookingCount);
@@ -590,6 +602,75 @@
     return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], 0, 0);
   }
 
+  /** yyyy-MM-dd'T'HH:mm theo đồng hồ máy khách (làm tròn xuống phút). */
+  function nowDateTimeLocalMin() {
+    var d = new Date();
+    d.setSeconds(0, 0);
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+      + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function applyStartTimeMin(inputEl) {
+    if (!inputEl || inputEl.disabled) return;
+    var current = (inputEl.value || '').trim();
+    // Suất đã qua (chỉ sửa giá): không gắn min — HTML5 sẽ chặn submit nếu value < min
+    if (current && isStartTimeInPast(current)) {
+      inputEl.removeAttribute('min');
+      return;
+    }
+    inputEl.setAttribute('min', nowDateTimeLocalMin());
+  }
+
+  function isStartTimeInPast(value) {
+    var start = parseLocalDateTime(value);
+    if (!start) return false;
+    var now = new Date();
+    now.setSeconds(0, 0);
+    return start.getTime() <= now.getTime();
+  }
+
+  function validateStartTimeNotPast(inputEl, originalValue) {
+    if (!inputEl || inputEl.disabled) return true;
+    var value = (inputEl.value || '').trim();
+    if (!value) return true;
+    // Cho phép giữ nguyên giờ cũ (vd. sửa giá suất đã qua)
+    if (originalValue && value === originalValue) return true;
+    if (isStartTimeInPast(value)) {
+      alert('Giờ bắt đầu phải ở tương lai. Không thể chọn thời điểm trong quá khứ.');
+      inputEl.focus();
+      return false;
+    }
+    return true;
+  }
+
+  function bindStartTimeGuards(formId, inputId) {
+    var form = document.getElementById(formId);
+    var input = document.getElementById(inputId);
+    if (!form || !input) return;
+
+    var originalValue = '';
+
+    form.addEventListener('submit', function (e) {
+      applyStartTimeMin(input);
+      if (!validateStartTimeNotPast(input, originalValue)) {
+        e.preventDefault();
+      }
+    });
+
+    input.addEventListener('focus', function () {
+      applyStartTimeMin(input);
+    });
+
+    // Lưu giá trị gốc khi mở form (create: rỗng; edit: set trong openEditShowtime)
+    form.addEventListener('reset', function () {
+      originalValue = '';
+    });
+
+    form._setOriginalStartTime = function (v) {
+      originalValue = v || '';
+    };
+  }
+
   function resolveLiveStatus(row) {
     var current = (row.dataset.status || '').toUpperCase();
     if (current === 'CANCELLED') return 'CANCELLED';
@@ -661,6 +742,8 @@
 
   bindDurationHint('createMovieId', 'createDurationHint');
   bindDurationHint('editMovieId', 'editDurationHint');
+  bindStartTimeGuards('stCreateForm', 'createStartTime');
+  bindStartTimeGuards('stEditForm', 'editStartTime');
 
   calendarDate = today;
 
@@ -681,8 +764,19 @@
       var lockCountEl = document.getElementById('editLockCount');
       setEditLocked(isLocked, parseInt((lockCountEl && lockCountEl.textContent) || '0', 10) || 0);
       syncEditDurationHint();
+      var editStart = document.getElementById('editStartTime');
+      applyStartTimeMin(editStart);
+      var editForm = document.getElementById('stEditForm');
+      if (editForm && editForm._setOriginalStartTime && editStart) {
+        // Giá trị đang hiển thị (có thể là input lỗi từ server) — gốc = giờ DB nếu có
+        var rowStart = row ? (row.dataset.startLocal || '') : '';
+        editForm._setOriginalStartTime(rowStart);
+      }
       openModal(editModal);
-    } else if (pageRoot.getAttribute('data-open-create') === 'true') openModal(createModal);
+    } else if (pageRoot.getAttribute('data-open-create') === 'true') {
+      applyStartTimeMin(document.getElementById('createStartTime'));
+      openModal(createModal);
+    }
   }
 
   restoringUi = !!restored;

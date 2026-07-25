@@ -22,7 +22,7 @@
       </a>
 
       <div class="auth-alert auth-alert--success" role="status">
-        Đăng ký thành công!
+        Đã nhận yêu cầu đăng ký!
       </div>
 
       <c:choose>
@@ -30,13 +30,13 @@
           <p class="auth-pending-text">
             Chúng tôi đã gửi email xác thực đến
             <strong><c:out value="${param.email}"/></strong>.
-            Vui lòng kiểm tra hộp thư (và thư mục spam) trong vòng 24 giờ.
+            Vui lòng kiểm tra hộp thư (và thư mục spam) trong vòng 1 phút để hoàn tất đăng ký (đang test hết hạn).
           </p>
         </c:when>
         <c:otherwise>
           <p class="auth-pending-text">
-            Tài khoản đã được tạo với email
-            <strong><c:out value="${param.email}"/></strong>,
+            Yêu cầu đăng ký với email
+            <strong><c:out value="${param.email}"/></strong> đã được ghi nhận,
             nhưng hệ thống chưa gửi được email (chưa cấu hình SMTP).
           </p>
           <c:if test="${not empty param.devLink}">
@@ -51,7 +51,8 @@
       </c:choose>
 
       <p class="auth-pending-text">
-        Sau khi xác thực, bạn có thể đăng nhập bằng email và mật khẩu vừa tạo.
+        Tài khoản chỉ được tạo sau khi bạn xác thực email.
+        Nếu link hết hạn, bạn có thể <a href="${pageContext.request.contextPath}/register" class="auth-link">đăng ký lại</a>.
       </p>
 
       <a href="${pageContext.request.contextPath}/login" class="auth-btn-submit" style="text-align:center;display:flex;justify-content:center;">

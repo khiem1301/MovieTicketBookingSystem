@@ -312,7 +312,7 @@ MovieTicketBookingSystem/
 | `LogoutServlet` | Hủy session + cookies → `/home?logout=success` |
 | `RegisterServlet` | FR-01: đăng ký CUSTOMER; gửi email xác thực; tự sinh username |
 | `RegisterPendingServlet` | Trang "kiểm tra email" sau đăng ký |
-| `VerifyEmailServlet` | Kích hoạt user INACTIVE qua token; đánh dấu token đã dùng |
+| `VerifyEmailServlet` | Tạo `Users` ACTIVE từ `PendingRegistrations` sau khi click link email |
 | `SessionExpiredServlet` | Trang hết phiên |
 | `GoogleLoginServlet` | Bắt đầu OAuth; lưu CSRF state |
 | `GoogleCallbackServlet` | Callback OAuth; login user có sẵn hoặc chuyển hoàn tất đăng ký |

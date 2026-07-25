@@ -15,9 +15,10 @@
 --                                  Tickets.is_printed,
 --                                  Payments.cash_received/change_amount
 --   add_review_deletion_log.sql  → bảng ReviewDeletionLog
+--   add_pending_registrations.sql→ bảng PendingRegistrations (FR-01)
 --
 -- Bao gồm:
---   - 28 bảng (PascalCase) + index
+--   - 29 bảng (PascalCase) + index
 --   - Seed: Roles, Users, Config, Cinema, SeatTypes, Chatbot
 --   - Seed homepage: Genres, CinemaRooms, 8 Movies, MovieGenres
 --   - Seed voucher FR-22, đơn SEED-STATS-* (báo cáo admin)
@@ -72,6 +73,7 @@ IF OBJECT_ID('SystemConfigLog',       'U') IS NOT NULL DROP TABLE SystemConfigLo
 IF OBJECT_ID('UserStatusLog',         'U') IS NOT NULL DROP TABLE UserStatusLog;
 IF OBJECT_ID('SystemConfig',          'U') IS NOT NULL DROP TABLE SystemConfig;
 IF OBJECT_ID('PasswordResetTokens',  'U') IS NOT NULL DROP TABLE PasswordResetTokens;
+IF OBJECT_ID('PendingRegistrations',  'U') IS NOT NULL DROP TABLE PendingRegistrations;
 IF OBJECT_ID('Users',                 'U') IS NOT NULL DROP TABLE Users;
 IF OBJECT_ID('Roles',                 'U') IS NOT NULL DROP TABLE Roles;
 GO
@@ -126,13 +128,35 @@ CREATE TABLE Users (
 GO
 
 -- ------------------------------------------------------------
+-- 2b. PendingRegistrations — đăng ký chờ xác thực email (FR-01)
+--     Chưa ghi Users cho đến khi click link trong email.
+-- ------------------------------------------------------------
+CREATE TABLE PendingRegistrations (
+    id             UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
+    email          NVARCHAR(255)     NOT NULL,
+    phone_number   NVARCHAR(20)      NOT NULL,
+    password_hash  NVARCHAR(255)     NOT NULL,
+    full_name      NVARCHAR(255)     NOT NULL,
+    date_of_birth  DATE              NOT NULL,
+    token          NVARCHAR(255)     NOT NULL,
+    expired_at     DATETIME2         NOT NULL,
+    used_at        DATETIME2         NULL,
+    created_at     DATETIME2         NOT NULL DEFAULT GETDATE(),
+
+    CONSTRAINT PK_PendingRegistrations        PRIMARY KEY (id),
+    CONSTRAINT UK_PendingRegistrations_Token  UNIQUE (token),
+    CONSTRAINT UK_PendingRegistrations_Email  UNIQUE (email)
+);
+GO
+
+-- ------------------------------------------------------------
 -- 3. PasswordResetTokens
 -- ------------------------------------------------------------
 CREATE TABLE PasswordResetTokens (
     id         UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID(),
     user_id    UNIQUEIDENTIFIER NOT NULL,
     token      NVARCHAR(255)     NOT NULL,
-    purpose    NVARCHAR(30)      NOT NULL DEFAULT 'REGISTER_VERIFY',
+    purpose    NVARCHAR(30)      NOT NULL DEFAULT 'PASSWORD_RESET',
     expired_at DATETIME2        NOT NULL,
     used_at    DATETIME2        NULL,
     created_at DATETIME2        NOT NULL DEFAULT GETDATE(),

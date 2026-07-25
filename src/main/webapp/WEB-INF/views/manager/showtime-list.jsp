@@ -538,5 +538,5 @@
   </div>
 </div>
 
-<script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-showtimes.js?v=11"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/manager-showtimes.js?v=13"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

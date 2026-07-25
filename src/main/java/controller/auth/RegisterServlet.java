@@ -1,6 +1,6 @@
 package controller.auth;
 
-import dal.PasswordResetTokenDAO;
+import dal.PendingRegistrationDAO;
 import dal.RoleDAO;
 import dal.UserDAO;
 import jakarta.mail.MessagingException;
@@ -10,9 +10,8 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import model.dto.RegisterForm;
+import model.entity.PendingRegistration;
 import model.entity.Role;
-import model.entity.User;
-import utils.AuthConstants;
 import utils.AuthPageUtil;
 import utils.EmailUtil;
 import utils.PasswordUtil;
@@ -27,7 +26,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * FR-01 — Customer registration with date_of_birth validation and email verification.
+ * FR-01 — Customer registration: lưu pending + gửi email;
+ * chỉ tạo Users (ACTIVE) sau khi xác thực.
  */
 @WebServlet(urlPatterns = {"/register"})
 public class RegisterServlet extends HttpServlet {
@@ -74,35 +74,26 @@ public class RegisterServlet extends HttpServlet {
             return;
         }
 
-        String username = RegisterValidator.generateUsername(
-                userDAO, form.getEmail(), form.getPhoneNumber());
-
-        User user = new User();
-        user.setRoleId(customerRole.get().getId());
-        user.setEmail(form.getEmail());
-        user.setUsername(username);
-        user.setPhoneNumber(form.getPhoneNumber());
-        user.setFullName(form.getFullName().trim());
-        user.setDateOfBirth(form.getDateOfBirth());
-        user.setPasswordHash(PasswordUtil.hash(form.getPassword()));
-        user.setStatus("INACTIVE");
+        PendingRegistration pending = new PendingRegistration();
+        pending.setEmail(form.getEmail());
+        pending.setPhoneNumber(form.getPhoneNumber());
+        pending.setFullName(form.getFullName().trim());
+        pending.setDateOfBirth(form.getDateOfBirth());
+        pending.setPasswordHash(PasswordUtil.hash(form.getPassword()));
 
         try {
-            String userId = userDAO.insert(user);
-            handleEmailVerification(req, resp, userId, form);
+            PendingRegistrationDAO pendingDAO = new PendingRegistrationDAO();
+            String token = pendingDAO.upsert(pending, EmailUtil.verificationExpiryMinutes());
+            handleEmailVerification(req, resp, form, token);
         } catch (RuntimeException ex) {
             log("RegisterServlet: DB error", ex);
             forwardView(req, resp, form,
-                    List.of("Không thể tạo tài khoản. Vui lòng thử lại sau."));
+                    List.of("Không thể gửi yêu cầu đăng ký. Vui lòng thử lại sau."));
         }
     }
 
     private void handleEmailVerification(HttpServletRequest req, HttpServletResponse resp,
-                                         String userId, RegisterForm form) throws IOException {
-        PasswordResetTokenDAO tokenDAO = new PasswordResetTokenDAO();
-        tokenDAO.invalidateUnusedForUser(userId, AuthConstants.TOKEN_PURPOSE_REGISTER);
-        String token = tokenDAO.insert(userId, EmailUtil.verificationExpiryMinutes(),
-                AuthConstants.TOKEN_PURPOSE_REGISTER);
+                                         RegisterForm form, String token) throws IOException {
         String verifyUrl = EmailUtil.buildVerifyUrl(req.getContextPath(), token);
 
         boolean emailSent = false;

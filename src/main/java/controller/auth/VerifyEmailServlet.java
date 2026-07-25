@@ -1,20 +1,23 @@
 package controller.auth;
 
-import dal.PasswordResetTokenDAO;
+import dal.PendingRegistrationDAO;
+import dal.RoleDAO;
 import dal.UserDAO;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import model.entity.PendingRegistration;
+import model.entity.Role;
 import model.entity.User;
-import utils.AuthConstants;
+import utils.RegisterValidator;
 
 import java.io.IOException;
 import java.util.Optional;
 
 /**
- * FR-01 — Activate account after user clicks verification link in email.
+ * FR-01 — Sau khi click link email: tạo Users với status ACTIVE.
  */
 @WebServlet(urlPatterns = {"/verify-email"})
 public class VerifyEmailServlet extends HttpServlet {
@@ -30,23 +33,50 @@ public class VerifyEmailServlet extends HttpServlet {
         }
 
         try {
-            PasswordResetTokenDAO tokenDAO = new PasswordResetTokenDAO();
-            Optional<PasswordResetTokenDAO.TokenRecord> found =
-                    tokenDAO.findValidByToken(token, AuthConstants.TOKEN_PURPOSE_REGISTER);
+            PendingRegistrationDAO pendingDAO = new PendingRegistrationDAO();
+            Optional<PendingRegistration> found = pendingDAO.findValidByToken(token);
             if (found.isEmpty()) {
                 resp.sendRedirect(req.getContextPath() + "/login?verify=invalid");
                 return;
             }
 
+            PendingRegistration pending = found.get();
             UserDAO userDAO = new UserDAO();
-            Optional<User> user = userDAO.findById(found.get().userId());
-            if (user.isEmpty()) {
-                resp.sendRedirect(req.getContextPath() + "/login?verify=invalid");
+
+            if (userDAO.existsByEmail(pending.getEmail())) {
+                pendingDAO.deleteById(pending.getId());
+                resp.sendRedirect(req.getContextPath() + "/login?verify=already");
+                return;
+            }
+            if (userDAO.existsByPhone(pending.getPhoneNumber())) {
+                pendingDAO.deleteById(pending.getId());
+                resp.sendRedirect(req.getContextPath() + "/register?verify=phone_taken");
                 return;
             }
 
-            userDAO.updateStatus(user.get().getId(), "ACTIVE");
-            tokenDAO.markUsed(found.get().id());
+            Optional<Role> customerRole = new RoleDAO().findByName("CUSTOMER");
+            if (customerRole.isEmpty()) {
+                resp.sendRedirect(req.getContextPath() + "/login?verify=error");
+                return;
+            }
+
+            String username = RegisterValidator.generateUsername(
+                    userDAO, pending.getEmail(), pending.getPhoneNumber());
+
+            User user = new User();
+            user.setRoleId(customerRole.get().getId());
+            user.setEmail(pending.getEmail());
+            user.setUsername(username);
+            user.setPhoneNumber(pending.getPhoneNumber());
+            user.setFullName(pending.getFullName());
+            user.setDateOfBirth(pending.getDateOfBirth());
+            user.setPasswordHash(pending.getPasswordHash());
+            user.setStatus("ACTIVE");
+
+            userDAO.insert(user);
+            pendingDAO.markUsed(pending.getId());
+            pendingDAO.deleteExpired();
+
             resp.sendRedirect(req.getContextPath() + "/login?verified=1");
         } catch (RuntimeException ex) {
             log("VerifyEmailServlet: error", ex);

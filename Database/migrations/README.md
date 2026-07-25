@@ -22,6 +22,7 @@ Mọi thay đổi schema từng có trong các file dưới đây **đã đượ
 | `update_showtime_status_lifecycle.sql` | Status suất: `SCHEDULED`/`SHOWING`/`FINISHED`/`CANCELLED` (bỏ OPEN/SOLD_OUT) |
 | `add_review_deletion_log.sql` | Bảng `ReviewDeletionLog` |
 | `add_loyalty_redemption.sql` | `Bookings.points_redeemed` |
+| `add_pending_registrations.sql` | Bảng `PendingRegistrations` (đăng ký chờ xác thực email) |
 
 ---
 
@@ -36,4 +37,4 @@ Khi đó chọn đúng file còn thiếu, chạy từng file (idempotent). Sau k
 
 ---
 
-*Cập nhật 11/07/2026 — gộp migration vào script duy nhất.*
+*Cập nhật 26/07/2026 — thêm PendingRegistrations.*

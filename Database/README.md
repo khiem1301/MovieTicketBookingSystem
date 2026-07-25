@@ -79,7 +79,8 @@ File [`seed_showtime_load_test.sql`](seed_showtime_load_test.sql) — thêm ~12 
 | `Movies.status` gồm `EARLY_SHOWING` | Suất chiếu sớm |
 | `SystemConfigLog` | Lịch sử chỉnh sửa loyalty |
 | `UserStatusLog` | Audit khóa/mở khóa user |
-| `PasswordResetTokens.purpose` | REGISTER_VERIFY / PASSWORD_RESET / PROFILE_SECURITY |
+| `PasswordResetTokens.purpose` | PASSWORD_RESET / PROFILE_SECURITY (REGISTER_VERIFY legacy) |
+| `PendingRegistrations` | Đăng ký chờ xác thực email — chưa ghi `Users` |
 | `Promotions.image_url` | Ảnh voucher |
 | `SeatTypes.seat_span` | Ghế 1 ô / 2 ô (COUPLE, SWEETBOX = 2) |
 | `Tickets.is_printed` | Vé đã in (quầy) |
@@ -90,11 +91,11 @@ File [`seed_showtime_load_test.sql`](seed_showtime_load_test.sql) — thêm ~12 
 
 ---
 
-## C. Nhóm bảng (28 bảng)
+## C. Nhóm bảng (29 bảng)
 
 | Nhóm | Bảng |
 |------|------|
-| Auth | `Roles`, `Users`, `PasswordResetTokens`, `UserStatusLog` |
+| Auth | `Roles`, `Users`, `PendingRegistrations`, `PasswordResetTokens`, `UserStatusLog` |
 | Config | `SystemConfig`, `SystemConfigLog`, `VatRules` |
 | Cinema | `CinemaInfo`, `CinemaRooms`, `SeatTypes`, `Seats` |
 | Movie | `Movies`, `Genres`, `MovieGenres`, `MovieReviews` |
