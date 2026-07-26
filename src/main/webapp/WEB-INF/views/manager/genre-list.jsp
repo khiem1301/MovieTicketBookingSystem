@@ -298,7 +298,7 @@
 </div>
 
 <script>
-  const ROWS_PER_PAGE = 6;
+  const ROWS_PER_PAGE = 5;
   const STATE_KEY = 'mgr-genres-list-state';
   let currentPage  = 1;
   let currentFilter = 'all';
