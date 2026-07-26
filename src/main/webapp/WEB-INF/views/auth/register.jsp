@@ -23,6 +23,13 @@
       </a>
       <p class="auth-subtitle">Tạo tài khoản khách hàng</p>
 
+      <c:if test="${param.verify == 'phone_taken'}">
+        <div class="auth-alert auth-alert--error" role="alert">
+          Số điện thoại trong yêu cầu đăng ký đã được dùng bởi tài khoản khác.
+          Vui lòng đăng ký lại với số điện thoại khác.
+        </div>
+      </c:if>
+
       <c:if test="${not empty errors}">
         <div class="auth-alert auth-alert--error" role="alert">
           <c:forEach var="err" items="${errors}">

@@ -40,8 +40,8 @@ Dự án kết nối SQL Server trực tiếp qua JDBC thông qua `DBContext` v�
 SQL Server là hệ quản trị cơ sở dữ liệu quan hệ lưu trữ toàn bộ dữ liệu hệ thống.
 
 - Database: `MovieTicketDB`
-- **28 bảng** đặt tên **PascalCase** (`Users`, `Bookings`, `Movies`, `SystemConfigLog`, `UserStatusLog`, …)
-- Script khởi tạo: `Database/create_database.sql` (**một file duy nhất** — đã gộp mọi migration)
+- **30 bảng** đặt tên **PascalCase** (`Users`, `Bookings`, `Movies`, `PendingRegistrations`, `SystemConfigLog`, …)
+- Schema: `Database/create_database.sql` — seed: `Database/seed_data.sql` (đã gộp mọi migration vào schema)
 - DB cũ không reset được: xem `[Database/migrations/README.md](Database/migrations/README.md)`
 - Chi tiết: `[Database/README.md](Database/README.md)`
 
@@ -127,7 +127,7 @@ http://localhost:8080/MovieTicketBookingSystem/
 | Bước  | Việc cần làm | Bắt buộc? | Tài liệu |
 | ----- | ------------ | --------- | -------- |
 | **0** | Clone repo + cài Git hook (`scripts\install-git-hooks.bat`) | Có (một lần) | Bên dưới |
-| **1** | `database.properties` + chạy `Database/create_database.sql` | Có | [1. Cấu hình Database](#1-cấu-hình-database) |
+| **1** | `database.properties` + `create_database.sql` rồi `seed_data.sql` | Có | [1. Cấu hình Database](#1-cấu-hình-database) |
 | **2** | `mvn clean package` + deploy Tomcat 10 | Có | [2. Build và deploy](#2-build-và-deploy) |
 | **3** | `email.properties` (SMTP nhóm + `app.base.url` máy bạn) | Cần nếu đăng ký / quên MK / mail vé | [3. Cấu hình Email SMTP](#3-cấu-hình-email-smtp) |
 | **4** | `google.properties` (Client nhóm + `redirect.uri` máy bạn) | Cần nếu đăng nhập Google | [4. Cấu hình Google OAuth](#4-cấu-hình-google-oauth) |
@@ -247,9 +247,10 @@ Sau đó sửa mật khẩu và chạy `backup-database-properties.bat`.
 #### Lần đầu (máy chưa có `MovieTicketDB`)
 
 1. Bật SQL Server, bật **SQL Server Authentication** cho user `sa` (nếu dùng `sa`).
-2. Mở `[Database/create_database.sql](Database/create_database.sql)` trong SSMS hoặc Azure Data Studio.
-3. Chạy **toàn bộ file** (Ctrl+A → F5) → tạo `MovieTicketDB`, **28 bảng** và **seed data**.
-4. **Không cần** chạy gì trong `Database/migrations/` — mọi thay đổi schema đã nằm trong `create_database.sql`.
+2. Chạy lần lượt trong SSMS / Azure Data Studio (mỗi file Ctrl+A → F5):
+   1. [`Database/create_database.sql`](Database/create_database.sql) → `MovieTicketDB` + **30 bảng** + index
+   2. [`Database/seed_data.sql`](Database/seed_data.sql) → Roles, users, phim, voucher, đơn mẫu…
+3. **Không cần** chạy gì trong `Database/migrations/` — mọi thay đổi schema đã nằm trong `create_database.sql`.
 
 Đảm bảo `db.name` trong `database.properties` trùng tên DB:
 
@@ -271,7 +272,7 @@ Chi tiết: `[Database/README.md](Database/README.md)`.
 
 #### Đã có DB cũ — sau `git pull`
 
-- **Dev / có thể mất data:** chạy lại `create_database.sql` (DROP + seed mới) — cách nhanh nhất, đủ schema.
+- **Dev / có thể mất data:** chạy lại `create_database.sql` rồi `seed_data.sql` — cách nhanh nhất, đủ schema + seed.
 - **Phải giữ data:** xem `[Database/migrations/README.md](Database/migrations/README.md)` và chỉ chạy file legacy còn thiếu.
 
 ---
@@ -930,7 +931,7 @@ Làm **theo thứ tự**. Sau bước 2 web đã chạy; 3–5 chỉ khi cần t
 [ ] scripts\install-git-hooks.bat
 [ ] scripts\setup.bat
 [ ] Sửa src/main/resources/database.properties → db.server, db.password (db.name=MovieTicketDB)
-[ ] SSMS: chạy toàn bộ Database/create_database.sql
+[ ] SSMS: chạy Database/create_database.sql rồi Database/seed_data.sql
 [ ] scripts\backup-database-properties.bat
 [ ] mvn clean package
 [ ] IntelliJ: Tomcat 10 + deploy WAR/WAR exploded → Run
@@ -1403,10 +1404,11 @@ MovieTicketBookingSystem
 │   └── google.properties             # Local only — gitignored
 ├── src/test/java/
 ├── Database/
-│   ├── README.md                    # Hướng dẫn DB — script duy nhất
-│   ├── create_database.sql          # Khởi tạo đầy đủ 28 bảng + seed (đã gộp migrations)
+│   ├── README.md                    # Hướng dẫn DB
+│   ├── create_database.sql          # Schema only — 30 bảng + index (đã gộp migrations)
+│   ├── seed_data.sql                # Seed mặc định (users, phim, SEED-STATS-*)
+│   ├── seed_showtime_load_test.sql  # Tuỳ chọn load-test suất chiếu
 │   └── migrations/                  # Legacy — chỉ DB cũ không reset được
-│       └── add_system_config_log.sql
 ├── scripts/
 │   ├── setup.bat
 │   ├── setup.ps1
@@ -1467,7 +1469,8 @@ MovieTicketBookingSystem
 
 ### Database (`Database/`)
 
-- `create_database.sql` — tạo `MovieTicketDB`, **28 bảng** + seed (**một file duy nhất**).
+- `create_database.sql` — tạo `MovieTicketDB`, **30 bảng** + index (schema only).
+- `seed_data.sql` — dữ liệu mẫu (Roles, users, phim, voucher, đơn báo cáo…).
 - `migrations/` — legacy cho DB cũ; xem `migrations/README.md`.
 - Chi tiết: `[Database/README.md](Database/README.md)`.
 

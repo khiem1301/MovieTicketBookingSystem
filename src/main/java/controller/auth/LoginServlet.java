@@ -96,7 +96,7 @@ public class LoginServlet extends HttpServlet {
             }
             if ("INACTIVE".equals(user.getStatus())) {
                 forwardView(req, resp,
-                        "Tài khoản chưa được kích hoạt. Vui lòng xác thực email trước khi đăng nhập.");
+                        "Tài khoản đang bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.");
                 return;
             }
 

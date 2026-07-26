@@ -13,7 +13,6 @@
 <c:set var="formAdjType" value="${not empty inputAdjustmentType ? inputAdjustmentType : (isEdit ? editRule.adjustmentType : 'FIXED_AMOUNT')}"/>
 <c:set var="formStatus" value="${not empty inputStatus ? inputStatus : (isEdit ? editRule.status : 'ACTIVE')}"/>
 <c:set var="formName" value="${not empty inputRuleName ? inputRuleName : (isEdit ? editRule.ruleName : '')}"/>
-<c:set var="formPriority" value="${not empty inputPriority ? inputPriority : (isEdit ? editRule.priority : '0')}"/>
 <c:set var="formAdjValue" value="${not empty inputAdjustmentValue ? inputAdjustmentValue : (isEdit ? editRule.adjustmentValue : '')}"/>
 <c:set var="formTimeFrom" value="${not empty inputTimeFrom ? inputTimeFrom : (isEdit && editRule.timeFrom != null ? fn:substring(editRule.timeFrom, 0, 5) : '')}"/>
 <c:set var="formTimeTo" value="${not empty inputTimeTo ? inputTimeTo : (isEdit && editRule.timeTo != null ? fn:substring(editRule.timeTo, 0, 5) : '')}"/>
@@ -27,7 +26,7 @@
     <div class="admin-page-header">
       <div>
         <h1 class="admin-page-title">Quy tắc giá động</h1>
-        <p class="admin-page-subtitle">Tạo và quản lý quy tắc điều chỉnh giá suất chiếu (FR-49)</p>
+        <p class="admin-page-subtitle">Tạo và quản lý quy tắc điều chỉnh giá suất chiếu</p>
       </div>
     </div>
 
@@ -171,14 +170,6 @@
               </div>
 
               <div class="admin-field mpr-field">
-                <label class="admin-label" for="priority">Thứ tự hiển thị *</label>
-                <input type="number" id="priority" name="priority" class="admin-input"
-                       min="0" max="9999" required
-                       value="<c:out value='${formPriority}'/>"/>
-                <p class="mpr-field-tip">Số ≥ 0, tối đa 9999. Chỉ sắp xếp danh sách — không ảnh hưởng giá (mọi rule ACTIVE khớp đều cộng dồn).</p>
-              </div>
-
-              <div class="admin-field mpr-field">
                 <label class="admin-label" for="statusForm">Trạng thái *</label>
                 <select id="statusForm" name="status" class="admin-select" required>
                   <option value="ACTIVE" <c:if test="${formStatus == 'ACTIVE'}">selected</c:if>>ACTIVE</option>
@@ -224,6 +215,7 @@
 
           <p class="admin-stats">Tổng: <strong><c:out value="${totalRules}"/></strong> quy tắc</p>
 
+          <div id="pricingRuleListAjax" data-mgr-ajax-list>
           <c:choose>
             <c:when test="${empty rules}">
               <p class="mpr-empty">Chưa có quy tắc nào.</p>
@@ -237,7 +229,6 @@
                       <th>Điều kiện</th>
                       <th>Chi tiết</th>
                       <th>Điều chỉnh</th>
-                      <th>TT hiển thị</th>
                       <th>Trạng thái</th>
                       <th>Ngày tạo</th>
                       <th>Thao tác</th>
@@ -282,7 +273,6 @@
                             </c:otherwise>
                           </c:choose>
                         </td>
-                        <td><c:out value="${r.priority}"/></td>
                         <td>
                           <c:choose>
                             <c:when test="${r.status == 'ACTIVE'}">
@@ -331,6 +321,7 @@
               <%@ include file="/WEB-INF/views/common/pagination.jspf" %>
             </c:otherwise>
           </c:choose>
+          </div>
         </div>
       </section>
 
@@ -408,5 +399,6 @@
   </c:if>
 })();
 </script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/mgr-ajax-pagination.js?v=1"></script>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

@@ -60,14 +60,17 @@
 
     <c:choose>
       <c:when test="${empty roomList}">
+        <div id="roomListAjax" data-mgr-ajax-list>
         <p class="aud-list-empty">
           <c:choose>
             <c:when test="${statusFilter != 'ALL'}">Không có phòng nào với bộ lọc hiện tại.</c:when>
             <c:otherwise>Chưa có phòng chiếu nào. Dùng form góc trên để tạo phòng mới.</c:otherwise>
           </c:choose>
         </p>
+        </div>
       </c:when>
       <c:otherwise>
+        <div id="roomListAjax" data-mgr-ajax-list>
         <div class="mgr-table-wrap">
           <table class="mgr-table aud-room-table" id="audRoomTable">
             <thead>
@@ -182,9 +185,11 @@
             </div>
           </div>
         </c:if>
+        </div>
       </c:otherwise>
     </c:choose>
   </div>
 </div>
 
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/mgr-ajax-pagination.js?v=1"></script>
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

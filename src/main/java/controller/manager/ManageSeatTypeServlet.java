@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 @WebServlet("/manager/seat-types")
 public class ManageSeatTypeServlet extends HttpServlet {
 
-    /** Hệ số giá: 1 chữ số phần nguyên, 2 chữ số phần thập phân (0.01 – 9.99). */
+    /** Hệ số giá: 1 chữ số phần nguyên, 2 chữ số phần thập phân (1.00 – 9.99). */
     private static final Pattern PRICE_MULTIPLIER_PATTERN = Pattern.compile("^[0-9]\\.[0-9]{2}$");
 
     private final SeatTypeDAO seatTypeDAO = new SeatTypeDAO();
@@ -181,8 +181,12 @@ public class ManageSeatTypeServlet extends HttpServlet {
         }
         try {
             BigDecimal m = new BigDecimal(trimmedMultiplier);
-            if (m.compareTo(BigDecimal.ZERO) <= 0) {
-                result.error = "Hệ số giá phải lớn hơn 0.";
+            if (m.compareTo(BigDecimal.ONE) < 0) {
+                result.error = "Hệ số giá phải lớn hơn hoặc bằng 1.";
+                return result;
+            }
+            if (m.compareTo(new BigDecimal("9.99")) > 0) {
+                result.error = "Hệ số giá tối đa 9.99.";
                 return result;
             }
             result.multiplier = m;

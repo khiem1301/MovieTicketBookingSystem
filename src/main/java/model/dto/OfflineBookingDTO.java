@@ -24,6 +24,8 @@ public class OfflineBookingDTO {
     private String paymentStatus;
     private String staffName;
     private String userId;
+    /** True khi đơn đã có vé và tất cả vé đã is_printed = 1. */
+    private boolean ticketsPrinted;
 
     public String getBookingId()     { return bookingId; }
     public String getBookingCode()   { return bookingCode; }
@@ -40,6 +42,7 @@ public class OfflineBookingDTO {
     public String getPaymentStatus() { return paymentStatus; }
     public String getStaffName()     { return staffName; }
     public String getUserId()        { return userId; }
+    public boolean isTicketsPrinted() { return ticketsPrinted; }
 
     public void setBookingId(String bookingId)       { this.bookingId = bookingId; }
     public void setBookingCode(String bookingCode)   { this.bookingCode = bookingCode; }
@@ -56,4 +59,5 @@ public class OfflineBookingDTO {
     public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
     public void setStaffName(String staffName)       { this.staffName = staffName; }
     public void setUserId(String userId)             { this.userId = userId; }
+    public void setTicketsPrinted(boolean ticketsPrinted) { this.ticketsPrinted = ticketsPrinted; }
 }

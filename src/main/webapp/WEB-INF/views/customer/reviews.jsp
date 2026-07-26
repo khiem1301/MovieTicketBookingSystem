@@ -294,8 +294,11 @@
     <c:if test="${isMine}">
       <div class="rv-mine-layout">
         <div class="rv-mine-col">
-          <h2 class="rv-section-heading">Phim bạn có thể đánh giá <span class="rv-count-badge">${fn:length(pendingMovies)}</span></h2>
+          <h2 class="rv-section-heading">Phim bạn có thể đánh giá <span class="rv-count-badge">${pendingTotal}</span></h2>
           <c:choose>
+            <c:when test="${pendingTotal == 0}">
+              <p class="rv-empty">Bạn đã đánh giá hết các phim đã xem.</p>
+            </c:when>
             <c:when test="${not empty pendingMovies}">
               <div class="rv-pending-list">
                 <c:forEach var="movie" items="${pendingMovies}">
@@ -327,7 +330,7 @@
               </div>
             </c:when>
             <c:otherwise>
-              <p class="rv-empty">Bạn đã đánh giá hết các phim đã xem.</p>
+              <p class="rv-empty">Không còn phim ở trang này.</p>
             </c:otherwise>
           </c:choose>
         </div>
@@ -493,7 +496,7 @@
       </div>
     </c:if>
 
-    <%-- Phân trang --%>
+    <%-- Phân trang (mine: 2 cột dùng chung ?page=) --%>
     <c:if test="${totalPages > 1}">
       <c:choose>
         <c:when test="${isMine}">

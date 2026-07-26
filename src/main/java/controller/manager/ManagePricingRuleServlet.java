@@ -176,7 +176,6 @@ public class ManagePricingRuleServlet extends HttpServlet {
         req.setAttribute("inputDateTo", req.getParameter("dateTo"));
         req.setAttribute("inputAdjustmentType", req.getParameter("adjustmentType"));
         req.setAttribute("inputAdjustmentValue", req.getParameter("adjustmentValue"));
-        req.setAttribute("inputPriority", req.getParameter("priority"));
         req.setAttribute("inputStatus", req.getParameter("status"));
     }
 
