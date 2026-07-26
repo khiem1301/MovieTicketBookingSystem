@@ -359,19 +359,24 @@ public class ManageShowtimeServlet extends HttpServlet {
         boolean wasCancelled = "CANCELLED".equals(existing.getStatus());
         String statusForValidate = wasCancelled ? "CANCELLED" : "SCHEDULED";
 
+        String existingStartLocal = formatDateTimeLocal(existing.getStartTime());
         if (locked) {
             if (!same(trim(req.getParameter("movieId")), existing.getMovieId())
                     || !same(trim(req.getParameter("roomId")), existing.getRoomId())
-                    || !same(trim(req.getParameter("startTime")), formatDateTimeLocal(existing.getStartTime()))) {
+                    || !same(trim(req.getParameter("startTime")), existingStartLocal)) {
                 forwardWithError(req, resp,
                         "Suất chiếu đã có " + bookingCount + " đơn đặt vé — không thể đổi phim, phòng hoặc giờ chiếu. Chỉ sửa giá vé.",
                         existing.getMovieId(), existing.getRoomId(),
-                        formatDateTimeLocal(existing.getStartTime()), basePriceStr, existing.getStatus(), existing, bookingCount);
+                        existingStartLocal, basePriceStr, existing.getStatus(), existing, bookingCount);
                 return;
             }
         }
 
-        ParsedForm parsed = parseAndValidate(id, movieId, roomId, startTimeStr, basePriceStr, statusForValidate, true);
+        // Chỉ bỏ qua check "phải ở tương lai" khi giữ nguyên giờ chiếu cũ
+        // (vd. chỉ sửa giá suất đã qua). Đổi giờ → không được về quá khứ.
+        boolean startUnchanged = same(startTimeStr, existingStartLocal);
+        ParsedForm parsed = parseAndValidate(id, movieId, roomId, startTimeStr, basePriceStr,
+                statusForValidate, startUnchanged);
         if (parsed.error != null) {
             forwardWithError(req, resp, parsed.error, movieId, roomId, startTimeStr, basePriceStr,
                     existing.getStatus(), existing, bookingCount);
@@ -454,9 +459,14 @@ public class ManageShowtimeServlet extends HttpServlet {
             return result;
         }
 
-        if (!skipFutureCheck && startTime.before(new Timestamp(System.currentTimeMillis()))) {
-            result.error = "Giờ bắt đầu phải ở tương lai.";
-            return result;
+        // Không cho đặt/đổi giờ chiếu về quá khứ (so sánh tới phút — form datetime-local không có giây).
+        if (!skipFutureCheck) {
+            LocalDateTime nowMinute = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+            LocalDateTime startMinute = startTime.toLocalDateTime().truncatedTo(ChronoUnit.MINUTES);
+            if (!startMinute.isAfter(nowMinute)) {
+                result.error = "Giờ bắt đầu phải ở tương lai (không được chọn thời điểm trong quá khứ).";
+                return result;
+            }
         }
 
         BigDecimal basePrice;

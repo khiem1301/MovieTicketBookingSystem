@@ -19,6 +19,9 @@
 
   var TYPE_META = {};
 
+  /** Tối đa số ô mỗi hàng (ghế + lối đi). */
+  var MAX_CELLS_PER_ROW = 17;
+
   var STC = window.SeatTypeColors || {};
   var PRESET_TYPE_KEYS = STC.PRESET_TYPE_KEYS || ['regular', 'vip', 'couple', 'sweetbox'];
   var WIDE_TYPE_KEYS = { couple: true, sweetbox: true };
@@ -247,6 +250,20 @@
     });
   }
 
+  function rowCellCount(rowIdx) {
+    var row = state.rows[rowIdx];
+    return row && row.cells ? row.cells.length : 0;
+  }
+
+  function canAddCellToRow(rowIdx) {
+    return rowCellCount(rowIdx) < MAX_CELLS_PER_ROW;
+  }
+
+  function alertRowFull(rowIdx) {
+    var label = (state.rows[rowIdx] && state.rows[rowIdx].label) || '';
+    alert(t('maxCellsPerRow', { max: MAX_CELLS_PER_ROW, label: label }));
+  }
+
   function addRow() {
     var label = nextRowLabel();
     if (!label) {
@@ -403,6 +420,10 @@
     }
 
     if (state.tool === 'gap') {
+      if (!canAddCellToRow(rowIdx)) {
+        alertRowFull(rowIdx);
+        return false;
+      }
       if (cell.kind === 'gap') {
         row.cells.splice(colIdx + 1, 0, { kind: 'gap', id: uid() });
       } else {
@@ -426,6 +447,10 @@
   }
 
   function appendGap(rowIdx) {
+    if (!canAddCellToRow(rowIdx)) {
+      alertRowFull(rowIdx);
+      return;
+    }
     state.rows[rowIdx].cells.push({ kind: 'gap', id: uid() });
     markDirty();
     render();
@@ -434,6 +459,10 @@
   function appendSeat(rowIdx) {
     if (!ensureActiveTypeSelected()) {
       alert(t('alertSelectTypeSidebar'));
+      return;
+    }
+    if (!canAddCellToRow(rowIdx)) {
+      alertRowFull(rowIdx);
       return;
     }
     state.rows[rowIdx].cells.push({
@@ -527,7 +556,7 @@
         emptyEl.textContent = emptyRowHint();
         emptyEl.addEventListener('click', onEmptyRowClick);
         cellsEl.appendChild(emptyEl);
-      } else if (state.tool === 'gap' || state.tool === 'add') {
+      } else if ((state.tool === 'gap' || state.tool === 'add') && canAddCellToRow(rowIdx)) {
         var appendEl = document.createElement('button');
         appendEl.type = 'button';
         appendEl.className = 'slt-row-append';
@@ -605,6 +634,10 @@
   }
 
   function addSeatToRow(rowIdx) {
+    if (!canAddCellToRow(rowIdx)) {
+      alertRowFull(rowIdx);
+      return;
+    }
     var code = nextSeatCode(rowIdx);
     state.rows[rowIdx].cells.push({
       kind: 'seat', id: uid(), type: state.activeType, code: code

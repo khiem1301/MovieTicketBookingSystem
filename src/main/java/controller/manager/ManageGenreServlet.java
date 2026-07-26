@@ -59,7 +59,8 @@ public class ManageGenreServlet extends HttpServlet {
             throws ServletException, IOException {
         String name        = req.getParameter("genreName");
         String description = req.getParameter("description");
-        boolean isActive   = !"false".equals(req.getParameter("isActive"));
+        // Thể loại mới luôn hoạt động — đổi trạng thái chỉ qua nút trên list
+        boolean isActive   = true;
 
         if (name == null || name.trim().isEmpty()) {
             req.setAttribute("error", "Tên thể loại không được để trống.");
