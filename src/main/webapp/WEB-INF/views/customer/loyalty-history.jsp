@@ -13,7 +13,7 @@
 .lh-table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .lh-table th { text-align: left; padding: 10px 14px; border-bottom: 2px solid rgba(255,255,255,.12); opacity: .6; }
 .lh-table td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,.07); vertical-align: middle; }
-.lh-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: .78rem; font-weight: 600; }
+.lh-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: .78rem; font-weight: 600; white-space: nowrap; }
 .lh-badge--earn   { background: rgba(52,211,153,.15); color: #34d399; }
 .lh-badge--redeem { background: rgba(251,146,60,.15);  color: #fb923c; }
 .lh-badge--refund { background: rgba(96,165,250,.15);  color: #60a5fa; }
