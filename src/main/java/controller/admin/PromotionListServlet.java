@@ -17,7 +17,7 @@ import java.util.List;
 public class PromotionListServlet extends HttpServlet {
 
     private static final String VIEW      = "/WEB-INF/views/manager/promotion-list.jsp";
-    private static final int    PAGE_SIZE = AdminPaginationUtil.DEFAULT_PAGE_SIZE;
+    private static final int    PAGE_SIZE = 5;
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)

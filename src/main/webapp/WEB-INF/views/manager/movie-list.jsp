@@ -24,6 +24,9 @@
   <c:if test="${param.error == 'has-showtimes'}">
     <div class="mm-alert mm-alert--error">Không thể xóa — phim này đã có suất chiếu.</div>
   </c:if>
+  <c:if test="${param.error == 'image-too-large'}">
+    <div class="mm-alert mm-alert--error">Ảnh vượt quá dung lượng cho phép (tối đa 5MB). Vui lòng chọn ảnh khác và tải lại.</div>
+  </c:if>
 
   <div class="mm-header">
     <div>
@@ -555,6 +558,8 @@
     return /^https?:\/\//i.test(url) ? url : (ctx + '/' + url.replace(/^\//, ''));
   }
 
+  var MM_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
   function bindPreview(fileId, previewId, placeholderId, urlName) {
     var fi = document.getElementById(fileId);
     var pi = document.getElementById(previewId);
@@ -570,6 +575,11 @@
     fi.addEventListener('change', function () {
       var f = this.files && this.files[0];
       if (!f) return;
+      if (f.size > MM_MAX_IMAGE_BYTES) {
+        alert('Ảnh "' + f.name + '" vượt quá dung lượng cho phép (tối đa 5MB). Vui lòng chọn ảnh khác.');
+        this.value = '';
+        return;
+      }
       var r = new FileReader();
       r.onload = function (e) { showPreview(e.target.result); };
       r.readAsDataURL(f);
@@ -587,7 +597,7 @@
   bindPreview('backdropFile', 'backdropPreview', 'backdropPlaceholder', 'backdropUrl');
 
   /* ── List filter & pagination ────────────────────────────── */
-  var MM_PER = 14, mmPage = 1, mmFilter = 'all', mmRows = [];
+  var MM_PER = 6, mmPage = 1, mmFilter = 'all', mmRows = [];
 
   function getAllRows() { return Array.from(document.querySelectorAll('#mmTableBody tr')); }
 

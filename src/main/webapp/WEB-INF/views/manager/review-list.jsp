@@ -82,27 +82,22 @@
     </c:if>
 
     <div class="admin-card">
-      <form class="admin-filter" method="get" action="${pageContext.request.contextPath}/manager/reviews">
+      <div class="admin-filter" id="reviewFilterForm">
         <div class="admin-field admin-field--grow">
           <label class="admin-label" for="q">Tìm kiếm</label>
-          <input type="text" id="q" name="q" class="admin-input"
-                 placeholder="Tên phim..."
-                 value="<c:out value='${filterQ}'/>"/>
+          <input type="text" id="q" class="admin-input" placeholder="Tên phim..." autocomplete="off"/>
         </div>
         <div class="admin-field">
           <label class="admin-label" for="rating">Số sao</label>
-          <select id="rating" name="rating" class="admin-select">
+          <select id="rating" class="admin-select">
             <option value="">Tất cả</option>
             <c:forEach begin="1" end="5" var="s">
-              <option value="${s}" <c:if test="${filterRating == s}">selected</c:if>>${s} sao</option>
+              <option value="${s}">${s} sao</option>
             </c:forEach>
           </select>
         </div>
-        <button type="submit" class="admin-btn admin-btn--ghost">Lọc</button>
-        <a href="${pageContext.request.contextPath}/manager/reviews" class="admin-btn admin-btn--ghost">Xóa lọc</a>
-      </form>
-
-      <p class="admin-stats">Tổng: <strong><c:out value="${totalReviews}"/></strong> đánh giá</p>
+        <button type="button" id="reviewFilterReset" class="admin-btn admin-btn--ghost">Xóa lọc</button>
+      </div>
 
       <div id="reviewListAjax" data-mgr-ajax-list>
       <c:choose>
@@ -119,13 +114,13 @@
                   <th>Thao tác</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="reviewsTableBody">
                 <c:forEach var="r" items="${reviews}">
                   <c:set var="rvPoster" value="${r.moviePosterUrl}"/>
                   <c:if test="${not empty rvPoster and not fn:startsWith(rvPoster, 'http')}">
                     <c:set var="rvPoster" value="${pageContext.request.contextPath}/${rvPoster}"/>
                   </c:if>
-                  <tr>
+                  <tr data-title="<c:out value='${fn:toLowerCase(r.movieTitle)}'/>" data-rating="${r.rating}">
                     <td>
                       <div class="mrv-movie-cell">
                         <c:choose>
@@ -167,11 +162,30 @@
                     </td>
                   </tr>
                 </c:forEach>
+                <tr id="reviewEmptyRow" style="display:none">
+                  <td colspan="6" class="admin-empty">Không tìm thấy đánh giá nào.</td>
+                </tr>
               </tbody>
             </table>
           </div>
 
-          <%@ include file="/WEB-INF/views/admin/pagination.jspf" %>
+          <div class="admin-pagination" id="reviewPagination">
+            <span class="admin-pagination-info" id="reviewPagInfo"></span>
+            <div class="admin-btn-group">
+              <button type="button" id="reviewPrevBtn" class="admin-btn admin-btn--ghost admin-btn--sm admin-pagination-nav">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Trước
+              </button>
+              <button type="button" id="reviewNextBtn" class="admin-btn admin-btn--ghost admin-btn--sm admin-pagination-nav">
+                Sau
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         </c:when>
         <c:otherwise>
           <div class="admin-empty">Không tìm thấy đánh giá nào.</div>
@@ -190,9 +204,6 @@
     <p class="mrv-modal-movie">Phim: <strong id="mrvDeleteMovieTitle"></strong></p>
     <form method="post" action="${pageContext.request.contextPath}/manager/reviews">
       <input type="hidden" name="id" id="mrvDeleteReviewId"/>
-      <input type="hidden" name="page" value="<c:out value='${pgCurrent}'/>"/>
-      <input type="hidden" name="q" value="<c:out value='${filterQ}'/>"/>
-      <input type="hidden" name="rating" value="<c:out value='${filterRating}'/>"/>
 
       <label class="admin-label mrv-label-row" for="mrvDeleteReason">
         <span>Lý do xóa <span class="required">*</span></span>
@@ -262,5 +273,75 @@
   });
 </script>
 <script charset="UTF-8" src="${pageContext.request.contextPath}/js/mgr-ajax-pagination.js?v=2"></script>
+
+<script>
+(function () {
+  var tbody = document.getElementById('reviewsTableBody');
+  if (!tbody) return;
+
+  var PAGE_SIZE = 5;
+  var page = 1;
+  var visibleRows = [];
+
+  var keywordInput = document.getElementById('q');
+  var ratingSelect = document.getElementById('rating');
+  var resetBtn     = document.getElementById('reviewFilterReset');
+  var emptyRow     = document.getElementById('reviewEmptyRow');
+  var pagInfo      = document.getElementById('reviewPagInfo');
+  var prevBtn      = document.getElementById('reviewPrevBtn');
+  var nextBtn      = document.getElementById('reviewNextBtn');
+
+  function getAllRows() {
+    return Array.from(tbody.querySelectorAll('tr')).filter(function (r) { return r !== emptyRow; });
+  }
+
+  function applyFilters() {
+    var kw     = (keywordInput.value || '').toLowerCase().trim();
+    var rating = ratingSelect.value;
+
+    visibleRows = getAllRows().filter(function (r) {
+      return (!kw || (r.dataset.title || '').indexOf(kw) !== -1) &&
+             (!rating || r.dataset.rating === rating);
+    });
+    page = 1;
+    renderPage();
+  }
+
+  function renderPage() {
+    var total = visibleRows.length;
+    var pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (page > pages) page = pages;
+    var s = (page - 1) * PAGE_SIZE, e = Math.min(s + PAGE_SIZE, total);
+
+    getAllRows().forEach(function (r) { r.style.display = 'none'; });
+    visibleRows.forEach(function (r, i) { r.style.display = (i >= s && i < e) ? '' : 'none'; });
+
+    if (emptyRow) emptyRow.style.display = total === 0 ? '' : 'none';
+    if (pagInfo) {
+      pagInfo.textContent = total === 0
+        ? 'Không có kết quả'
+        : 'Hiển thị ' + (s + 1) + ' đến ' + e + ' trong ' + total + ' đánh giá';
+    }
+    if (prevBtn) prevBtn.disabled = page <= 1;
+    if (nextBtn) nextBtn.disabled = page >= pages;
+  }
+
+  keywordInput.addEventListener('input', applyFilters);
+  ratingSelect.addEventListener('change', applyFilters);
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function () {
+      keywordInput.value = '';
+      ratingSelect.value = '';
+      applyFilters();
+    });
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', function () { if (page > 1) { page--; renderPage(); } });
+  if (nextBtn) nextBtn.addEventListener('click', function () { page++; renderPage(); });
+
+  applyFilters();
+}());
+</script>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>

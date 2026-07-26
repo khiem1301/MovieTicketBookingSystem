@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @WebServlet(urlPatterns = {"/admin/vat/create"})
@@ -22,8 +23,6 @@ public class VatRuleCreateServlet extends HttpServlet {
 
     public static final String MSG_DUPLICATE_START_DATE =
             "Không thể lên lịch 2 quy tắc VAT trong cùng một ngày. Hãy chọn ngày khác hoặc hủy quy tắc trùng ngày.";
-    public static final String MSG_SAME_DAY_REPLACE_LIMIT =
-            "Chỉ được thay quy tắc VAT hiện tại 1 lần trong ngày.";
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
@@ -47,12 +46,7 @@ public class VatRuleCreateServlet extends HttpServlet {
         LocalDate start = form.getStartDate().toLocalDate();
         VatRuleDAO dao = new VatRuleDAO();
 
-        if (start.equals(LocalDate.now()) && dao.hasReplacedEffectiveToday()) {
-            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, MSG_SAME_DAY_REPLACE_LIMIT);
-            resp.sendRedirect(req.getContextPath() + "/admin/vat");
-            return;
-        }
-        if (dao.existsByStartDate(start, null)) {
+        if (start.isAfter(LocalDate.now()) && dao.existsByStartDate(start, null)) {
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, MSG_DUPLICATE_START_DATE);
             resp.sendRedirect(req.getContextPath() + "/admin/vat");
             return;
@@ -60,7 +54,9 @@ public class VatRuleCreateServlet extends HttpServlet {
 
         try {
             BigDecimal rate = new BigDecimal(form.getVatRate().trim());
-            Timestamp startDate = Timestamp.valueOf(start.atStartOfDay());
+            Timestamp startDate = start.equals(LocalDate.now())
+                    ? Timestamp.valueOf(LocalDateTime.now())
+                    : Timestamp.valueOf(start.atStartOfDay());
 
             dao.createAndActivate(form.getRuleName().trim(), rate, startDate);
 
@@ -69,8 +65,6 @@ public class VatRuleCreateServlet extends HttpServlet {
                     ? "Đã lên lịch thuế suất VAT " + rateText + " — áp dụng từ " + start + "."
                     : "Đã áp dụng thuế suất VAT mới: " + rateText + ".";
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_SUCCESS, message);
-        } catch (VatRuleDAO.SameDayReplaceLimitException ex) {
-            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, MSG_SAME_DAY_REPLACE_LIMIT);
         } catch (VatRuleDAO.DuplicateStartDateException ex) {
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR, MSG_DUPLICATE_START_DATE);
         } catch (RuntimeException ex) {

@@ -16,9 +16,6 @@
           Xin chào, <c:out value="${adminName}"/> — chào mừng bạn quay trở lại hệ thống ÉpCine
         </p>
       </div>
-      <a href="${pageContext.request.contextPath}/home" class="admin-btn admin-btn--ghost">
-        ← Về trang chủ
-      </a>
     </div>
 
     <c:if test="${not empty flashSuccess}">
