@@ -96,25 +96,18 @@ public class UserDAO {
         return Optional.empty();
     }
 
-    public List<User> findAll(String keyword, String roleName, String status, int offset, int limit) {
-        StringBuilder sql = new StringBuilder(SELECT_WITH_ROLE);
-        sql.append(" WHERE 1=1");
-        appendFilters(sql, keyword, roleName, status);
-        sql.append(" ORDER BY u.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-
+    /** Toàn bộ danh sách user — dùng cho trang Quản lý người dùng lọc/phân trang tại client. */
+    public List<User> findAllOrdered() {
+        String sql = SELECT_WITH_ROLE + " ORDER BY u.created_at DESC";
         List<User> result = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            int idx = bindFilters(ps, 1, keyword, roleName, status);
-            ps.setInt(idx, offset);
-            ps.setInt(idx + 1, limit);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    result.add(mapRow(rs));
-                }
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                result.add(mapRow(rs));
             }
         } catch (SQLException e) {
-            throw new RuntimeException("findAll users failed", e);
+            throw new RuntimeException("findAllOrdered users failed", e);
         }
         return result;
     }

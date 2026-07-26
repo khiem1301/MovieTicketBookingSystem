@@ -20,7 +20,7 @@ import java.util.Set;
 public class MovieReviewDAO {
 
     /** Số lần bị xóa đánh giá (cùng 1 phim) để bị chặn đánh giá lại phim đó. */
-    public static final int DELETION_BAN_THRESHOLD = 10;
+    public static final int DELETION_BAN_THRESHOLD = 3;
 
     private static final String MOVIE_JOIN_COLS = """
             r.id, r.movie_id, r.user_id, r.rating, r.review_content, r.created_at,
@@ -210,50 +210,23 @@ public class MovieReviewDAO {
         }
     }
 
-    /** Toàn bộ đánh giá — /manager/reviews (lọc theo tên phim / số sao). */
-    public List<MovieReview> findAllFiltered(String movieTitle, Integer rating, int offset, int limit) {
-        StringBuilder sql = new StringBuilder("SELECT " + MOVIE_JOIN_COLS + """
+    /** Toàn bộ đánh giá — dùng cho trang Quản lý đánh giá lọc/phân trang tại client. */
+    public List<MovieReview> findAllOrdered() {
+        String sql = "SELECT " + MOVIE_JOIN_COLS + """
                 FROM MovieReviews r
                 JOIN Movies m ON m.id = r.movie_id
                 JOIN Users  u ON u.id = r.user_id
-                WHERE 1=1
-                """);
-        appendReviewFilters(sql, movieTitle, rating);
-        sql.append(" ORDER BY r.created_at DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
-
+                ORDER BY r.created_at DESC
+                """;
         List<MovieReview> result = new ArrayList<>();
         try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            int idx = bindReviewFilters(ps, 1, movieTitle, rating);
-            ps.setInt(idx, offset);
-            ps.setInt(idx + 1, limit);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) result.add(mapJoined(rs));
-            }
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) result.add(mapJoined(rs));
         } catch (SQLException e) {
-            throw new RuntimeException("MovieReviewDAO.findAllFiltered failed", e);
+            throw new RuntimeException("MovieReviewDAO.findAllOrdered failed", e);
         }
         return result;
-    }
-
-    public int countAllFiltered(String movieTitle, Integer rating) {
-        StringBuilder sql = new StringBuilder("""
-                SELECT COUNT(*) AS total
-                FROM MovieReviews r
-                JOIN Movies m ON m.id = r.movie_id
-                WHERE 1=1
-                """);
-        appendReviewFilters(sql, movieTitle, rating);
-
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
-            bindReviewFilters(ps, 1, movieTitle, rating);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? rs.getInt("total") : 0;
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("MovieReviewDAO.countAllFiltered failed", e);
-        }
     }
 
     /** Manager/Admin xóa đánh giá vi phạm của bất kỳ khách hàng nào, ghi log lý do, rồi tính lại average_rating. */
@@ -326,7 +299,7 @@ public class MovieReviewDAO {
         }
     }
 
-    /** Số lần user bị manager xóa đánh giá CHO RIÊNG 1 phim — dùng để chặn đánh giá lại sau 10 lần. */
+    /** Số lần user bị manager xóa đánh giá CHO RIÊNG 1 phim — dùng để chặn đánh giá lại sau DELETION_BAN_THRESHOLD lần. */
     public int countDeletionsByUserAndMovie(String userId, String movieId) {
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(
@@ -339,27 +312,6 @@ public class MovieReviewDAO {
         } catch (SQLException e) {
             throw new RuntimeException("MovieReviewDAO.countDeletionsByUserAndMovie failed", e);
         }
-    }
-
-    private void appendReviewFilters(StringBuilder sql, String movieTitle, Integer rating) {
-        if (movieTitle != null && !movieTitle.isBlank()) {
-            sql.append(" AND m.title LIKE ?");
-        }
-        if (rating != null) {
-            sql.append(" AND r.rating = ?");
-        }
-    }
-
-    private int bindReviewFilters(PreparedStatement ps, int startIndex,
-                                   String movieTitle, Integer rating) throws SQLException {
-        int idx = startIndex;
-        if (movieTitle != null && !movieTitle.isBlank()) {
-            ps.setString(idx++, "%" + movieTitle.trim() + "%");
-        }
-        if (rating != null) {
-            ps.setInt(idx++, rating);
-        }
-        return idx;
     }
 
     /** Đánh giá mới nhất trên toàn hệ thống — /reviews?sort=latest */

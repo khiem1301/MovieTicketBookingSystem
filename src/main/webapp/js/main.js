@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initHeaderScroll();
   initMoviesAjaxPagination();
   scrollToMoviesIfNeeded();
+  initHeaderLiveSearch();
 });
 
 /* ── Header scroll effect ───────────────────────────────────── */
@@ -189,6 +190,68 @@ async function loadMoviesPage(section, url, pushHistory) {
     window.location.href = url;
   } finally {
     moviesPageLoading = false;
+  }
+}
+
+/**
+ * Search header: lọc tức thì giống thanh search trong Quản Lý Phim —
+ * không popup gợi ý, gõ tới đâu lọc danh sách phim tới đó.
+ * Nếu đang ở trang /movies thì thay lưới phim tại chỗ (AJAX);
+ * các trang khác thì chuyển thẳng sang /movies?q=...
+ */
+function initHeaderLiveSearch() {
+  const form  = document.getElementById('headerSearchForm');
+  const input = document.getElementById('headerSearchInput');
+  if (!form || !input) return;
+
+  const baseUrl = form.getAttribute('action');
+  let debounceTimer = null;
+  let controller = null;
+
+  input.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(runSearch, 300);
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    clearTimeout(debounceTimer);
+    runSearch();
+  });
+
+  async function runSearch() {
+    const keyword = input.value.trim();
+    const url = keyword ? `${baseUrl}?q=${encodeURIComponent(keyword)}` : baseUrl;
+    const section = document.querySelector('.movies-page');
+
+    if (!section) {
+      window.location.href = url;
+      return;
+    }
+
+    if (controller) controller.abort();
+    controller = new AbortController();
+
+    try {
+      const res = await fetch(url, {
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+
+      const html = await res.text();
+      const doc  = new DOMParser().parseFromString(html, 'text/html');
+      const next = doc.querySelector('.movies-page');
+      if (!next) throw new Error('missing section');
+
+      document.querySelector('.movies-page')?.replaceWith(next);
+      initMovieTabs(document);
+      window.history.pushState({ moviesAjax: true }, '', url);
+    } catch (err) {
+      if (err.name !== 'AbortError') window.location.href = url;
+    }
   }
 }
 

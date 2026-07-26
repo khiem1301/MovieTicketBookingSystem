@@ -967,9 +967,16 @@ function formatIsoDate(d) {
   return y + '-' + m + '-' + day;
 }
 
+var PM_MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
 function previewImageFile(input) {
   var file = input.files && input.files[0];
   if (!file) return;
+  if (file.size > PM_MAX_IMAGE_BYTES) {
+    alert('Ảnh "' + file.name + '" vượt quá dung lượng cho phép (tối đa 5MB). Vui lòng chọn ảnh khác.');
+    input.value = '';
+    return;
+  }
   var reader = new FileReader();
   reader.onload = function(e) { showImagePreview(e.target.result); };
   reader.readAsDataURL(file);

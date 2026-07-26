@@ -60,6 +60,8 @@ uri="jakarta.tags.functions" %>
           class="header-search"
           action="${pageContext.request.contextPath}/movies"
           method="get"
+          id="headerSearchForm"
+          autocomplete="off"
         >
           <svg
             width="16"
@@ -77,8 +79,10 @@ uri="jakarta.tags.functions" %>
           <input
             type="text"
             name="q"
+            id="headerSearchInput"
             placeholder="Tìm kiếm phim..."
             autocomplete="off"
+            maxlength="100"
             value="<c:out value='${param.q}'/>"
           />
         </form>

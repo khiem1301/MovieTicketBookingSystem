@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets;
 
 public final class AdminPaginationUtil {
 
-    public static final int DEFAULT_PAGE_SIZE = 10;
+    public static final int DEFAULT_PAGE_SIZE = 8;
 
     private AdminPaginationUtil() {
     }

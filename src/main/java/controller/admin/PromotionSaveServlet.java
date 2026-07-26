@@ -33,6 +33,18 @@ public class PromotionSaveServlet extends HttpServlet {
 
         if (!AdminAuthUtil.requireManager(req, resp)) return;
 
+        try {
+            handleSave(req, resp);
+        } catch (IllegalStateException ex) {
+            // Anh vuot qua fileSizeThreshold/maxFileSize cua @MultipartConfig
+            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR,
+                    "Ảnh vượt quá dung lượng cho phép (tối đa 5MB). Vui lòng chọn ảnh khác và tải lại.");
+            resp.sendRedirect(req.getContextPath() + "/manager/promotions");
+        }
+    }
+
+    private void handleSave(HttpServletRequest req, HttpServletResponse resp)
+            throws ServletException, IOException {
         String id            = trim(req.getParameter("promotionId"));
         String code          = trim(req.getParameter("code"));
         String title         = trim(req.getParameter("title"));

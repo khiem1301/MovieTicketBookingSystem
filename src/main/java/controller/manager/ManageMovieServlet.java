@@ -60,14 +60,19 @@ public class ManageMovieServlet extends HttpServlet {
             throws ServletException, IOException {
         if (!isAuthorized(req)) { resp.sendRedirect(req.getContextPath() + "/home"); return; }
 
-        String action = req.getParameter("action");
+        try {
+            String action = req.getParameter("action");
 
-        if ("update".equals(action)) {
-            handleUpdate(req, resp);
-        } else if ("delete".equals(action)) {
-            handleDelete(req, resp);
-        } else {
-            handleCreate(req, resp);
+            if ("update".equals(action)) {
+                handleUpdate(req, resp);
+            } else if ("delete".equals(action)) {
+                handleDelete(req, resp);
+            } else {
+                handleCreate(req, resp);
+            }
+        } catch (IllegalStateException ex) {
+            // Anh vuot qua fileSizeThreshold/maxFileSize cua @MultipartConfig
+            resp.sendRedirect(req.getContextPath() + "/manager/movies?error=image-too-large");
         }
     }
 

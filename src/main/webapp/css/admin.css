@@ -163,6 +163,8 @@
   font-size: 12px;
 }
 
+.admin-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .admin-btn-group {
   display: flex;
   flex-wrap: wrap;

@@ -41,7 +41,7 @@
         </svg>
         <div>
           <strong>0987 654 321</strong>
-          <div class="contact-note">Thứ 2 – Chủ nhật &nbsp;08:00 – 23:00</div>
+          <div class="contact-note">Mở cửa 24/7</div>
         </div>
       </div>
 
@@ -62,7 +62,7 @@
           <circle cx="12" cy="12" r="10"/>
           <polyline points="12 6 12 12 16 14"/>
         </svg>
-        <span>08:00 – 23:00 (Tất cả các ngày)</span>
+        <span>24/7</span>
       </div>
 
       <%-- Directions button --%>
@@ -85,7 +85,7 @@
   </div>
 </footer>
 
-<script charset="UTF-8" src="${pageContext.request.contextPath}/js/main.js?v=20260726a"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/main.js?v=20260727d"></script>
 <script charset="UTF-8" src="${pageContext.request.contextPath}/js/flash-alerts.js?v=2"></script>
 </body>
 </html>

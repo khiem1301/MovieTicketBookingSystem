@@ -187,14 +187,6 @@ public class VatRuleDAO {
         }
     }
 
-    /** Quy tắc đang hiệu lực đã bắt đầu hôm nay → đã thay/áp dụng trong ngày. */
-    public boolean hasReplacedEffectiveToday() {
-        return findEffectiveNow()
-                .map(VatRule::getStartDate)
-                .map(ts -> ts.toLocalDateTime().toLocalDate().equals(LocalDate.now()))
-                .orElse(false);
-    }
-
     public boolean isScheduledEditable(VatRule rule) {
         return rule != null
                 && "ACTIVE".equals(rule.getStatus())
@@ -289,15 +281,13 @@ public class VatRuleDAO {
     }
 
     /**
-     * Tạo quy tắc mới (áp dụng ngay hoặc lên lịch). Cho phép nhiều lịch khác ngày;
-     * mỗi ngày bắt đầu chỉ một quy tắc.
+     * Tạo quy tắc mới (áp dụng ngay hoặc lên lịch). Cho phép đổi VAT nhiều lần trong
+     * cùng ngày hôm nay (áp dụng ngay lập tức, thay thế quy tắc đang hiệu lực); với
+     * lịch trong tương lai thì mỗi ngày bắt đầu chỉ một quy tắc.
      */
     public void createAndActivate(String ruleName, BigDecimal vatRate, Timestamp startDate) {
         LocalDate startDay = startDate.toLocalDateTime().toLocalDate();
-        if (startDay.equals(LocalDate.now()) && hasReplacedEffectiveToday()) {
-            throw new SameDayReplaceLimitException();
-        }
-        if (existsByStartDate(startDay, null)) {
+        if (startDay.isAfter(LocalDate.now()) && existsByStartDate(startDay, null)) {
             throw new DuplicateStartDateException(startDay);
         }
 
@@ -324,7 +314,7 @@ public class VatRuleDAO {
             } finally {
                 conn.setAutoCommit(true);
             }
-        } catch (DuplicateStartDateException | SameDayReplaceLimitException e) {
+        } catch (DuplicateStartDateException e) {
             throw e;
         } catch (SQLException e) {
             throw new RuntimeException("createAndActivate failed", e);
@@ -427,12 +417,6 @@ public class VatRuleDAO {
 
         public LocalDate getStartDate() {
             return startDate;
-        }
-    }
-
-    public static final class SameDayReplaceLimitException extends RuntimeException {
-        public SameDayReplaceLimitException() {
-            super("VAT already replaced today");
         }
     }
 }

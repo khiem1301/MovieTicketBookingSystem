@@ -83,7 +83,8 @@
       <h2 class="admin-section-title">Áp dụng thuế suất mới</h2>
 
       <form class="admin-form admin-form--wide" method="post"
-            action="${pageContext.request.contextPath}/admin/vat/create" novalidate>
+            action="${pageContext.request.contextPath}/admin/vat/create" novalidate
+            onsubmit="return confirmVatChange(this, 'vatRate');">
 
         <div class="admin-field">
           <label class="admin-label" for="ruleName">Tên quy tắc *</label>
@@ -214,7 +215,8 @@
         <fmt:formatDate value="${editRule.startDate}" pattern="yyyy-MM-dd" var="editStartValue"/>
 
         <form class="admin-form admin-form--wide" method="post"
-              action="${pageContext.request.contextPath}/admin/vat/update" novalidate>
+              action="${pageContext.request.contextPath}/admin/vat/update" novalidate
+              onsubmit="return confirmVatChange(this, 'editVatRate');">
           <input type="hidden" name="ruleId" value="<c:out value='${editRule.id}'/>"/>
 
           <div class="admin-field">
@@ -255,6 +257,15 @@
 
   </div>
 </main>
+
+<script>
+function confirmVatChange(form, rateFieldId) {
+  var rateInput = document.getElementById(rateFieldId);
+  var rateVal = rateInput ? rateInput.value.trim() : '';
+  if (!rateVal) return true;
+  return confirm('Bạn đã chắc chắn chưa? Nếu chấp nhận, thuế suất VAT sẽ được đổi thành ' + rateVal + '%.');
+}
+</script>
 
 <%@ include file="/WEB-INF/views/common/footer.jsp" %>
 

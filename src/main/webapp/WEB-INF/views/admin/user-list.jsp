@@ -37,39 +37,33 @@
     </c:if>
 
     <div class="admin-card">
-      <form class="admin-filter" id="userFilterForm" method="get" action="${pageContext.request.contextPath}/admin/users">
+      <div class="admin-filter" id="userFilterForm">
         <div class="admin-field admin-field--grow">
           <label class="admin-label" for="userKeyword">Tìm kiếm</label>
-          <input type="search" id="userKeyword" name="keyword" class="admin-input"
+          <input type="search" id="userKeyword" class="admin-input"
                  placeholder="Họ tên, email, username, SĐT..."
-                 autocomplete="off"
-                 value="<c:out value='${filterQ}'/>"/>
+                 autocomplete="off"/>
         </div>
         <div class="admin-field">
           <label class="admin-label" for="role">Vai trò</label>
-          <select id="role" name="role" class="admin-select">
+          <select id="role" class="admin-select">
             <option value="">Tất cả</option>
             <c:forEach var="role" items="${roles}">
-              <option value="${role.roleName}"
-                      <c:if test="${filterRole == role.roleName}">selected</c:if>>
-                <c:out value="${role.roleName}"/>
-              </option>
+              <option value="${role.roleName}"><c:out value="${role.roleName}"/></option>
             </c:forEach>
           </select>
         </div>
         <div class="admin-field">
           <label class="admin-label" for="status">Trạng thái</label>
-          <select id="status" name="status" class="admin-select">
+          <select id="status" class="admin-select">
             <option value="">Tất cả</option>
-            <option value="ACTIVE"   <c:if test="${filterStatus == 'ACTIVE'}">selected</c:if>>ACTIVE</option>
-            <option value="INACTIVE" <c:if test="${filterStatus == 'INACTIVE'}">selected</c:if>>INACTIVE</option>
-            <option value="BANNED"   <c:if test="${filterStatus == 'BANNED'}">selected</c:if>>BANNED</option>
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="INACTIVE">INACTIVE</option>
+            <option value="BANNED">BANNED</option>
           </select>
         </div>
         <button type="button" id="userFilterReset" class="admin-btn admin-btn--ghost">Xóa lọc</button>
-      </form>
-
-      <p class="admin-stats">Tổng: <strong><c:out value="${totalUsers}"/></strong> tài khoản</p>
+      </div>
 
       <c:choose>
         <c:when test="${not empty users}">
@@ -86,9 +80,12 @@
                   <th>Thao tác</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="usersTableBody">
                 <c:forEach var="user" items="${users}">
-                  <tr>
+                  <c:set var="searchBlob" value="${user.fullName} ${user.email} ${user.username} ${user.phoneNumber}"/>
+                  <tr data-search="<c:out value='${fn:toLowerCase(searchBlob)}'/>"
+                      data-role="<c:out value='${user.roleName}'/>"
+                      data-status="<c:out value='${user.status}'/>">
                     <td><c:out value="${user.fullName}"/></td>
                     <td class="cell-muted">
                       <c:if test="${not empty user.email}">
@@ -133,14 +130,30 @@
                     </td>
                   </tr>
                 </c:forEach>
+                <tr id="userEmptyRow" style="display:none">
+                  <td colspan="7" class="admin-empty">Không tìm thấy người dùng nào.</td>
+                </tr>
               </tbody>
             </table>
           </div>
 
-          <c:set var="pgCurrent" value="${currentPage}"/>
-          <c:set var="pgTotal" value="${totalPages}"/>
-          <c:set var="pgTotalItems" value="${totalUsers}"/>
-          <%@ include file="/WEB-INF/views/admin/pagination.jspf" %>
+          <div class="admin-pagination" id="userPagination">
+            <span class="admin-pagination-info" id="userPagInfo"></span>
+            <div class="admin-btn-group">
+              <button type="button" id="userPrevBtn" class="admin-btn admin-btn--ghost admin-btn--sm admin-pagination-nav">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Trước
+              </button>
+              <button type="button" id="userNextBtn" class="admin-btn admin-btn--ghost admin-btn--sm admin-pagination-nav">
+                Sau
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
         </c:when>
         <c:otherwise>
           <div class="admin-empty">Không tìm thấy người dùng nào.</div>
@@ -153,51 +166,76 @@
 
 <script>
 (function () {
-  var form = document.getElementById('userFilterForm');
-  if (!form) return;
+  var tbody = document.getElementById('usersTableBody');
+  if (!tbody) return;
+
+  var PAGE_SIZE = 10;
+  var page = 1;
+  var visibleRows = [];
 
   var keywordInput = document.getElementById('userKeyword');
-  var roleSelect = document.getElementById('role');
-  var statusSelect = document.getElementById('status');
-  var resetBtn = document.getElementById('userFilterReset');
-  var debounceTimer = null;
-  var DEBOUNCE_MS = 350;
+  var roleSelect    = document.getElementById('role');
+  var statusSelect  = document.getElementById('status');
+  var resetBtn      = document.getElementById('userFilterReset');
+  var emptyRow      = document.getElementById('userEmptyRow');
+  var pagInfo       = document.getElementById('userPagInfo');
+  var prevBtn       = document.getElementById('userPrevBtn');
+  var nextBtn       = document.getElementById('userNextBtn');
 
-  function submitFilters() {
-    if (typeof form.requestSubmit === 'function') {
-      form.requestSubmit();
-    } else {
-      form.submit();
+  function getAllRows() {
+    return Array.from(tbody.querySelectorAll('tr')).filter(function (r) { return r !== emptyRow; });
+  }
+
+  function applyFilters() {
+    var kw     = (keywordInput.value || '').toLowerCase().trim();
+    var role   = roleSelect.value;
+    var status = statusSelect.value;
+
+    visibleRows = getAllRows().filter(function (r) {
+      return (!kw || (r.dataset.search || '').indexOf(kw) !== -1) &&
+             (!role || r.dataset.role === role) &&
+             (!status || r.dataset.status === status);
+    });
+    page = 1;
+    renderPage();
+  }
+
+  function renderPage() {
+    var total = visibleRows.length;
+    var pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (page > pages) page = pages;
+    var s = (page - 1) * PAGE_SIZE, e = Math.min(s + PAGE_SIZE, total);
+
+    getAllRows().forEach(function (r) { r.style.display = 'none'; });
+    visibleRows.forEach(function (r, i) { r.style.display = (i >= s && i < e) ? '' : 'none'; });
+
+    if (emptyRow) emptyRow.style.display = total === 0 ? '' : 'none';
+    if (pagInfo) {
+      pagInfo.textContent = total === 0
+        ? 'Không có kết quả'
+        : 'Hiển thị ' + (s + 1) + ' đến ' + e + ' trong ' + total + ' tài khoản';
     }
+    if (prevBtn) prevBtn.disabled = page <= 1;
+    if (nextBtn) nextBtn.disabled = page >= pages;
   }
 
-  if (keywordInput) {
-    keywordInput.addEventListener('input', function () {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(submitFilters, DEBOUNCE_MS);
-    });
-    keywordInput.addEventListener('keydown', function (event) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        clearTimeout(debounceTimer);
-        submitFilters();
-      }
-    });
-  }
-
-  if (roleSelect) {
-    roleSelect.addEventListener('change', submitFilters);
-  }
-
-  if (statusSelect) {
-    statusSelect.addEventListener('change', submitFilters);
-  }
+  keywordInput.addEventListener('input', applyFilters);
+  roleSelect.addEventListener('change', applyFilters);
+  statusSelect.addEventListener('change', applyFilters);
 
   if (resetBtn) {
     resetBtn.addEventListener('click', function () {
-      window.location.href = '${pageContext.request.contextPath}/admin/users';
+      keywordInput.value = '';
+      roleSelect.value = '';
+      statusSelect.value = '';
+      applyFilters();
     });
   }
+
+  if (prevBtn) prevBtn.addEventListener('click', function () { if (page > 1) { page--; renderPage(); } });
+  if (nextBtn) nextBtn.addEventListener('click', function () { page++; renderPage(); });
+
+  applyFilters();
 }());
 </script>
 

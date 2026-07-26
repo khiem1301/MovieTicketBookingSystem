@@ -322,7 +322,7 @@
 </div>
 
 <script>
-  const ROWS_PER_PAGE = 5;
+  const ROWS_PER_PAGE = 6;
   let currentPage  = 1;
   let currentFilter = 'all';
   let filteredRows  = [];

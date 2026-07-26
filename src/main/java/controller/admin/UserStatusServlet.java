@@ -26,7 +26,7 @@ import java.util.logging.Logger;
 public class UserStatusServlet extends HttpServlet {
 
     private static final Logger LOG = Logger.getLogger(UserStatusServlet.class.getName());
-    private static final Set<String> ALLOWED_ACTIONS = Set.of("lock", "unlock", "deactivate");
+    private static final Set<String> ALLOWED_ACTIONS = Set.of("lock", "unlock");
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp)
@@ -72,20 +72,7 @@ public class UserStatusServlet extends HttpServlet {
             return;
         }
 
-        if ("unlock".equals(action)) {
-            handleUnlock(req, resp, user, currentUserId, userDAO);
-            return;
-        }
-
-        String previousStatus = user.getStatus();
-        String newStatus = "INACTIVE";
-        userDAO.updateStatus(userId, newStatus);
-        saveStatusLog(userId, "DEACTIVATE", previousStatus, newStatus, null,
-                false, null, currentUserId);
-
-        AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_SUCCESS,
-                "Đã vô hiệu hóa tài khoản " + user.getFullName() + ".");
-        redirectAfterAction(req, resp, userId);
+        handleUnlock(req, resp, user, currentUserId, userDAO);
     }
 
     private void handleUnlock(HttpServletRequest req, HttpServletResponse resp,

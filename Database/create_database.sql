@@ -203,9 +203,9 @@ CREATE TABLE UserStatusLog (
     CONSTRAINT PK_UserStatusLog           PRIMARY KEY (id),
     CONSTRAINT FK_UserStatusLog_User        FOREIGN KEY (user_id)      REFERENCES Users(id),
     CONSTRAINT FK_UserStatusLog_PerformedBy FOREIGN KEY (performed_by) REFERENCES Users(id),
-    CONSTRAINT CK_UserStatusLog_Action      CHECK (action IN ('LOCK','UNLOCK','DEACTIVATE')),
+    CONSTRAINT CK_UserStatusLog_Action      CHECK (action IN ('LOCK','UNLOCK')),
     CONSTRAINT CK_UserStatusLog_PrevStatus  CHECK (previous_status IN ('ACTIVE','INACTIVE','BANNED')),
-    CONSTRAINT CK_UserStatusLog_NewStatus   CHECK (new_status IN ('ACTIVE','INACTIVE','BANNED'))
+    CONSTRAINT CK_UserStatusLog_NewStatus   CHECK (new_status IN ('ACTIVE','BANNED'))
 );
 GO
 
