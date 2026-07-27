@@ -315,13 +315,11 @@ CREATE TABLE Seats (
     seat_row     NVARCHAR(10)      NOT NULL,
     seat_column  INT              NOT NULL,
     seat_code    NVARCHAR(20)      NOT NULL,
-    status       NVARCHAR(10)      NOT NULL DEFAULT 'ACTIVE',
 
     CONSTRAINT PK_Seats         PRIMARY KEY (id),
     CONSTRAINT FK_Seats_Room    FOREIGN KEY (room_id)      REFERENCES CinemaRooms(id),
     CONSTRAINT FK_Seats_Type    FOREIGN KEY (seat_type_id) REFERENCES SeatTypes(id),
     CONSTRAINT UK_Seats_Code    UNIQUE (room_id, seat_code),
-    CONSTRAINT CK_Seats_Status  CHECK  (status IN ('ACTIVE','BROKEN','BLOCKED')),
     CONSTRAINT CK_Seats_Col     CHECK  (seat_column > 0)
 );
 GO
@@ -766,7 +764,6 @@ CREATE INDEX IX_Showtimes_StartTime ON Showtimes(start_time);
 CREATE INDEX IX_Showtimes_Status    ON Showtimes(status);
 
 CREATE INDEX IX_Seats_Room          ON Seats(room_id);
-CREATE INDEX IX_Seats_Status        ON Seats(room_id, status);
 
 CREATE INDEX IX_SeatHolds_Expired   ON SeatHolds(expired_at);
 CREATE INDEX IX_SeatHolds_ShowSeat  ON SeatHolds(showtime_id, seat_id);

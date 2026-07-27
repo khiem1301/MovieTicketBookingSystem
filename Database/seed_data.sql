@@ -339,16 +339,16 @@ DECLARE @StatsRoom1       UNIQUEIDENTIFIER = 'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCC
 DECLARE @StatsRoom2       UNIQUEIDENTIFIER = 'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCC02';
 DECLARE @StatsRoom3       UNIQUEIDENTIFIER = 'CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCC03';
 
-INSERT INTO Seats (id, room_id, seat_type_id, seat_row, seat_column, seat_code, status) VALUES
-    ('66666666-6666-6666-6666-666666666601', @StatsRoom1, @StatsRegularType, N'A', 1, N'A1', 'ACTIVE'),
-    ('66666666-6666-6666-6666-666666666602', @StatsRoom1, @StatsRegularType, N'A', 2, N'A2', 'ACTIVE'),
-    ('66666666-6666-6666-6666-666666666603', @StatsRoom1, @StatsRegularType, N'A', 3, N'A3', 'ACTIVE'),
-    ('66666666-6666-6666-6666-666666666604', @StatsRoom1, @StatsRegularType, N'B', 1, N'B1', 'ACTIVE'),
-    ('66666666-6666-6666-6666-666666666605', @StatsRoom1, @StatsRegularType, N'B', 2, N'B2', 'ACTIVE'),
-    ('66666666-6666-6666-6666-666666666606', @StatsRoom2, @StatsVipType,     N'A', 1, N'A1', 'ACTIVE'),
-    ('66666666-6666-6666-6666-666666666607', @StatsRoom2, @StatsVipType,     N'A', 2, N'A2', 'ACTIVE'),
-    ('66666666-6666-6666-6666-666666666608', @StatsRoom2, @StatsRegularType, N'A', 3, N'A3', 'ACTIVE'),
-    ('66666666-6666-6666-6666-666666666609', @StatsRoom3, @StatsRegularType, N'A', 1, N'A1', 'ACTIVE');
+INSERT INTO Seats (id, room_id, seat_type_id, seat_row, seat_column, seat_code) VALUES
+    ('66666666-6666-6666-6666-666666666601', @StatsRoom1, @StatsRegularType, N'A', 1, N'A1'),
+    ('66666666-6666-6666-6666-666666666602', @StatsRoom1, @StatsRegularType, N'A', 2, N'A2'),
+    ('66666666-6666-6666-6666-666666666603', @StatsRoom1, @StatsRegularType, N'A', 3, N'A3'),
+    ('66666666-6666-6666-6666-666666666604', @StatsRoom1, @StatsRegularType, N'B', 1, N'B1'),
+    ('66666666-6666-6666-6666-666666666605', @StatsRoom1, @StatsRegularType, N'B', 2, N'B2'),
+    ('66666666-6666-6666-6666-666666666606', @StatsRoom2, @StatsVipType,     N'A', 1, N'A1'),
+    ('66666666-6666-6666-6666-666666666607', @StatsRoom2, @StatsVipType,     N'A', 2, N'A2'),
+    ('66666666-6666-6666-6666-666666666608', @StatsRoom2, @StatsRegularType, N'A', 3, N'A3'),
+    ('66666666-6666-6666-6666-666666666609', @StatsRoom3, @StatsRegularType, N'A', 1, N'A1');
 
 INSERT INTO Showtimes (id, movie_id, room_id, start_time, end_time, base_price, status, created_by) VALUES
     ('55555555-5555-5555-5555-555555555501', 'AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAA101', @StatsRoom1, '2026-06-05 18:00:00', '2026-06-05 20:30:00', 100000, 'FINISHED',  @StatsManagerId),

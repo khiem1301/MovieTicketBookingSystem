@@ -367,9 +367,9 @@ public class CinemaRoomDAO {
         }
     }
 
-    /** Số ghế ACTIVE trong phòng. */
+    /** Số ghế trong phòng. */
     public int countActiveSeats(String roomId) {
-        String sql = "SELECT COUNT(1) FROM Seats WHERE room_id = ? AND status = 'ACTIVE'";
+        String sql = "SELECT COUNT(1) FROM Seats WHERE room_id = ?";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, roomId);
@@ -381,13 +381,12 @@ public class CinemaRoomDAO {
         }
     }
 
-    /** Số ghế accessibility (ACTIVE) trong phòng — dùng cho panel chi tiết. */
+    /** Số ghế accessibility trong phòng — dùng cho panel chi tiết. */
     public int countAccessibleSeats(String roomId) {
         String sql = """
                 SELECT COUNT(1)
                 FROM Seats
                 WHERE room_id = ?
-                  AND status = 'ACTIVE'
                   AND seat_type_id IN (
                       SELECT id FROM SeatTypes WHERE type_name IN ('WHEELCHAIR', 'ACCESSIBLE')
                   )

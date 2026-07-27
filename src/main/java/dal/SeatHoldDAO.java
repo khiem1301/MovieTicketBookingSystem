@@ -39,7 +39,6 @@ public class SeatHoldDAO {
                 FROM Seats s
                 JOIN Showtimes sh ON sh.room_id = s.room_id AND sh.id = ?
                 WHERE s.id IN (%s)
-                  AND s.status = 'ACTIVE'
                   AND (
                       EXISTS (
                           SELECT 1 FROM BookingSeats bs
@@ -92,7 +91,7 @@ public class SeatHoldDAO {
                 SELECT COUNT(*) AS cnt
                 FROM Seats s
                 JOIN Showtimes sh ON sh.room_id = s.room_id AND sh.id = ?
-                WHERE s.id IN (%s) AND s.status = 'ACTIVE'
+                WHERE s.id IN (%s)
                 """.formatted(inClause);
 
         try (Connection conn = DBContext.getConnection();
