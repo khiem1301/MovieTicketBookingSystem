@@ -142,51 +142,15 @@
                   </div>
                 </div>
 
-                <c:choose>
-                  <c:when test="${sepayEnabled}">
-                    <div class="pay-momo-wait-note" id="payVietqrWaitBox"
-                         data-vietqr-waiting="true"
-                         data-booking-id="<c:out value='${detail.bookingId}'/>"
-                         data-ctx="${ctx}">
-                      <span aria-hidden="true">ℹ</span>
-                      Chuyển khoản đúng số tiền và <strong>nội dung CK</strong>.
-                      SePay sẽ tự xác nhận khi tiền vào — trang sẽ chuyển sang thành công.
-                      <span id="payVietqrWaitMsg">Đang chờ xác nhận thanh toán...</span>
-                    </div>
-                  </c:when>
-                  <c:otherwise>
-                    <div class="pay-momo-wait-note">
-                      <span aria-hidden="true">ℹ</span>
-                      Chuyển khoản đúng số tiền và nội dung ghi chú. Sau khi chuyển, nhấn nút bên dưới để hoàn tất đơn.
-                    </div>
-                  </c:otherwise>
-                </c:choose>
+                <c:if test="${sepayEnabled}">
+                  <div id="payVietqrWaitBox"
+                       data-vietqr-waiting="true"
+                       data-booking-id="<c:out value='${detail.bookingId}'/>"
+                       data-ctx="${ctx}" style="display:none;">
+                  </div>
+                </c:if>
               </div>
             </div>
-            <c:choose>
-              <c:when test="${sepayEnabled}">
-                <p class="pay-stub-note" style="margin-top:12px;">
-                  Tự động xác nhận qua SePay webhook. Nút thủ công chỉ dùng khi webhook lỗi.
-                </p>
-                <form method="post" action="${ctx}/payment" class="pay-vqr-confirm-form"
-                      onsubmit="return confirm('Webhook chưa xác nhận. Bạn chắc đã chuyển đúng số tiền + nội dung?');">
-                  <input type="hidden" name="bookingId" value="<c:out value='${detail.bookingId}'/>"/>
-                  <input type="hidden" name="action" value="confirmVietQR"/>
-                  <button type="submit" class="pay-back-link"
-                          style="width:100%; text-align:center; background:transparent; border:1px solid rgba(255,255,255,0.15); padding:10px 12px; border-radius:10px; cursor:pointer;">
-                    Xác nhận thủ công (fallback)
-                  </button>
-                </form>
-              </c:when>
-              <c:otherwise>
-                <form method="post" action="${ctx}/payment" class="pay-vqr-confirm-form"
-                      onsubmit="return confirm('Bạn đã chuyển khoản thành công với đúng số tiền và nội dung?');">
-                  <input type="hidden" name="bookingId" value="<c:out value='${detail.bookingId}'/>"/>
-                  <input type="hidden" name="action" value="confirmVietQR"/>
-                  <button type="submit" class="pay-momo-pay-btn">Tôi đã chuyển khoản</button>
-                </form>
-              </c:otherwise>
-            </c:choose>
           </c:when>
           <c:otherwise>
             <div class="pay-momo-start">
