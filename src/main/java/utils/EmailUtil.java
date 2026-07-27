@@ -26,6 +26,8 @@ public final class EmailUtil {
 
     private static final Logger LOG = Logger.getLogger(EmailUtil.class.getName());
     private static final String PROPS_FILE = "email.properties";
+    /** ÉPCINE — unicode escape tránh phụ thuộc encoding file .java / .properties trên Windows. */
+    private static final String BRAND_NAME = "\u00C9PCINE";
     // TODO(test): tạm 1 phút để test hết hạn — nhớ đổi lại 24 * 60 trước khi nộp/demo
     private static final int VERIFY_TOKEN_MINUTES = 1;
 
@@ -171,7 +173,7 @@ public final class EmailUtil {
             throws MessagingException {
         Properties props = requireProperties();
         String fromEmail = props.getProperty("mail.from", props.getProperty("mail.smtp.username"));
-        String fromName = props.getProperty("mail.from.name", "ÉPCINE");
+        String fromName = resolveFromName(props);
 
         Properties mailProps = buildMailSessionProperties(props);
         Session session = Session.getInstance(mailProps, new Authenticator() {
@@ -207,7 +209,7 @@ public final class EmailUtil {
         try {
             Properties props = requireProperties();
             String fromEmail = props.getProperty("mail.from", props.getProperty("mail.smtp.username"));
-            String fromName  = props.getProperty("mail.from.name", "ÉPCINE");
+            String fromName  = resolveFromName(props);
 
             Properties mailProps = buildMailSessionProperties(props);
             Session session = Session.getInstance(mailProps, new Authenticator() {
@@ -413,7 +415,7 @@ public final class EmailUtil {
         String pointsLine = pointsAwarded > 0
                 ? ("<p style=\"background:#e8f5e9;padding:12px 16px;border-radius:8px\">"
                 + "Bạn được <strong>cộng " + String.format("%,d", pointsAwarded)
-                + " điểm thưởng</strong> tương đương giá trị vé đã mua.</p>")
+                + " điểm thưởng</strong> — đủ để đổi lại ≥ giá trị vé đã thanh toán khi đặt đơn tiếp theo.</p>")
                 : "<p>Nếu đơn không gắn tài khoản thành viên, điểm thưởng sẽ được xử lý tại quầy.</p>";
 
         String htmlBody = """
@@ -443,7 +445,7 @@ public final class EmailUtil {
 
         Properties props = requireProperties();
         String fromEmail = props.getProperty("mail.smtp.username", "").trim();
-        String fromName = props.getProperty("mail.from.name", "ÉPCINE").trim();
+        String fromName = resolveFromName(props);
         Session session = Session.getInstance(buildMailSessionProperties(props), new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
@@ -532,13 +534,25 @@ public final class EmailUtil {
         return mailProps;
     }
 
+    /**
+     * Display name for From. Falls back when email.properties stored Latin-1 É
+     * while loaded as UTF-8 (byte 0xC9 becomes U+FFFD → "�PCINE" in Gmail).
+     */
+    private static String resolveFromName(Properties props) {
+        String name = props.getProperty("mail.from.name", BRAND_NAME);
+        if (name == null || name.isBlank() || name.indexOf('\uFFFD') >= 0) {
+            return BRAND_NAME;
+        }
+        return name.trim();
+    }
+
     private static Properties loadProperties() {
         try (InputStream in = EmailUtil.class.getClassLoader().getResourceAsStream(PROPS_FILE)) {
             if (in == null) {
                 return null;
             }
             Properties props = new Properties();
-            // UTF-8 so mail.from.name=ÉPCINE is not mojibaked (props.load(InputStream) is ISO-8859-1)
+            // Reader UTF-8 + hỗ trợ \u00C9 trong value (an toàn hơn gõ thẳng É trên Windows)
             props.load(new InputStreamReader(in, StandardCharsets.UTF_8));
             return props;
         } catch (IOException ex) {

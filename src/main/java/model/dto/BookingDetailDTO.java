@@ -154,6 +154,15 @@ public class BookingDetailDTO {
         return appliedPromoCode != null && !appliedPromoCode.isBlank();
     }
 
+    /** JavaBean getter cho EL `${detail.hasAppliedPromo}` / `${detail.promoApplied}`. */
+    public boolean isHasAppliedPromo() {
+        return hasAppliedPromo();
+    }
+
+    public boolean isPromoApplied() {
+        return hasAppliedPromo();
+    }
+
     /** True khi có vé và tất cả vé đã is_printed = 1. */
     public boolean isTicketsPrinted() {
         if (tickets == null || tickets.isEmpty()) return false;

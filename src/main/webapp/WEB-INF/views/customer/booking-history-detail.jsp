@@ -65,7 +65,7 @@
         </div>
         <c:if test="${detail.discountAmount != null and detail.discountAmount > 0}">
           <div class="bh-amount-row">
-            <dt>Giảm giá<c:if test="${detail.hasAppliedPromo}"> (<c:out value="${detail.appliedPromoCode}"/>)</c:if></dt>
+            <dt>Giảm giá<c:if test="${not empty detail.appliedPromoCode}"> (<c:out value="${detail.appliedPromoCode}"/>)</c:if></dt>
             <dd>-<fmt:formatNumber value="${detail.discountAmount}" type="number" groupingUsed="true"/> ₫</dd>
           </div>
         </c:if>

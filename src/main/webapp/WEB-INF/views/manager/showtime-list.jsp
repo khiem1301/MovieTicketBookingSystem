@@ -516,7 +516,8 @@
     <div class="st-modal-body">
       <div class="st-lock-note">
         Hủy suất sẽ ảnh hưởng mọi khách đã đặt vé: gửi email lý do và
-        <strong>cộng điểm thưởng tương đương giá trị vé</strong> cho thành viên.
+        <strong>cộng điểm thưởng đủ để đổi lại ≥ giá trị vé đã thanh toán</strong>
+        (quy theo tỷ lệ đổi điểm → tiền, không theo tỷ lệ tích điểm).
       </div>
       <form method="post" action="${pageContext.request.contextPath}/manager/showtimes"
             class="st-modal-form" id="stCancelForm"

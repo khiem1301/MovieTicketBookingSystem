@@ -25,9 +25,10 @@ public class HomeServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        // Staff không dùng trang home — luôn vào quầy vé
-        if ("STAFF".equals(SessionUtil.getUserRole(req))) {
-            resp.sendRedirect(req.getContextPath() + AuthRedirectUtil.STAFF_HOME);
+        // Staff / Admin không dùng trang home khách — về màn hình mặc định theo role
+        String role = SessionUtil.getUserRole(req);
+        if ("STAFF".equals(role) || "ADMIN".equals(role)) {
+            resp.sendRedirect(AuthRedirectUtil.defaultRedirectForRole(req, role));
             return;
         }
 
