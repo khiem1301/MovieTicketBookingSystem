@@ -6,6 +6,21 @@
   'use strict';
 
   const CTX = document.querySelector('meta[name="ctx"]')?.content ?? '';
+  const LOYALTY_REDEEM_RATE = Math.max(1, parseInt(
+      document.querySelector('meta[name="loyalty-redeem-rate"]')?.content, 10) || 100);
+  const LOYALTY_MIN_REDEEM = Math.max(1, parseInt(
+      document.querySelector('meta[name="loyalty-min-redeem"]')?.content, 10) || 100);
+  const LOYALTY_MAX_REDEEM = Math.max(LOYALTY_MIN_REDEEM, parseInt(
+      document.querySelector('meta[name="loyalty-max-redeem"]')?.content, 10) || 5000);
+
+  function loyaltyDiscountVnd(points) {
+    if (!points || points <= 0) return 0;
+    return (points / LOYALTY_REDEEM_RATE) * 10000;
+  }
+
+  function floorToRedeemUnit(pts) {
+    return Math.floor(pts / LOYALTY_REDEEM_RATE) * LOYALTY_REDEEM_RATE;
+  }
 
   // Back t\u1eeb m\u00e0n thanh to\u00e1n: bfcache c\u00f3 th\u1ec3 tr\u1ea3 POS c\u0169 (gh\u1ebf kh\u00f3a, thi\u1ebfu banner \u0111\u01a1n ch\u1edd)
   window.addEventListener('pageshow', function (e) {
@@ -605,7 +620,7 @@
     }
 
     const rawTotal   = selectedSeats.reduce((sum, s) => sum + s.price, 0);
-    const discount   = appliedPoints > 0 ? (appliedPoints / 100) * 10000 : 0;
+    const discount   = appliedPoints > 0 ? loyaltyDiscountVnd(appliedPoints) : 0;
     const finalTotal = Math.max(0, rawTotal - discount);
 
     const discRow     = document.getElementById('pointsDiscountRow');
@@ -828,9 +843,9 @@
     const preview = document.getElementById('loyaltyDiscountPreview');
     if (!inp || !preview) return;
     const pts = Math.max(0, parseInt(inp.value) || 0);
-    const effective = Math.floor(pts / 100) * 100;
-    if (effective >= 100) {
-      const disc = (effective / 100) * 10000;
+    const effective = floorToRedeemUnit(pts);
+    if (effective >= LOYALTY_MIN_REDEEM) {
+      const disc = loyaltyDiscountVnd(effective);
       preview.style.color = '#aaa';
       preview.textContent = `\u2192 Gi\u1ea3m ${formatVnd(disc)} (${effective.toLocaleString('vi-VN')} \u0111i\u1ec3m)`;
     } else {
@@ -842,19 +857,19 @@
     const inp = document.getElementById('loyaltyPointsInput');
     if (!inp) return;
     const pts = Math.max(0, parseInt(inp.value) || 0);
-    const effective = Math.floor(pts / 100) * 100;
+    const effective = floorToRedeemUnit(pts);
 
-    if (pts > 0 && effective < 100) {
-      alert('\u0110i\u1ec3m t\u1ed1i thi\u1ec3u \u0111\u1ec3 \u0111\u1ed5i l\u00e0 100 \u0111i\u1ec3m.');
+    if (pts > 0 && effective < LOYALTY_MIN_REDEEM) {
+      alert(`\u0110i\u1ec3m t\u1ed1i thi\u1ec3u \u0111\u1ec3 \u0111\u1ed5i l\u00e0 ${LOYALTY_MIN_REDEEM.toLocaleString('vi-VN')} \u0111i\u1ec3m.`);
       return;
     }
     if (effective > memberPointsBalance) {
       alert(`S\u1ed1 \u0111i\u1ec3m nh\u1eadp (${effective.toLocaleString('vi-VN')}) v\u01b0\u1ee3t qu\u00e1 s\u1ed1 d\u01b0 (${memberPointsBalance.toLocaleString('vi-VN')} \u0111i\u1ec3m).`);
       return;
     }
-    if (effective > 5000) {
-      alert('T\u1ed1i \u0111a 5.000 \u0111i\u1ec3m m\u1ed7i \u0111\u01a1n h\u00e0ng.');
-      inp.value = 5000;
+    if (effective > LOYALTY_MAX_REDEEM) {
+      alert(`T\u1ed1i \u0111a ${LOYALTY_MAX_REDEEM.toLocaleString('vi-VN')} \u0111i\u1ec3m m\u1ed7i \u0111\u01a1n h\u00e0ng.`);
+      inp.value = LOYALTY_MAX_REDEEM;
       return;
     }
 
@@ -865,7 +880,7 @@
     if (preview) {
       if (appliedPoints > 0) {
         preview.style.color = '#66bb6a';
-        preview.textContent = `\u2713 \u0110\u00e3 \u00e1p d\u1ee5ng: -${formatVnd((appliedPoints / 100) * 10000)}`;
+        preview.textContent = `\u2713 \u0110\u00e3 \u00e1p d\u1ee5ng: -${formatVnd(loyaltyDiscountVnd(appliedPoints))}`;
       } else {
         preview.textContent = 'Kh\u00f4ng \u00e1p d\u1ee5ng \u0111i\u1ec3m.';
         preview.style.color = '#aaa';

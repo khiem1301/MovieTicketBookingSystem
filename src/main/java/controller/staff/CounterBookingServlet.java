@@ -26,6 +26,8 @@ import utils.SePayConfig;
 import utils.SeatHoldException;
 import utils.SessionUtil;
 import utils.ShowtimeBookingWindow;
+import utils.ConfigKeys;
+import utils.ConfigUtil;
 import utils.VietQRConfig;
 import utils.VietQRUtil;
 
@@ -171,6 +173,7 @@ public class CounterBookingServlet extends HttpServlet {
             log("CounterBookingServlet GET error", e);
             req.setAttribute("errorMessage", "Lỗi hệ thống: " + e.getMessage());
             req.setAttribute("movies", List.of());
+            setLoyaltyConfigAttrs(req);
             req.getRequestDispatcher(VIEW_MAIN).forward(req, resp);
         }
     }
@@ -231,6 +234,17 @@ public class CounterBookingServlet extends HttpServlet {
             }
         }
         req.setAttribute("movies", new ShowtimeDAO().getMoviesWithActiveShowtimes());
+        setLoyaltyConfigAttrs(req);
+    }
+
+    /** Tỷ lệ đổi điểm — UI staff đọc từ đây (không hardcode 100). */
+    private void setLoyaltyConfigAttrs(HttpServletRequest req) {
+        req.setAttribute("loyaltyRedeemRate",
+                ConfigUtil.getInt(ConfigKeys.LOYALTY_REDEEM_RATE, 100));
+        req.setAttribute("loyaltyMinRedeem",
+                ConfigUtil.getInt(ConfigKeys.LOYALTY_MIN_REDEEM, 100));
+        req.setAttribute("loyaltyMaxRedeem",
+                ConfigUtil.getInt(ConfigKeys.LOYALTY_MAX_REDEEM_PER_ORDER, 5000));
     }
 
     /** Hủy đơn OFFLINE PENDING khi staff Back từ thanh toán. */

@@ -18,10 +18,11 @@ public class LoyaltyDAO {
 
     // ── Số dư điểm hiện tại ────────────────────────────────────────────────
 
+    /** Số dư thật trên Users.loyalty_points (khớp trang cá nhân / thanh toán). */
     public int getLoyaltyBalance(String userId) {
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(
-                     "SELECT COALESCE(SUM(points_delta), 0) FROM LoyaltyPointsLog WHERE user_id = ?")) {
+                     "SELECT COALESCE(loyalty_points, 0) FROM Users WHERE id = ?")) {
             ps.setString(1, userId);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? rs.getInt(1) : 0;
@@ -307,9 +308,42 @@ public class LoyaltyDAO {
         }
     }
 
+    /** Quy đổi redeem cố định trong hệ thống: {@code loyalty_redeem_rate} điểm = 10.000đ. */
+    private static final BigDecimal REDEEM_UNIT_VND = new BigDecimal("10000");
+
+    /**
+     * Số điểm cần để đổi được ít nhất {@code amountVnd} khi thanh toán.
+     * <pre>
+     *   loyalty_redeem_rate điểm = 10.000đ
+     *   points = ceil(amountVnd / 10.000) × loyalty_redeem_rate
+     * </pre>
+     * Làm tròn lên theo đơn vị 10.000đ để khi redeem không bị thiếu tiền vé.
+     */
+    public static int pointsNeededForAmount(BigDecimal amountVnd) {
+        if (amountVnd == null || amountVnd.compareTo(BigDecimal.ZERO) <= 0) {
+            return 0;
+        }
+        int redeemRate = ConfigUtil.getInt(ConfigKeys.LOYALTY_REDEEM_RATE, 100);
+        if (redeemRate <= 0) {
+            return 0;
+        }
+        int units = amountVnd
+                .divide(REDEEM_UNIT_VND, 0, RoundingMode.CEILING)
+                .intValue();
+        return units * redeemRate;
+    }
+
     /**
      * FR-47 — Hoàn điểm khi hủy suất chiếu.
-     * points = ceil(finalAmount / 1000 × refundRate) — tương đương giá trị vé quy ra điểm.
+     * <p>
+     * Tích điểm (earn) và đổi điểm (redeem) dùng rate khác nhau — khi hoàn phải quy
+     * theo redeem để điểm nhận được đủ đổi lại ≥ giá trị vé đã trả
+     * ({@code finalAmount × refundRate}):
+     * <pre>
+     *   compensated = finalAmount × refundRate
+     *   points = ceil(compensated / 10.000) × loyalty_redeem_rate
+     * </pre>
+     *
      * @return số điểm đã cộng
      */
     public static int creditRefundPoints(Connection conn, String userId, String bookingId,
@@ -319,11 +353,8 @@ public class LoyaltyDAO {
         BigDecimal rate = refundRate != null ? refundRate : BigDecimal.ONE;
         if (rate.compareTo(BigDecimal.ZERO) <= 0) return 0;
 
-        int pts = finalAmount
-                .divide(new BigDecimal("1000"), 4, RoundingMode.HALF_UP)
-                .multiply(rate)
-                .setScale(0, RoundingMode.CEILING)
-                .intValue();
+        BigDecimal compensated = finalAmount.multiply(rate);
+        int pts = pointsNeededForAmount(compensated);
         if (pts <= 0) return 0;
 
         try (PreparedStatement ps = conn.prepareStatement(

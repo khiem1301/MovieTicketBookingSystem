@@ -8,6 +8,9 @@
 <c:set var="extraCss2" value="counter-pos"/>
 <%@ include file="/WEB-INF/views/common/header.jsp" %>
 <meta name="ctx" content="${pageContext.request.contextPath}"/>
+<meta name="loyalty-redeem-rate" content="${loyaltyRedeemRate}"/>
+<meta name="loyalty-min-redeem" content="${loyaltyMinRedeem}"/>
+<meta name="loyalty-max-redeem" content="${loyaltyMaxRedeem}"/>
 <script>document.body.classList.add('pos-body');</script>
 
 <div class="pos-container">
@@ -326,7 +329,7 @@
 </div><%-- /pos-container --%>
 
 <script charset="UTF-8" src="${pageContext.request.contextPath}/js/seat-type-colors.js?v=7"></script>
-<script charset="UTF-8" src="${pageContext.request.contextPath}/js/counter-booking.js?v=17"></script>
+<script charset="UTF-8" src="${pageContext.request.contextPath}/js/counter-booking.js?v=18"></script>
 <script>
 (function () {
   // Countdown từng đơn PENDING

@@ -90,12 +90,7 @@
           <c:choose>
             <c:when test="${user.roleName == 'CUSTOMER'}">
               <span class="profile-stat-value profile-stat-value--accent">
-                <c:choose>
-                  <c:when test="${user.loyaltyPoints >= 1000}">
-                    <fmt:formatNumber value="${user.loyaltyPoints / 1000}" maxFractionDigits="1"/>K
-                  </c:when>
-                  <c:otherwise><c:out value="${user.loyaltyPoints}"/></c:otherwise>
-                </c:choose>
+                <fmt:formatNumber value="${user.loyaltyPoints}" type="number" groupingUsed="true"/>
               </span>
             </c:when>
             <c:otherwise>

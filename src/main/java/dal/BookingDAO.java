@@ -1891,7 +1891,8 @@ public class BookingDAO {
     }
 
     /**
-     * FR-46/47 — Hủy suất chiếu: cập nhật booking, hoàn điểm thành viên theo giá trị vé.
+     * FR-46/47 — Hủy suất chiếu: cập nhật booking, hoàn điểm thành viên
+     * theo công thức redeem (đủ đổi ≥ finalAmount × refundRate).
      * Trả về danh sách booking đã xử lý (để gửi email ngoài transaction).
      */
     public List<ShowtimeCancelBookingInfo> cancelShowtimeAndCompensate(

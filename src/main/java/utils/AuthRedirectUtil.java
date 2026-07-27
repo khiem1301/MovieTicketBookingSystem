@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 public final class AuthRedirectUtil {
 
     public static final String STAFF_HOME = "/staff/counter";
+    public static final String ADMIN_HOME = "/admin/dashboard";
     public static final String DEFAULT_HOME = "/home";
 
     private AuthRedirectUtil() {}
@@ -26,7 +27,7 @@ public final class AuthRedirectUtil {
             return req.getContextPath() + STAFF_HOME;
         }
         if ("ADMIN".equals(role)) {
-            return req.getContextPath() + "/admin/dashboard";
+            return req.getContextPath() + ADMIN_HOME;
         }
         // MANAGER → /home (xem giao diện khách); quản lý phim vào từ menu
         return req.getContextPath() + DEFAULT_HOME;
@@ -45,7 +46,8 @@ public final class AuthRedirectUtil {
             path = path.substring(0, q);
         }
 
-        if ("STAFF".equals(role)) {
+        // ADMIN / STAFF không dùng trang home khách
+        if ("STAFF".equals(role) || "ADMIN".equals(role)) {
             if ("/".equals(path) || "/home".equals(path) || "/index.jsp".equals(path)) {
                 return false;
             }

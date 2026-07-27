@@ -332,7 +332,7 @@ mail.smtp.starttls.enable=true
 mail.smtp.username=epcine88@gmail.com
 mail.smtp.password=<app-password-16-ky-tu>
 mail.from=epcine88@gmail.com
-mail.from.name=ÉPCINE
+mail.from.name=\u00C9PCINE
 ```
 
 
@@ -400,7 +400,7 @@ mail.smtp.starttls.enable=true
 mail.smtp.username=epcine88@gmail.com
 mail.smtp.password=<app-password-16-ky-tu>
 mail.from=epcine88@gmail.com
-mail.from.name=ÉPCINE
+mail.from.name=\u00C9PCINE
 app.base.url=http://localhost:9999/MovieTicketBookingSystem_war_exploded
 ```
 

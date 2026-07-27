@@ -43,7 +43,8 @@ public class BookingHistoryDetailServlet extends HttpServlet {
         BookingDetailDTO detail = new BookingDAO().getDetailById(bookingId);
         if (!BookingAccessUtil.isOwner(detail, sessionUser.getId())
                 || !isCompletedPaid(detail)) {
-            req.getRequestDispatcher("/WEB-INF/views/error/404.jsp").forward(req, resp);
+            req.getRequestDispatcher("/WEB-INF/views/customer/booking-history-unavailable.jsp")
+                    .forward(req, resp);
             return;
         }
 
