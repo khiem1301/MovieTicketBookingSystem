@@ -11,7 +11,6 @@ public class Seat {
     private String seatRow;
     private int seatColumn;
     private String seatCode;
-    private String status;
     /** Computed field: basePrice × priceMultiplier, gán bởi SeatDAO. */
     private BigDecimal ticketPrice;
     /** Computed field: true nếu ghế chưa bị đặt cho suất này. */
@@ -27,7 +26,6 @@ public class Seat {
         this.seatRow = seatRow;
         this.seatColumn = seatColumn;
         this.seatCode = seatCode;
-        this.status = "ACTIVE";
     }
 
     public String getId() { return id; }
@@ -53,9 +51,6 @@ public class Seat {
 
     public String getSeatCode() { return seatCode; }
     public void setSeatCode(String seatCode) { this.seatCode = seatCode; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
 
     public BigDecimal getTicketPrice() { return ticketPrice; }
     public void setTicketPrice(BigDecimal ticketPrice) { this.ticketPrice = ticketPrice; }

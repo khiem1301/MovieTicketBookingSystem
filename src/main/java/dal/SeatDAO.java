@@ -13,7 +13,7 @@ import model.entity.Seat;
 public class SeatDAO {
 
     /**
-     * FR-35 / FR-12 — Lấy tất cả ghế active của phòng chiếu, kèm trạng thái available/booked/held.
+     * FR-35 / FR-12 — Lấy tất cả ghế của phòng chiếu, kèm trạng thái available/booked/held.
      * Tính sẵn ticketPrice = base_price × price_multiplier (staff counter).
      * Servlet customer ghi đè ticketPrice sau khi có effectivePrice từ PricingCalculator.
      *
@@ -54,7 +54,7 @@ public class SeatDAO {
 
         String sql = """
                 SELECT s.id, s.room_id, s.seat_type_id, st.type_name, st.price_multiplier,
-                       s.seat_row, s.seat_column, s.seat_code, s.status,
+                       s.seat_row, s.seat_column, s.seat_code,
                        sh.base_price,
                        %s AS is_available,
                        %s AS held_by_me
@@ -77,7 +77,6 @@ public class SeatDAO {
                     AND sh_hold.showtime_id = sh.id
                     AND sh_hold.expired_at > GETDATE()
                 WHERE sh.id = ?
-                  AND s.status = 'ACTIVE'
                 ORDER BY s.seat_row, s.seat_column
                 """.formatted(availabilityCase, heldByMeCase);
 
@@ -99,14 +98,14 @@ public class SeatDAO {
         return result;
     }
 
-    /** FR-26 — Ghế layout của phòng (không gồm BROKEN) cho editor manager. */
+    /** FR-26 — Ghế layout của phòng cho editor manager. */
     public List<Seat> getSeatsByRoom(String roomId) {
         String sql = """
                 SELECT s.id, s.room_id, s.seat_type_id, st.type_name, st.price_multiplier,
-                       s.seat_row, s.seat_column, s.seat_code, s.status
+                       s.seat_row, s.seat_column, s.seat_code
                 FROM Seats s
                 JOIN SeatTypes st ON st.id = s.seat_type_id
-                WHERE s.room_id = ? AND s.status <> 'BROKEN'
+                WHERE s.room_id = ?
                 ORDER BY s.seat_row, s.seat_column
                 """;
         List<Seat> result = new ArrayList<>();
@@ -123,7 +122,7 @@ public class SeatDAO {
     }
 
     /**
-     * FR-26 — Lưu layout ghế: xóa ghế non-BROKEN, upsert ghế mới, sync capacity.
+     * FR-26 — Lưu layout ghế: xóa ghế cũ, insert ghế mới, sync capacity.
      */
     public void saveLayout(String roomId, List<Seat> seats) {
         Connection conn = null;
@@ -149,47 +148,32 @@ public class SeatDAO {
 
     /** Lưu layout trong transaction đang mở (dùng khi tạo phòng + layout cùng lúc). */
     public void saveLayout(Connection conn, String roomId, List<Seat> seats) throws SQLException {
-        String deleteSql = "DELETE FROM Seats WHERE room_id = ? AND status <> 'BROKEN'";
+        String deleteSql = "DELETE FROM Seats WHERE room_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(deleteSql)) {
             ps.setString(1, roomId);
             ps.executeUpdate();
         }
 
-        String updateBrokenSql = """
-                UPDATE Seats SET status = 'ACTIVE', seat_type_id = ?, seat_row = ?, seat_column = ?
-                WHERE room_id = ? AND seat_code = ? AND status = 'BROKEN'
-                """;
         String insertSql = """
-                INSERT INTO Seats (id, room_id, seat_type_id, seat_row, seat_column, seat_code, status)
-                VALUES (NEWID(), ?, ?, ?, ?, ?, 'ACTIVE')
+                INSERT INTO Seats (id, room_id, seat_type_id, seat_row, seat_column, seat_code)
+                VALUES (NEWID(), ?, ?, ?, ?, ?)
                 """;
 
         for (Seat seat : seats) {
-            int updated;
-            try (PreparedStatement ps = conn.prepareStatement(updateBrokenSql)) {
-                ps.setString(1, seat.getSeatTypeId());
-                ps.setString(2, seat.getSeatRow());
-                ps.setInt(3, seat.getSeatColumn());
-                ps.setString(4, roomId);
+            try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
+                ps.setString(1, roomId);
+                ps.setString(2, seat.getSeatTypeId());
+                ps.setString(3, seat.getSeatRow());
+                ps.setInt(4, seat.getSeatColumn());
                 ps.setString(5, seat.getSeatCode());
-                updated = ps.executeUpdate();
-            }
-            if (updated == 0) {
-                try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
-                    ps.setString(1, roomId);
-                    ps.setString(2, seat.getSeatTypeId());
-                    ps.setString(3, seat.getSeatRow());
-                    ps.setInt(4, seat.getSeatColumn());
-                    ps.setString(5, seat.getSeatCode());
-                    ps.executeUpdate();
-                }
+                ps.executeUpdate();
             }
         }
 
         String syncCapSql = """
                 UPDATE CinemaRooms
                 SET capacity = (
-                    SELECT COUNT(*) FROM Seats WHERE room_id = ? AND status = 'ACTIVE'
+                    SELECT COUNT(*) FROM Seats WHERE room_id = ?
                 )
                 WHERE id = ?
                 """;
@@ -210,7 +194,6 @@ public class SeatDAO {
         s.setSeatRow(rs.getString("seat_row"));
         s.setSeatColumn(rs.getInt("seat_column"));
         s.setSeatCode(rs.getString("seat_code"));
-        s.setStatus(rs.getString("status"));
         return s;
     }
 
@@ -225,7 +208,6 @@ public class SeatDAO {
         s.setSeatRow(rs.getString("seat_row"));
         s.setSeatColumn(rs.getInt("seat_column"));
         s.setSeatCode(rs.getString("seat_code"));
-        s.setStatus(rs.getString("status"));
         s.setAvailable(rs.getInt("is_available") == 1);
         s.setHeldByCurrentUser(rs.getInt("held_by_me") == 1);
 
