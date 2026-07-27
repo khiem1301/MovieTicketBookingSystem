@@ -179,7 +179,7 @@
           }
           if (attempts >= maxAttempts) {
             if (msgEl) {
-              msgEl.textContent = 'Ch\u01B0a nh\u1EADn \u0111\u01B0\u1EE3c x\u00E1c nh\u1EADn SePay. Ki\u1EC3m tra n\u1ED9i dung CK / d\u00F9ng x\u00E1c nh\u1EADn th\u1EE7 c\u00F4ng n\u1EBFu c\u1EA7n.';
+              msgEl.textContent = 'H\u1EC7 th\u1ED1ng ch\u01B0a nh\u1EADn \u0111\u01B0\u1EE3c thanh to\u00E1n. Vui l\u00F2ng ki\u1EC3m tra l\u1EA1i \u0111\u00FAng s\u1ED1 ti\u1EC1n v\u00E0 n\u1ED9i dung chuy\u1EC3n kho\u1EA3n, sau \u0111\u00F3 li\u00EAn h\u1EC7 h\u1ED7 tr\u1EE3 n\u1EBFu c\u1EA7n.';
             }
             return;
           }
