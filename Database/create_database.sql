@@ -244,7 +244,7 @@ CREATE TABLE VatRules (
     created_at DATETIME2        NOT NULL DEFAULT GETDATE(),
 
     CONSTRAINT PK_VatRules    PRIMARY KEY (id),
-    CONSTRAINT CK_VatRules_Status CHECK  (status IN ('ACTIVE','INACTIVE')),
+    CONSTRAINT CK_VatRules_Status CHECK  (status IN ('ACTIVE','INACTIVE','CANCELLED')),
     CONSTRAINT CK_VatRules_Rate   CHECK  (vat_rate >= 0 AND vat_rate <= 100),
     CONSTRAINT CK_VatRules_Dates  CHECK  (end_date IS NULL OR end_date > start_date)
 );

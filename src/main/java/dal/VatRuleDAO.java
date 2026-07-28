@@ -155,7 +155,7 @@ public class VatRuleDAO {
 
     /**
      * Đã có quy tắc ACTIVE hoặc đang hiệu lực bắt đầu đúng ngày {@code date}.
-     * Quy tắc đã hủy (INACTIVE + chưa tới ngày) không tính.
+     * Quy tắc đã hủy ({@code CANCELLED} / INACTIVE chưa tới ngày) không tính.
      */
     public boolean existsByStartDate(LocalDate date, String excludeId) {
         if (date == null) {
@@ -164,6 +164,8 @@ public class VatRuleDAO {
         String sql = """
                 SELECT 1 FROM VatRules
                 WHERE CAST(start_date AS DATE) = ?
+                  AND status <> 'CANCELLED'
+                  AND NOT (status = 'INACTIVE' AND start_date > GETDATE())
                   AND (
                     status = 'ACTIVE'
                     OR (
@@ -254,7 +256,7 @@ public class VatRuleDAO {
 
         String cancelSql = """
                 UPDATE VatRules
-                SET status = 'INACTIVE'
+                SET status = 'CANCELLED'
                 WHERE id = ? AND status = 'ACTIVE' AND start_date > GETDATE()
                 """;
 
@@ -345,7 +347,18 @@ public class VatRuleDAO {
         try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
             for (int i = 0; i < chain.size(); i++) {
                 VatRule cur = chain.get(i);
-                Timestamp end = (i < chain.size() - 1) ? chain.get(i + 1).getStartDate() : null;
+                Timestamp end = null;
+                if (i < chain.size() - 1) {
+                    // Bỏ qua mốc start trùng (tránh end_date = start_date → CK_VatRules_Dates)
+                    Timestamp curStart = cur.getStartDate();
+                    for (int j = i + 1; j < chain.size(); j++) {
+                        Timestamp nextStart = chain.get(j).getStartDate();
+                        if (nextStart.after(curStart)) {
+                            end = nextStart;
+                            break;
+                        }
+                    }
+                }
                 boolean startsInFuture = cur.getStartDate().after(now);
                 // end <= now → khoảng đã kết thúc (mốc end = start của rule kế)
                 boolean periodEnded = end != null && !end.after(now);
@@ -369,15 +382,16 @@ public class VatRuleDAO {
     }
 
     /**
-     * Toàn bộ timeline trừ lịch đã hủy (INACTIVE + start trong tương lai).
-     * Cần đủ lịch sử để nối lại end_date đúng khi thêm/sửa/hủy.
+     * Timeline hiệu lực: bỏ rule đã hủy ({@code CANCELLED} hoặc INACTIVE + start tương lai).
+     * Nếu đưa canceled vào chain, nhiều bản ghi cùng start_date → end = start → lỗi CK_VatRules_Dates.
      */
     private List<VatRule> loadChainRules(Connection conn) throws SQLException {
         String sql = SELECT_COLUMNS + """
-                WHERE NOT (
+                WHERE status <> 'CANCELLED'
+                  AND NOT (
                     status = 'INACTIVE'
                     AND start_date > GETDATE()
-                )
+                  )
                 ORDER BY start_date ASC, created_at ASC
                 """;
         List<VatRule> result = new ArrayList<>();
