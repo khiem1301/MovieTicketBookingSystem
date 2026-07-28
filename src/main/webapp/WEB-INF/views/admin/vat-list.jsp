@@ -59,15 +59,11 @@
               <span class="admin-stat-label">Ngày bắt đầu</span>
             </div>
           </div>
-          <c:if test="${currentRule.status == 'INACTIVE'}">
+          <c:if test="${not empty currentRule.endDate}">
             <p style="font-size:12px;color:var(--text-muted);margin:12px 0 0;">
-              Quy tắc này vẫn hiệu lực theo khoảng ngày cho đến
-              <c:choose>
-                <c:when test="${not empty currentRule.endDate}">
-                  <fmt:formatDate value="${currentRule.endDate}" pattern="dd/MM/yyyy"/>.
-                </c:when>
-                <c:otherwise>không giới hạn.</c:otherwise>
-              </c:choose>
+              Hiệu lực đến trước
+              <fmt:formatDate value="${currentRule.endDate}" pattern="dd/MM/yyyy HH:mm"/>
+              (khi quy tắc đã lên lịch kế tiếp bắt đầu).
             </p>
           </c:if>
         </c:when>
@@ -173,9 +169,7 @@
                     </c:choose>
                   </td>
                   <td>
-                    <span class="admin-badge admin-badge--inactive">
-                      <c:out value="${rule.status}"/>
-                    </span>
+                    <span class="admin-badge admin-badge--inactive">HẾT HIỆU LỰC</span>
                   </td>
                   <td class="cell-muted">
                     <fmt:formatDate value="${rule.createdAt}" pattern="dd/MM/yyyy HH:mm"/>
