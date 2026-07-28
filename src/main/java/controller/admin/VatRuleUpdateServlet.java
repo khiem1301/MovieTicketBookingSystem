@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @WebServlet(urlPatterns = {"/admin/vat/update"})
@@ -48,7 +49,8 @@ public class VatRuleUpdateServlet extends HttpServlet {
 
         LocalDate start = form.getStartDate().toLocalDate();
         VatRuleDAO dao = new VatRuleDAO();
-        if (dao.existsByStartDate(start, ruleId)) {
+        // Chỉ chặn trùng ngày với lịch tương lai — hôm nay cho phép thay thế/áp dụng ngay (giống create)
+        if (start.isAfter(LocalDate.now()) && dao.existsByStartDate(start, ruleId)) {
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR,
                     VatRuleCreateServlet.MSG_DUPLICATE_START_DATE);
             resp.sendRedirect(redirect);
@@ -57,7 +59,9 @@ public class VatRuleUpdateServlet extends HttpServlet {
 
         try {
             BigDecimal rate = new BigDecimal(form.getVatRate().trim());
-            Timestamp startDate = Timestamp.valueOf(start.atStartOfDay());
+            Timestamp startDate = start.equals(LocalDate.now())
+                    ? Timestamp.valueOf(LocalDateTime.now())
+                    : Timestamp.valueOf(start.atStartOfDay());
 
             dao.updateScheduled(
                     ruleId,
@@ -66,8 +70,10 @@ public class VatRuleUpdateServlet extends HttpServlet {
                     startDate
             );
 
-            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_SUCCESS,
-                    "Đã cập nhật quy tắc VAT đã lên lịch.");
+            String message = start.isAfter(LocalDate.now())
+                    ? "Đã cập nhật quy tắc VAT đã lên lịch."
+                    : "Đã chuyển quy tắc sang áp dụng từ hôm nay.";
+            AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_SUCCESS, message);
         } catch (VatRuleDAO.DuplicateStartDateException ex) {
             AdminAuthUtil.setFlash(req, AdminAuthUtil.FLASH_ERROR,
                     VatRuleCreateServlet.MSG_DUPLICATE_START_DATE);

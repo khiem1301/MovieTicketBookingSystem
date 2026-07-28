@@ -85,10 +85,9 @@ public class VatRuleDAO {
 
     private static final String HISTORY_WHERE = """
             status = 'INACTIVE'
-            AND NOT (
-                start_date <= GETDATE()
-                AND (end_date IS NULL OR end_date >= GETDATE())
-            )
+            AND start_date <= GETDATE()
+            AND end_date IS NOT NULL
+            AND end_date <= GETDATE()
             """;
 
     /** Quy tắc đã hết hiệu lực — loại rule vẫn còn trong khoảng ngày (dù status INACTIVE). */
@@ -205,7 +204,8 @@ public class VatRuleDAO {
         }
 
         LocalDate newDay = newStartDate.toLocalDateTime().toLocalDate();
-        if (existsByStartDate(newDay, id)) {
+        // Trùng ngày chỉ cấm với lịch tương lai; chuyển về hôm nay = áp dụng ngay (giống create)
+        if (newDay.isAfter(LocalDate.now()) && existsByStartDate(newDay, id)) {
             throw new DuplicateStartDateException(newDay);
         }
 
@@ -322,8 +322,15 @@ public class VatRuleDAO {
     }
 
     /**
-     * Nối chuỗi theo start_date tăng dần cho mọi rule ACTIVE + rule đang mở (end_date NULL).
-     * Rule đã qua ngày bắt đầu và bị rule sau thay → INACTIVE; lịch tương lai giữ ACTIVE.
+     * Nối chuỗi theo {@code start_date} tăng dần.
+     * {@code end_date} của rule i = {@code start_date} của rule i+1 (mốc kết thúc, exclusive).
+     * Status:
+     * <ul>
+     *   <li>ACTIVE — chưa tới ngày bắt đầu (lịch), hoặc đang trong khoảng hiệu lực</li>
+     *   <li>INACTIVE — đã qua {@code end_date} (bị rule sau thay thế)</li>
+     * </ul>
+     * Lưu ý: rule đang hiệu lực nhưng đã có lịch sau vẫn ACTIVE đến đúng mốc end
+     * (tránh “vừa thêm hôm nay đã INACTIVE” khi chỉ mới gán end_date tương lai).
      */
     private void rechainTimeline(Connection conn) throws SQLException {
         List<VatRule> chain = loadChainRules(conn);
@@ -340,13 +347,13 @@ public class VatRuleDAO {
                 VatRule cur = chain.get(i);
                 Timestamp end = (i < chain.size() - 1) ? chain.get(i + 1).getStartDate() : null;
                 boolean startsInFuture = cur.getStartDate().after(now);
+                // end <= now → khoảng đã kết thúc (mốc end = start của rule kế)
+                boolean periodEnded = end != null && !end.after(now);
                 String status;
-                if (startsInFuture) {
+                if (startsInFuture || !periodEnded) {
                     status = "ACTIVE";
-                } else if (end != null) {
-                    status = "INACTIVE";
                 } else {
-                    status = "ACTIVE";
+                    status = "INACTIVE";
                 }
 
                 if (end != null) {
@@ -362,24 +369,16 @@ public class VatRuleDAO {
     }
 
     /**
-     * Rule thuộc chuỗi: ACTIVE, hoặc đang mở end_date NULL (current), hoặc INACTIVE nhưng
-     * end_date vẫn trỏ tới một ACTIVE (tiền nhiệm của lịch).
-     * Loại trừ lịch đã hủy: INACTIVE + start trong tương lai.
+     * Toàn bộ timeline trừ lịch đã hủy (INACTIVE + start trong tương lai).
+     * Cần đủ lịch sử để nối lại end_date đúng khi thêm/sửa/hủy.
      */
     private List<VatRule> loadChainRules(Connection conn) throws SQLException {
         String sql = SELECT_COLUMNS + """
-                WHERE status = 'ACTIVE'
-                   OR (
-                     end_date IS NULL
-                     AND start_date <= GETDATE()
-                   )
-                   OR (
-                     status = 'INACTIVE'
-                     AND end_date IS NOT NULL
-                     AND start_date <= GETDATE()
-                     AND end_date >= GETDATE()
-                   )
-                ORDER BY start_date ASC
+                WHERE NOT (
+                    status = 'INACTIVE'
+                    AND start_date > GETDATE()
+                )
+                ORDER BY start_date ASC, created_at ASC
                 """;
         List<VatRule> result = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql);
@@ -389,6 +388,27 @@ public class VatRuleDAO {
             }
         }
         return result;
+    }
+
+    /**
+     * Sửa lại end_date/status sau bug cũ (rule đang hiệu lực bị gắn INACTIVE sớm).
+     * An toàn gọi khi mở trang quản lý VAT.
+     */
+    public void repairTimeline() {
+        try (Connection conn = DBContext.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                rechainTimeline(conn);
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("repairTimeline failed", e);
+        }
     }
 
     private static String blankToNull(String value) {

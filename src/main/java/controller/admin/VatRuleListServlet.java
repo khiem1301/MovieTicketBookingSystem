@@ -30,6 +30,11 @@ public class VatRuleListServlet extends HttpServlet {
         }
 
         VatRuleDAO dao = new VatRuleDAO();
+        try {
+            dao.repairTimeline();
+        } catch (RuntimeException e) {
+            log("VAT timeline repair failed", e);
+        }
         Optional<VatRule> currentRule = dao.findEffectiveNow();
         List<VatRule> scheduledList = dao.findScheduledList();
 
